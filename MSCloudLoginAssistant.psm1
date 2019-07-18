@@ -256,8 +256,12 @@ function Test-MSCloudLogin
             $Global:spoAdminUrl = Get-SPOAdminUrl;
             if ([string]::IsNullOrEmpty($ConnectionUrl))
             {
-                # If we haven't specified a ConnectionUrl, just make the connection URL the first root site collection in the tenant
-                $Global:ConnectionUrl = $Global:spoAdminUrl.Replace("-admin","")
+                # If we haven't specified a ConnectionUrl, just make the connection URL central admin
+                $Global:ConnectionUrl = $Global:spoAdminUrl
+            }
+            else
+            {
+                $Global:ConnectionUrl = $ConnectionUrl
             }
             Write-Verbose -Message "`$Global:ConnectionUrl is $Global:ConnectionUrl."
             $testCmdlet = "Get-PnPSite";
