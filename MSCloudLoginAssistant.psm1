@@ -355,7 +355,9 @@ function Test-MSCloudLogin
                 {
                     throw  "Bad credentials were supplied"
                 }
-                elseif ($_.Exception -like "*$exceptionStringMFA*" -or $_.Exception -like "*Sequence contains no elements*")
+                elseif ($_.Exception -like "*$exceptionStringMFA*" -or `
+                        $_.Exception -like "*Sequence contains no elements*" -or `
+                        ($_.Exception -like "*System.Reflection.TargetInvocationException: Exception has been thrown*" -and $Platform -eq "PNP"))
                 {
                     Write-Verbose -Message "The specified account is configured for Multi-Factor Authentication. Please re-enter your credentials."
                     Write-Host -ForegroundColor Green " - Prompting for credentials with MFA for $Platform"
