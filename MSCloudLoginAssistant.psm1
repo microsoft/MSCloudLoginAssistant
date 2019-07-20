@@ -121,7 +121,18 @@ function Test-MSCloudLogin
                     while ($null -eq $Global:ExchangeOnlineSession)
                     {
                         Write-Verbose -Message "Creating new EXO Session"
-                        $Global:ExchangeOnlineSession = New-PSSession -Name 'ExchangeOnline' -ConfigurationName Microsoft.Exchange -ConnectionUri https://outlook.office365.com/powershell-liveid/ -Credential $O365Credential -Authentication Basic -AllowRedirection -ErrorAction SilentlyContinue
+
+                        try
+                        {
+                            $Global:ExchangeOnlineSession = New-PSSession -Name 'ExchangeOnline' -ConfigurationName Microsoft.Exchange -ConnectionUri https://outlook.office365.com/powershell-liveid/ -Credential $O365Credential -Authentication Basic -AllowRedirection -ErrorAction Stop
+                        }
+                        catch
+                        {
+                            if ($_ -like '*Connecting to remote server *Access is denied.*')
+                            {
+                                Throw "The provided account doesn't have admin access to Exchange Online."
+                            }
+                        }
 
                         if ($null -eq $Global:ExchangeOnlineSession)
                         {
