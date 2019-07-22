@@ -368,7 +368,8 @@ function Test-MSCloudLogin
                 }
                 elseif ($_.Exception -like "*$exceptionStringMFA*" -or `
                         $_.Exception -like "*Sequence contains no elements*" -or `
-                        ($_.Exception -like "*System.Reflection.TargetInvocationException: Exception has been thrown*" -and $Platform -eq "PNP"))
+                        ($_.Exception -like "*System.Reflection.TargetInvocationException: Exception has been thrown*" -and $Platform -eq "PNP") -or `
+                        ($_.Exception -like "*or the web site does not support SharePoint Online credentials*" -and $Platform -eq "SharePointOnline"))
                 {
                     Write-Verbose -Message "The specified account is configured for Multi-Factor Authentication. Please re-enter your credentials."
                     Write-Host -ForegroundColor Green " - Prompting for credentials with MFA for $Platform"
