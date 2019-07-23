@@ -10,7 +10,7 @@
 .NOTES
     Created & maintained by Brian Lalancette (@brianlala), 2019.
 .LINK
-    https://github.com/brianlala/MSCloudLoginAssistant
+    https://github.com/Microsoft/MSCloudLoginAssistant
 #>
 
 function Test-MSCloudLogin
