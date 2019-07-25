@@ -372,7 +372,8 @@ function Test-MSCloudLogin
             $RedirectURI = "https://teamscmdlet.microsoft.com";
             $connectCmdlet = "Connect-MicrosoftTeams";
             $connectCmdletArgs = "-Credential `$Global:o365Credential";
-            $connectCmdletMfaRetryArgs = "-AadAccessToken `$AuthToken -AccountId `$Global:o365Credential.UserName";
+            #$connectCmdletMfaRetryArgs = "-AadAccessToken `$AuthToken -AccountId `$Global:o365Credential.UserName";
+            $connectCmdletMfaRetryArgs = "-AccountId `$Global:o365Credential.UserName";
             $variablePrefix = "teams"
         }
     }
@@ -468,8 +469,10 @@ function Test-MSCloudLogin
                     try
                     {
                         Write-Debug -Message "Replacing connection parameters '$connectCmdletArgs' with '$connectCmdletMfaRetryArgs'..."
-                        $AuthHeader = Get-AuthHeader -TenantName $TenantName -UserPrincipalName $Global:o365Credential.UserName -RessourceURI $RessourceURI -clientID $clientID -RedirectURI $RedirectURI
-                        $AuthToken = $AuthHeader.split(" ")[1]
+                        if($Platform -ne "SharePointOnline" -and $Platform -ne "PNP" -and $Platform -ne "MicrosoftTeams"){
+                            $AuthHeader = Get-AuthHeader -TenantName $TenantName -UserPrincipalName $Global:o365Credential.UserName -RessourceURI $RessourceURI -clientID $clientID -RedirectURI $RedirectURI
+                            $AuthToken = $AuthHeader.split(" ")[1]
+                        }
                         Invoke-Expression -Command "$connectCmdlet -ErrorAction Stop $connectCmdletMfaRetryArgs | Out-Null"
                         $UseModernAuth -eq $True
                         if ($? -eq $false)
