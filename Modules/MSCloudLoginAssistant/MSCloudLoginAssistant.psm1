@@ -358,7 +358,7 @@ function Test-MSCloudLogin
             $RedirectURI = "https://oauth.spops.microsoft.com/";
             $connectCmdlet = "Connect-PnPOnline";
             $connectCmdletArgs = "-Url `$Global:ConnectionUrl -Credentials `$Global:o365Credential";
-            $connectCmdletMfaRetryArgs = $connectCmdletArgs.Replace("-Credentials `$Global:o365Credential","-UseWebLogin");
+            $connectCmdletMfaRetryArgs = "-AccessToken `$AuthToken";
             $variablePrefix = "pnp"
         }
         'MicrosoftTeams'
