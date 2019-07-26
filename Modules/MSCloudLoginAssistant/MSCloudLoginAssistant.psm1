@@ -353,9 +353,9 @@ function Test-MSCloudLogin
             Write-Verbose -Message "`$Global:ConnectionUrl is $Global:ConnectionUrl."
             $testCmdlet = "Get-PnPSite";
             $exceptionStringMFA = "sign-in name or password does not match one in the Microsoft account system";
-            $clientid = "00000003-0000-0ff1-ce00-000000000000";
-            $RessourceURI = "";
-            $RedirectURI = $Global:ConnectionUrl;
+            $clientid = "9bc3ab49-b65d-410a-85ad-de819febfddc";
+            $RessourceURI = $Global:ConnectionUrl;
+            $RedirectURI = "https://oauth.spops.microsoft.com/";
             $connectCmdlet = "Connect-PnPOnline";
             $connectCmdletArgs = "-Url `$Global:ConnectionUrl -Credentials `$Global:o365Credential";
             $connectCmdletMfaRetryArgs = $connectCmdletArgs.Replace("-Credentials `$Global:o365Credential","-UseWebLogin");
@@ -469,7 +469,7 @@ function Test-MSCloudLogin
                     try
                     {
                         Write-Debug -Message "Replacing connection parameters '$connectCmdletArgs' with '$connectCmdletMfaRetryArgs'..."
-                        if($Platform -ne "SharePointOnline" -and $Platform -ne "PNP" -and $Platform -ne "MicrosoftTeams"){
+                        if($Platform -ne "SharePointOnline" -and $Platform -ne "MicrosoftTeams"){
                             $AuthHeader = Get-AuthHeader -TenantName $TenantName -UserPrincipalName $Global:o365Credential.UserName -RessourceURI $RessourceURI -clientID $clientID -RedirectURI $RedirectURI
                             $AuthToken = $AuthHeader.split(" ")[1]
                         }
