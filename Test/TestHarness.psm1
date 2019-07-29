@@ -24,11 +24,8 @@ function Invoke-TestHarness
     $testCoverageFiles = @()
     if ($IgnoreCodeCoverage.IsPresent -eq $false)
     {
-        Get-ChildItem -Path "$repoDir\modules\MSCloudLoginAssistant\DSCResources\**\*.psm1" -Recurse | ForEach-Object {
-            if ($_.FullName -notlike '*\DSCResource.Tests\*')
-            {
-                $testCoverageFiles += $_.FullName
-            }
+        Get-ChildItem -Path "$repoDir\modules\MSCloudLoginAssistant\*.psm1" -Recurse | ForEach-Object {
+            $testCoverageFiles += $_.FullName
         }
     }
 
@@ -42,18 +39,18 @@ function Invoke-TestHarness
     $testsToRun = @()
 
     # Run Unit Tests
-    $versionsPath = Join-Path -Path $repoDir -ChildPath "\Tests\Unit\Stubs\"
+    $versionsPath = Join-Path -Path $repoDir -ChildPath "\Test\Unit\Stubs\"
     $versionsToTest = (Get-ChildItem -Path $versionsPath).Name
     # Import the first stub found so that there is a base module loaded before the tests start
     $firstStub = Join-Path -Path $repoDir `
-        -ChildPath "\Tests\Unit\Stubs\MSCloudLoginAssistant.psm1"
+        -ChildPath "\Test\Unit\Stubs\MSCloudLoginAssistant.psm1"
     Import-Module $firstStub -WarningAction SilentlyContinue
 
     $versionsToTest | ForEach-Object -Process {
         $stubPath = Join-Path -Path $repoDir `
-            -ChildPath "\Tests\Unit\Stubs\MSCloudLoginAssistant.psm1"
+            -ChildPath "\Test\Unit\Stubs\MSCloudLoginAssistant.psm1"
         $testsToRun += @(@{
-                'Path'       = (Join-Path -Path $repoDir -ChildPath "\Tests\Unit")
+                'Path'       = (Join-Path -Path $repoDir -ChildPath "\Test\Unit")
                 'Parameters' = @{
                     'CmdletModule' = $stubPath
                 }
