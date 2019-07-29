@@ -41,7 +41,6 @@ function Test-MSCloudLogin
     if ($null -ne $CloudCredential)
     {
         $Global:o365Credential = $CloudCredential
-        $TenantName = $Global:o365Credential.UserName.split("@")[1]
     }
     if($null -eq $Global:UseModernAuth){
         $Global:UseModernAuth = $UseModernAuth.IsPresent
@@ -149,7 +148,7 @@ function Test-MSCloudLogin
                         catch
                         {
                             try {
-                                $AuthHeader = Get-AuthHeader -TenantName $TenantName -UserPrincipalName $Global:o365Credential.UserName -RessourceURI $RessourceURI -clientID $clientID -RedirectURI $RedirectURI
+                                $AuthHeader = Get-AuthHeader -UserPrincipalName $Global:o365Credential.UserName -RessourceURI $RessourceURI -clientID $clientID -RedirectURI $RedirectURI
                                 $Password = ConvertTo-SecureString -AsPlainText $AuthHeader -Force
                                 $Ctoken = New-Object System.Management.Automation.PSCredential -ArgumentList $Global:o365Credential.UserName, $Password
                                 $Global:ExchangeOnlineSession = New-PSSession -ConfigurationName Microsoft.Exchange `
@@ -221,7 +220,7 @@ function Test-MSCloudLogin
                                     $Global:ExchangeOnlineSession = New-PSSession -Name 'ExchangeOnline' -ConfigurationName Microsoft.Exchange -ConnectionUri https://outlook.office365.com/powershell-liveid/ -Credential $O365Credential -Authentication Basic -AllowRedirection -ErrorAction Stop
                                 }
                                 catch {
-                                    $AuthHeader = Get-AuthHeader -TenantName $TenantName -UserPrincipalName $Global:o365Credential.UserName -RessourceURI $RessourceURI -clientID $clientID -RedirectURI $RedirectURI
+                                    $AuthHeader = Get-AuthHeader -UserPrincipalName $Global:o365Credential.UserName -RessourceURI $RessourceURI -clientID $clientID -RedirectURI $RedirectURI
                                     $Password = ConvertTo-SecureString -AsPlainText $AuthHeader -Force
                                     $Ctoken = New-Object System.Management.Automation.PSCredential -ArgumentList $Global:o365Credential.UserName, $Password
                                     $Global:ExchangeOnlineSession = New-PSSession -ConfigurationName Microsoft.Exchange `
@@ -304,7 +303,7 @@ function Test-MSCloudLogin
                     $clientid = "a0c73c16-a7e3-4564-9a95-2bdf47383716";
                     $RessourceURI = "https://ps.compliance.protection.outlook.com";
                     $RedirectURI = "urn:ietf:wg:oauth:2.0:oob";
-                    $AuthHeader = Get-AuthHeader -TenantName $TenantName -UserPrincipalName $Global:o365Credential.UserName -RessourceURI $RessourceURI -clientID $clientID -RedirectURI $RedirectURI
+                    $AuthHeader = Get-AuthHeader -UserPrincipalName $Global:o365Credential.UserName -RessourceURI $RessourceURI -clientID $clientID -RedirectURI $RedirectURI
                     $Password = ConvertTo-SecureString -AsPlainText $AuthHeader -Force
                     $Ctoken = New-Object System.Management.Automation.PSCredential -ArgumentList $Global:o365Credential.UserName, $Password
                     $Global:SessionSecurityCompliance = New-PSSession -ConfigurationName Microsoft.Exchange `
@@ -424,10 +423,6 @@ function Test-MSCloudLogin
                     {
                         throw "Microsoft Online credentials must be supplied."
                     }
-                    else
-                    {
-                        $TenantName = $Global:o365Credential.UserName.split("@")[1]
-                    }
                     Write-Verbose -Message "Will now attempt to use credential for '$($Global:o365Credential.UserName)'..."
                 }
                 if($_.Exception -like "*The access token expiry*")
@@ -474,7 +469,7 @@ function Test-MSCloudLogin
                     {
                         Write-Debug -Message "Replacing connection parameters '$connectCmdletArgs' with '$connectCmdletMfaRetryArgs'..."
                         if($Platform -ne "SharePointOnline" -and $Platform -ne "MicrosoftTeams"){
-                            $AuthHeader = Get-AuthHeader -TenantName $TenantName -UserPrincipalName $Global:o365Credential.UserName -RessourceURI $RessourceURI -clientID $clientID -RedirectURI $RedirectURI
+                            $AuthHeader = Get-AuthHeader -UserPrincipalName $Global:o365Credential.UserName -RessourceURI $RessourceURI -clientID $clientID -RedirectURI $RedirectURI
                             $AuthToken = $AuthHeader.split(" ")[1]
                         }
                         Invoke-Expression -Command "$connectCmdlet -ErrorAction Stop $connectCmdletMfaRetryArgs | Out-Null"
@@ -669,9 +664,6 @@ function Get-AuthHeader
     Param(
         [Parameter(Mandatory = $True)]
         [System.String]
-        $TenantName,
-        [Parameter(Mandatory = $True)]
-        [System.String]
         $UserPrincipalName,
         [Parameter(Mandatory = $True)]
         $RessourceURI,
@@ -683,6 +675,7 @@ function Get-AuthHeader
     )
     if($Global:ADALServicePoint -eq $NULL)
     {
+        $TenantName = $UserPrincipalName.split("@")[1]
         $Global:ADALServicePoint = New-ADALServiceInfo -TenantName $TenantName -UserPrincipalName $UserPrincipalName
     }
     
