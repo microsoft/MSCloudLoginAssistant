@@ -34,17 +34,17 @@ function Test-MSCloudLogin
 
         [Parameter()]
         [Switch]
-        $UseModernAuth,
-
-        [Parameter()]
-        [System.String]
-        $TenantName
+        $UseModernAuth
     )
 
     # If we specified the CloudCredential parameter then set the global o365Credential object to its value
     if ($null -ne $CloudCredential)
     {
         $Global:o365Credential = $CloudCredential
+        $TenantName = $Global:o365Credential.UserName.split("@")[1]
+    }
+    if($null -eq $Global:UseModernAuth){
+        $Global:UseModernAuth = $UseModernAuth.IsPresent
     }
     switch ($Platform)
     {
@@ -85,7 +85,7 @@ function Test-MSCloudLogin
             $testCmdlet = "Get-SPOSite";
             $exceptionStringMFA = "sign-in name or password does not match one in the Microsoft account system";
             $clientid = "9bc3ab49-b65d-410a-85ad-de819febfddc";
-            $RessourceURI = "https://multihybrid-admin.sharepoint.com";
+            $RessourceURI = $Global:spoAdminUrl;
             $RedirectURI = "urn:ietf:wg:oauth:2.0:oob";
             $connectCmdlet = "Connect-SPOService";
             $connectCmdletArgs = "-Url $Global:spoAdminUrl -Credential `$Global:o365Credential";
@@ -158,7 +158,7 @@ function Test-MSCloudLogin
                                 -Authentication Basic `
                                 -ErrorAction Stop `
                                 -AllowRedirection
-                                $UseModernAuth = $True
+                                $Global:UseModernAuth = $True
                             }
                             catch {
                                 if ($_ -like '*Connecting to remote server *Access is denied.*')
@@ -230,7 +230,7 @@ function Test-MSCloudLogin
                                     -Authentication Basic `
                                     -AllowRedirection `
                                     -ErrorAction SilentlyContinue
-                                    $UseModernAuth = $True
+                                    $Global:UseModernAuth = $True
                                 }
                                 
                             }
@@ -312,7 +312,7 @@ function Test-MSCloudLogin
                     -Credential $Ctoken `
                     -Authentication Basic `
                     -AllowRedirection
-                    $UseModernAuth = $True
+                    $Global:UseModernAuth = $True
                 }
             }
             else 
@@ -424,13 +424,17 @@ function Test-MSCloudLogin
                     {
                         throw "Microsoft Online credentials must be supplied."
                     }
+                    else
+                    {
+                        $TenantName = $Global:o365Credential.UserName.split("@")[1]
+                    }
                     Write-Verbose -Message "Will now attempt to use credential for '$($Global:o365Credential.UserName)'..."
                 }
                 if($_.Exception -like "*The access token expiry*")
                 {
                     throw
                 }
-                if($UseModernAuth -eq $True)
+                if($Global:UseModernAuth -eq $True)
                 {
                     throw
                 }
@@ -462,7 +466,7 @@ function Test-MSCloudLogin
                         ($_.Exception -like "*System.Reflection.TargetInvocationException: Exception has been thrown*" -and $Platform -eq "PNP") -or `
                         ($_.Exception -like "*or the web site does not support SharePoint Online credentials*" -and $Platform -eq "SharePointOnline") -or `
                         ($_.Exception -like "*The access token expiry*" -and $Platform -eq "Azure") -or `
-                        $UseModernAuth -eq $True)
+                        $Global:UseModernAuth -eq $True)
                 {
                     Write-Verbose -Message "The specified account is configured for Multi-Factor Authentication. Please re-enter your credentials."
                     Write-Host -ForegroundColor Green " - Prompting for credentials with MFA for $Platform"
@@ -474,7 +478,6 @@ function Test-MSCloudLogin
                             $AuthToken = $AuthHeader.split(" ")[1]
                         }
                         Invoke-Expression -Command "$connectCmdlet -ErrorAction Stop $connectCmdletMfaRetryArgs | Out-Null"
-                        $UseModernAuth -eq $True
                         if ($? -eq $false)
                         {
                             throw
@@ -483,6 +486,7 @@ function Test-MSCloudLogin
                         {
                             New-Variable -Name $variablePrefix"LoginSucceeded" -Value $true -Scope Global -Option AllScope -Force
                             Write-Debug $variablePrefix"LoginSucceeded is now '$(Get-Variable -Name $($variablePrefix+"LoginSucceeded") -ValueOnly -Scope Global -ErrorAction SilentlyContinue)'."
+                            $Global:UseModernAuth = $True
                         }
                     }
                     catch
@@ -589,21 +593,6 @@ function Get-AzureADDLL
 
 }
 
-function Test-TenantName
-{
-    [CmdletBinding()]
-    [OutputType([System.String])]
-    Param(
-        [Parameter(Mandatory = $false)]
-        [System.String]
-        $TenantName
-    )
-    if($TenantName -notlike "*.onmicrosoft.com"){
-        $TenantName = $TenantName + ".onmicrosoft.com"
-    }
-    Return $TenantName
-}
-
 function Get-TenantLoginEndPoint
 {
     [CmdletBinding()]
@@ -618,7 +607,6 @@ function Get-TenantLoginEndPoint
         $LoginSource = "EvoSTS"
     )
     $TenantInfo = @{}
-    $TenantName = Test-TenantName -TenantName $TenantName
     if($LoginSource -eq "EvoSTS")
     {
         $webrequest = Invoke-WebRequest -Uri https://login.windows.net/$($TenantName)/.well-known/openid-configuration -UseBasicParsing
