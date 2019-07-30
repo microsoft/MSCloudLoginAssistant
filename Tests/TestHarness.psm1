@@ -8,14 +8,9 @@ function Invoke-TestHarness
         $TestResultsFile,
 
         [Parameter()]
-        [System.String]
-        $DscTestsPath,
-
-        [Parameter()]
         [Switch]
         $IgnoreCodeCoverage
     )
-
 
     Write-Verbose -Message 'Starting all MSCloudLoginAssistant tests'
 
@@ -39,42 +34,22 @@ function Invoke-TestHarness
     $testsToRun = @()
 
     # Run Unit Tests
-    $versionsPath = Join-Path -Path $repoDir -ChildPath "\Test\Unit\Stubs\"
+    $versionsPath = Join-Path -Path $repoDir -ChildPath "\Tests\Unit\Stubs\"
     $versionsToTest = (Get-ChildItem -Path $versionsPath).Name
     # Import the first stub found so that there is a base module loaded before the tests start
     $firstStub = Join-Path -Path $repoDir `
-        -ChildPath "\Test\Unit\Stubs\MSCloudLoginAssistant.psm1"
+        -ChildPath "\Tests\Unit\Stubs\Stubs.psm1"
     Import-Module $firstStub -WarningAction SilentlyContinue
 
     $versionsToTest | ForEach-Object -Process {
         $stubPath = Join-Path -Path $repoDir `
-            -ChildPath "\Test\Unit\Stubs\MSCloudLoginAssistant.psm1"
+            -ChildPath "\Tests\Unit\Stubs\Stubs.psm1"
         $testsToRun += @(@{
-                'Path'       = (Join-Path -Path $repoDir -ChildPath "\Test\Unit")
+                'Path'       = (Join-Path -Path $repoDir -ChildPath "\Tests\Unit")
                 'Parameters' = @{
                     'CmdletModule' = $stubPath
                 }
             })
-    }
-
-    # DSC Common Tests
-    if ($PSBoundParameters.ContainsKey('DscTestsPath') -eq $true)
-    {
-        $getChildItemParameters = @{
-            Path    = $DscTestsPath
-            Recurse = $true
-            Filter  = '*.Tests.ps1'
-        }
-
-        # Get all tests '*.Tests.ps1'.
-        $commonTestFiles = Get-ChildItem @getChildItemParameters
-
-        # Remove DscResource.Tests unit tests.
-        $commonTestFiles = $commonTestFiles | Where-Object -FilterScript {
-            $_.FullName -notmatch 'DSCResource.Tests\\Tests'
-        }
-
-        $testsToRun += @( $commonTestFiles.FullName )
     }
 
     if ($IgnoreCodeCoverage.IsPresent -eq $false)

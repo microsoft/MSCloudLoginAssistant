@@ -161,9 +161,9 @@ function Test-MSCloudLogin
                             }
                             catch {
                                 if ($_ -like '*Connecting to remote server *Access is denied.*')
-                            {
-                                Throw "The provided account doesn't have admin access to Exchange Online."
-                            }
+                                {
+                                    Throw "The provided account doesn't have admin access to Exchange Online."
+                                }
                             }
                             
                         }
@@ -177,6 +177,7 @@ function Test-MSCloudLogin
                     if ($null -eq $Global:ExchangeOnlineModules)
                     {
                         Write-Verbose -Message "Importing all commands into the EXO Session"
+                        $WarningPreference = 'silentlycontinue'
                         $Global:ExchangeOnlineModules = Import-PSSession $Global:ExchangeOnlineSession -AllowClobber
                         Import-Module $Global:ExchangeOnlineModules -Global | Out-Null
                     }
@@ -233,6 +234,7 @@ function Test-MSCloudLogin
                                 }
                                 
                             }
+                            $WarningPreference='silentlycontinue'
                             $Global:ExchangeOnlineModules = Import-PSSession $Global:ExchangeOnlineSession -AllowClobber -ErrorAction SilentlyContinue
                             $ExchangeOnlineModuleImport = Import-Module $ExchangeOnlineModules -Global -ErrorAction SilentlyContinue
                         }
@@ -259,6 +261,7 @@ function Test-MSCloudLogin
                             Write-Verbose -Message "Opening New ExchangeOnline Session."
                             $VerbosePreference = 'SilentlyContinue'
                             Get-PSSession -Name 'ExchangeOnline' -ErrorAction SilentlyContinue | Remove-PSSession -ErrorAction SilentlyContinue
+                            $WarningPreference='silentlycontinue'
                             $Global:ExchangeOnlineSession = New-PSSession -Name 'ExchangeOnline' -ConfigurationName Microsoft.Exchange -ConnectionUri https://outlook.office365.com/powershell-liveid/ -Credential $O365Credential -Authentication Basic -AllowRedirection
                             $Global:ExchangeOnlineModules = Import-PSSession $Global:ExchangeOnlineSession -AllowClobber -ErrorAction SilentlyContinue
                             $ExchangeOnlineModuleImport = Import-Module $ExchangeOnlineModules -Global -ErrorAction SilentlyContinue
@@ -284,6 +287,7 @@ function Test-MSCloudLogin
         }
         'SecurityComplianceCenter'
         {
+            $WarningPreference='silentlycontinue'
             $Global:SessionSecurityCompliance = Get-PSSession | Where-Object{$_.ComputerName -like "*.ps.compliance.protection.outlook.com" -and $_.State -eq "Opened"}
             #Try Catch doesn't work even with $Global:ErrorActionPreference = "stop"
             if ($null -eq $Global:SessionSecurityCompliance)
@@ -318,11 +322,15 @@ function Test-MSCloudLogin
             {
                 Write-Verbose -Message "Session to Security & Compliance already exists, re-using existing session"
             }
-            $Global:SCModule = Import-PSSession $Global:SessionSecurityCompliance  `
-                    -ErrorAction SilentlyContinue `
-                    -AllowClobber
+            $WarningPreference='silentlycontinue'
+            if ($null -eq $Global:SCModule)
+            {
+                $Global:SCModule = Import-PSSession $Global:SessionSecurityCompliance  `
+                        -ErrorAction SilentlyContinue `
+                        -AllowClobber
 
-            Import-Module $Global:SCModule -Global | Out-Null
+                Import-Module $Global:SCModule -Global | Out-Null
+            }
             return
         }
         'MSOnline'
