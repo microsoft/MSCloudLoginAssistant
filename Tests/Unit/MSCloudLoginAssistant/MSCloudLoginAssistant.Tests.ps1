@@ -40,6 +40,139 @@ Describe -Name $Global:DscHelper.DescribeHeader -Fixture {
                 Test-MSCloudLogin @testParams | Assert-MockCalled -CommandName Invoke-Expression
             }
         }
+
+        Context -Name "Connecting to AzureAD for the first time" -Fixture {
+            $CallNumber = 0
+            Mock -CommandName Invoke-Expression -MockWith{
+                if ($CallNumber -eq 0)
+                {
+                    $CallNumber++
+                }
+            }
+
+            $testParams = @{
+                Platform        = "AzureAD"
+                CloudCredential = $GlobalAdminAccount
+            }
+
+            It 'Should Call the Login Method successfully' {
+                Test-MSCloudLogin @testParams | Assert-MockCalled -CommandName Invoke-Expression
+            }
+        }
+
+        Context -Name "Connecting to SharePointOnline for the first time" -Fixture {
+            $CallNumber = 0
+            Mock -CommandName Invoke-Expression -MockWith{
+                if ($CallNumber -eq 0)
+                {
+                    $CallNumber++
+                }
+            }
+
+            $testParams = @{
+                Platform        = "SharePointOnline"
+                CloudCredential = $GlobalAdminAccount
+            }
+
+            It 'Should Call the Login Method successfully' {
+                Test-MSCloudLogin @testParams | Assert-MockCalled -CommandName Invoke-Expression
+            }
+        }
+
+        Context -Name "Connecting to ExchangeOnline for the first time" -Fixture {
+            $CallNumber = 0
+            Mock -CommandName Invoke-Expression -MockWith{
+                if ($CallNumber -eq 0)
+                {
+                    $CallNumber++
+                }
+            }
+
+            $testParams = @{
+                Platform        = "ExchangeOnline"
+                CloudCredential = $GlobalAdminAccount
+            }
+
+            It 'Should Call the Login Method successfully' {
+                Test-MSCloudLogin @testParams | Assert-MockCalled -CommandName Invoke-Expression
+            }
+        }
+
+        Context -Name "Connecting to SecurityComplianceCenter for the first time" -Fixture {
+            $CallNumber = 0
+            Mock -CommandName Invoke-Expression -MockWith{
+                if ($CallNumber -eq 0)
+                {
+                    $CallNumber++
+                }
+            }
+
+            $testParams = @{
+                Platform        = "SecurityComplianceCenter"
+                CloudCredential = $GlobalAdminAccount
+            }
+
+            It 'Should Call the Login Method successfully' {
+                Test-MSCloudLogin @testParams | Assert-MockCalled -CommandName Invoke-Expression
+            }
+        }
+
+        Context -Name "Connecting to MSOnline for the first time" -Fixture {
+            $CallNumber = 0
+            Mock -CommandName Invoke-Expression -MockWith{
+                if ($CallNumber -eq 0)
+                {
+                    $CallNumber++
+                }
+            }
+
+            $testParams = @{
+                Platform        = "MSOnline"
+                CloudCredential = $GlobalAdminAccount
+            }
+
+            It 'Should Call the Login Method successfully' {
+                Test-MSCloudLogin @testParams | Assert-MockCalled -CommandName Invoke-Expression
+            }
+        }
+
+        Context -Name "Connecting to PnP for the first time" -Fixture {
+            $CallNumber = 0
+            Mock -CommandName Invoke-Expression -MockWith{
+                if ($CallNumber -eq 0)
+                {
+                    $CallNumber++
+                }
+            }
+
+            $testParams = @{
+                Platform        = "PnP"
+                CloudCredential = $GlobalAdminAccount
+            }
+
+            It 'Should Call the Login Method successfully' {
+                Test-MSCloudLogin @testParams | Assert-MockCalled -CommandName Invoke-Expression
+            }
+        }
+
+        Context -Name "Connecting to MicrosoftTeams for the first time" -Fixture {
+            $CallNumber = 0
+            Mock -CommandName Invoke-Expression -MockWith{
+                if ($CallNumber -eq 0)
+                {
+                    $CallNumber++
+                }
+            }
+
+            $testParams = @{
+                Platform        = "MicrosoftTeams"
+                CloudCredential = $GlobalAdminAccount
+            }
+
+            It 'Should Call the Login Method successfully' {
+                Test-MSCloudLogin @testParams | Assert-MockCalled -CommandName Invoke-Expression
+            }
+        }
     }
 }
 
