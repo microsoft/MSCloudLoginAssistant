@@ -114,7 +114,7 @@ function Test-MSCloudLogin
             {
                 try
                 {
-                    $PowerShellConnections = Get-NetTCPConnection | Where-Object -FilterScript { $_.OwningProcess -eq $PID -and $_.RemotePort -eq '443' -and $_.State -ne 'Established' }
+                    $PowerShellConnections = Get-NetTCPConnection | Where-Object -FilterScript { $_.RemotePort -eq '443' -and $_.State -ne 'Established' }
 
                     while ($PowerShellConnections)
                     {

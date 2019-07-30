@@ -7,3 +7,37 @@ function Invoke-Expression
         $Command
     )
 }
+
+function Get-AzureADDomain
+{
+    [CmdletBinding()]
+    param (
+        [Parameter()]
+        [String]
+        $Identity
+    )
+}
+
+function Get-PSSession
+{
+    [CmdletBinding()]
+    param (
+        [Parameter()]
+        [String]
+        $Identity
+    )
+}
+
+function Get-NetTCPConnection
+{
+    [CmdletBinding()]
+    param (
+        [Parameter()]
+        [String]
+        $LocalAddress,
+
+        [Parameter()]
+        [UInt16]
+        $LocalPort
+    )
+}

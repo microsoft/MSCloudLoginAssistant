@@ -69,6 +69,12 @@ Describe -Name $Global:DscHelper.DescribeHeader -Fixture {
                 }
             }
 
+            Mock -CommandName Get-AzureADDomain -MockWith{
+                return @{
+                    Name    = "contoso.onmicrosoft.com"
+                }
+            }
+
             $testParams = @{
                 Platform        = "SharePointOnline"
                 CloudCredential = $GlobalAdminAccount
@@ -85,6 +91,17 @@ Describe -Name $Global:DscHelper.DescribeHeader -Fixture {
                 if ($CallNumber -eq 0)
                 {
                     $CallNumber++
+                }
+            }
+
+            Mock -CommandName Get-PSSession -MockWith {
+
+            }
+
+            Mock -CommandName Get-NetTCPCOnnection -MockWith {
+                return @{
+                    RemotePort = 443
+                    State      = "Idle"
                 }
             }
 
