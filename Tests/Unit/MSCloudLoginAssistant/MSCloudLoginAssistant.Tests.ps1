@@ -21,6 +21,15 @@ Describe -Name $Global:DscHelper.DescribeHeader -Fixture {
         $secpasswd = ConvertTo-SecureString "test@password1" -AsPlainText -Force
         $GlobalAdminAccount = New-Object System.Management.Automation.PSCredential ("tenantadmin", $secpasswd)
 
+
+        Mock -CommandName Close-SessionsAndReturnError -MockWith {
+
+        }
+
+        Mock -CommandName Import-Module -MockWith {
+
+        }
+
         # Test contexts
         Context -Name "Connecting to Azure for the first time" -Fixture {
             $CallNumber = 0
@@ -106,7 +115,7 @@ Describe -Name $Global:DscHelper.DescribeHeader -Fixture {
             }
 
             Mock -CommandName Import-PSSession -MockWith {
-                
+
             }
 
             Mock -CommandName Get-NetTCPCOnnection -MockWith {

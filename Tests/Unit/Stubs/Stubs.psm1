@@ -52,6 +52,31 @@ function Import-PSSession
     )
 }
 
+function Close-SessionsAndReturnError
+{
+    [CmdletBinding()]
+    param (
+        [Parameter()]
+        [String]
+        $ExceptionMessage
+    )
+}
+
+function Import-Module
+{
+    [CmdletBinding()]
+    param (
+        [Parameter()]
+        [String]
+        $Identity,
+
+        [Parameter()]
+        [Switch]
+        $Global
+    )
+}
+
+
 function New-PSSession
 {
     [CmdletBinding()]
