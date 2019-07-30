@@ -140,6 +140,20 @@ Describe -Name $Global:DscHelper.DescribeHeader -Fixture {
                 }
             }
 
+            Mock -CommandName Get-PSSession -MockWith {
+
+            }
+
+            Mock -CommandName New-PSSession -MockWith {
+                return @{
+
+                }
+            }
+
+            Mock -CommandName Import-PSSession -MockWith {
+
+            }
+
             $testParams = @{
                 Platform        = "SecurityComplianceCenter"
                 CloudCredential = $GlobalAdminAccount
