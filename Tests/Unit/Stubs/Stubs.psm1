@@ -62,6 +62,15 @@ function Close-SessionsAndReturnError
     )
 }
 
+function Get-PnPConnection
+{
+    [CmdletBinding()]
+    param (
+        [Parameter()]
+        [String]
+        $Identity
+    )
+}
 
 function New-PSSession
 {
