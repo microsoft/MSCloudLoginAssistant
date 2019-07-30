@@ -151,7 +151,7 @@ Describe -Name $Global:DscHelper.DescribeHeader -Fixture {
             }
 
             Mock -CommandName Import-PSSession -MockWith {
-                $Global:SCModule = "MSCloudLoginAssistant"
+                return "MSCloudLoginAssistant"
             }
 
             $testParams = @{
