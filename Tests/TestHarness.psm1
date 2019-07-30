@@ -8,6 +8,10 @@ function Invoke-TestHarness
         $TestResultsFile,
 
         [Parameter()]
+        [System.String]
+        $DscTestsPath,
+
+        [Parameter()]
         [Switch]
         $IgnoreCodeCoverage
     )

@@ -114,7 +114,7 @@ function Test-MSCloudLogin
             {
                 try
                 {
-                    $PowerShellConnections = Get-NetTCPConnection | Where-Object -FilterScript { $_.OwningProcess -eq $PID -and $_.RemotePort -eq '443' -and $_.State -ne 'Established' }
+                    $PowerShellConnections = Get-NetTCPConnection | Where-Object -FilterScript { $_.RemotePort -eq '443' -and $_.State -ne 'Established' }
 
                     while ($PowerShellConnections)
                     {
@@ -583,7 +583,7 @@ function Get-AzureADDLL
     [OutputType([System.String])]
     param(
     )
-    [array]$AzureADModules = Get-Module -ListAvailable | where{$_.name -eq "AzureAD" -or $_.name -eq "AzureADPreview"}
+    [array]$AzureADModules = Get-Module -ListAvailable | Where-Object{$_.name -eq "AzureAD" -or $_.name -eq "AzureADPreview"}
     if($AzureADModules.count -eq 0)
     {
         Throw "Can't find Azure AD DLL. Install the module manually 'Install-Module AzureAD'"
