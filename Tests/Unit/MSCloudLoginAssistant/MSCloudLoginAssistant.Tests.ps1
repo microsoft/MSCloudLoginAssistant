@@ -99,6 +99,16 @@ Describe -Name $Global:DscHelper.DescribeHeader -Fixture {
 
             }
 
+            Mock -CommandName New-PSSession -MockWith {
+                return @{
+
+                }
+            }
+
+            Mock -CommandName Import-PSSession -MockWith {
+                
+            }
+
             Mock -CommandName Get-NetTCPCOnnection -MockWith {
                 return @{
                     RemotePort = 443
