@@ -127,7 +127,7 @@ Describe -Name $Global:DscHelper.DescribeHeader -Fixture {
             }
 
             It 'Should Call the Login Method successfully' {
-                Test-MSCloudLogin @testParams | Assert-MockCalled -CommandName Invoke-Expression
+                Test-MSCloudLogin @testParams | Should Be $null
             }
         }
 
