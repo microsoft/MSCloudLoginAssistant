@@ -151,7 +151,7 @@ Describe -Name $Global:DscHelper.DescribeHeader -Fixture {
             }
 
             Mock -CommandName Import-PSSession -MockWith {
-                return "`$env:APPVEYOR_BUILD_FOLDER\DscResource.Tests\AppVeyor.psm1"
+                return "C:\projects\mscloudloginassistant\Modules\MSCloudLoginAssistant\MSCloudLoginAssistant.psm1"
             }
 
             $testParams = @{
