@@ -71,7 +71,8 @@ Describe -Name $Global:DscHelper.DescribeHeader -Fixture {
 
             Mock -CommandName Get-AzureADDomain -MockWith{
                 return @{
-                    Name    = "contoso.onmicrosoft.com"
+                    Name      = "contoso.onmicrosoft.com"
+                    IsInitial = $true
                 }
             }
 

@@ -24,7 +24,7 @@ function Get-PSSession
     param (
         [Parameter()]
         [String]
-        $Identity
+        $Name
     )
 }
 
