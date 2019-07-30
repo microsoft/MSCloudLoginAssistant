@@ -199,8 +199,7 @@ Describe -Name $Global:DscHelper.DescribeHeader -Fixture {
                 }
             }
 
-            Mock -CommandName Get-PnPConnection -MockWith 
-            {
+            Mock -CommandName Get-PnPConnection -MockWith {
                 return @{
                     Url = "https://contoso-admin.sharepoint.com"
                 }
