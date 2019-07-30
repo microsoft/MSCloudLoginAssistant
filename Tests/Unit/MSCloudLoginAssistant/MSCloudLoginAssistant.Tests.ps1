@@ -114,10 +114,6 @@ Describe -Name $Global:DscHelper.DescribeHeader -Fixture {
 
             }
 
-            Mock -CommandName Import-Module -MockWith {
-
-            }
-
             Mock -CommandName Get-NetTCPCOnnection -MockWith {
                 return @{
                     RemotePort = 443
@@ -155,11 +151,7 @@ Describe -Name $Global:DscHelper.DescribeHeader -Fixture {
             }
 
             Mock -CommandName Import-PSSession -MockWith {
-
-            }
-
-            Mock -CommandName Import-Module -MockWith {
-
+                $Global:SCModule = "MSCloudLoginAssistant"
             }
 
             $testParams = @{

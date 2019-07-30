@@ -62,20 +62,6 @@ function Close-SessionsAndReturnError
     )
 }
 
-function Import-Module
-{
-    [CmdletBinding()]
-    param (
-        [Parameter()]
-        [String]
-        $Name,
-
-        [Parameter()]
-        [Switch]
-        $Global
-    )
-}
-
 
 function New-PSSession
 {
