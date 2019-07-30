@@ -26,10 +26,6 @@ Describe -Name $Global:DscHelper.DescribeHeader -Fixture {
 
         }
 
-        Mock -CommandName Import-Module -MockWith {
-
-        }
-
         # Test contexts
         Context -Name "Connecting to Azure for the first time" -Fixture {
             $CallNumber = 0
