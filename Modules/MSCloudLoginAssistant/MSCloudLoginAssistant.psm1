@@ -347,10 +347,10 @@ function Test-MSCloudLogin
         }
         'PnP'
         {
-            $Global:spoAdminUrl = Get-SPOAdminUrl;
             if ([string]::IsNullOrEmpty($ConnectionUrl))
             {
                 # If we haven't specified a ConnectionUrl, just make the connection URL central admin
+                $Global:spoAdminUrl = Get-SPOAdminUrl;
                 $Global:ConnectionUrl = $Global:spoAdminUrl
             }
             else
@@ -496,13 +496,13 @@ function Test-MSCloudLogin
                     {
                         Write-Debug -Message "Login using '$connectCmdlet' and '$connectCmdletMfaRetryArgs' failed."
                         Write-Host -ForegroundColor Red $_.Exception
-                        throw "No/invalid credentials were provided, or another error occurred logging on to $Platform."
+                        throw $_
                     }
                 }
                 else
                 {
                     Write-Host -ForegroundColor Red $_.Exception
-                    throw "No/invalid credentials were provided, or another error occurred logging on to $Platform."
+                    throw $_
                 }
             }
         }
