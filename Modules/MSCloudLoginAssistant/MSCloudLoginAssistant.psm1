@@ -590,7 +590,7 @@ function Get-AzureADDLL
     }
     else
     {
-        $AzureDLL = join-path (($AzureADModules | sort version -Descending | Select -first 1).Path | split-Path) Microsoft.IdentityModel.Clients.ActiveDirectory.dll
+        $AzureDLL = Join-Path (($AzureADModules | Sort-Object version -Descending | Select-Object -first 1).Path | split-Path) Microsoft.IdentityModel.Clients.ActiveDirectory.dll
         Return $AzureDLL
     }
 
@@ -618,7 +618,7 @@ function Get-TenantLoginEndPoint
         $webrequest = Invoke-WebRequest -Uri https://login.microsoftonline.com/$($TenantName)/.well-known/openid-configuration -UseBasicParsing
     }
     if($webrequest.StatusCode -eq 200){
-        $webrequest.content.replace("{","").replace("}","").split(",") | Foreach{ if($_ -like '*:*'){ $TenantInfo[(($_.split(":")[0]).replace('"',''))]= ($_.substring($($_.split(":")[0]).length +1)).replace('"','') } }
+        $webrequest.content.replace("{","").replace("}","").split(",") | ForEach-Object { if($_ -like '*:*'){ $TenantInfo[(($_.split(":")[0]).replace('"',''))]= ($_.substring($($_.split(":")[0]).length +1)).replace('"','') } }
     }
     Return $TenantInfo
 }
@@ -681,7 +681,7 @@ function Get-AuthHeader
         [System.String]
         $RedirectURI
     )
-    if($Global:ADALServicePoint -eq $NULL)
+    if($null -eq $Global:ADALServicePoint)
     {
         $TenantName = $UserPrincipalName.split("@")[1]
         $Global:ADALServicePoint = New-ADALServiceInfo -TenantName $TenantName -UserPrincipalName $UserPrincipalName
