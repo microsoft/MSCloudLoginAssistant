@@ -339,10 +339,10 @@ function Test-MSCloudLogin
         }
         'PnP'
         {
-            $Global:spoAdminUrl = Get-SPOAdminUrl;
             if ([string]::IsNullOrEmpty($ConnectionUrl))
             {
                 # If we haven't specified a ConnectionUrl, just make the connection URL central admin
+                $Global:spoAdminUrl = Get-SPOAdminUrl;
                 $Global:ConnectionUrl = $Global:spoAdminUrl
             }
             else
@@ -610,7 +610,7 @@ function Get-TenantLoginEndPoint
         $webrequest = Invoke-WebRequest -Uri https://login.microsoftonline.com/$($TenantName)/.well-known/openid-configuration -UseBasicParsing
     }
     if($webrequest.StatusCode -eq 200){
-        $webrequest.content.replace("{","").replace("}","").split(",") | Foreach{ if($_ -like '*:*'){ $TenantInfo[(($_.split(":")[0]).replace('"',''))]= ($_.substring($($_.split(":")[0]).length +1)).replace('"','') } }
+        $TenantInfo = $webrequest.Content |ConvertFrom-Json
     }
     Return $TenantInfo
 }
@@ -648,7 +648,7 @@ function New-ADALServiceInfo
     }
     else
     {
-        [string] $authority = $($TenantInfo.get_item("authorization_endpoint"))
+        [string] $authority = $TenantInfo.authorization_endpoint
     }
     $PromptBehavior = [Microsoft.IdentityModel.Clients.ActiveDirectory.PromptBehavior]::Auto
     $Service=@{}
