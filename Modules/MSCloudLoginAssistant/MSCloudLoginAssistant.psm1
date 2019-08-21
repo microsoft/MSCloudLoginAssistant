@@ -114,7 +114,7 @@ function Test-MSCloudLogin
             {
                 try
                 {
-                    $PowerShellConnections = Get-NetTCPConnection | Where-Object -FilterScript { $_.OwningProcess -eq $PID -and $_.RemotePort -eq '443' -and $_.State -ne 'Established' }
+                    $PowerShellConnections = Get-NetTCPConnection | Where-Object -FilterScript { $_.RemotePort -eq '443' -and $_.State -ne 'Established' }
 
                     while ($PowerShellConnections)
                     {
@@ -161,9 +161,9 @@ function Test-MSCloudLogin
                             }
                             catch {
                                 if ($_ -like '*Connecting to remote server *Access is denied.*')
-                            {
-                                Throw "The provided account doesn't have admin access to Exchange Online."
-                            }
+                                {
+                                    Throw "The provided account doesn't have admin access to Exchange Online."
+                                }
                             }
                             
                         }
@@ -177,6 +177,7 @@ function Test-MSCloudLogin
                     if ($null -eq $Global:ExchangeOnlineModules)
                     {
                         Write-Verbose -Message "Importing all commands into the EXO Session"
+                        $WarningPreference = 'silentlycontinue'
                         $Global:ExchangeOnlineModules = Import-PSSession $Global:ExchangeOnlineSession -AllowClobber
                         Import-Module $Global:ExchangeOnlineModules -Global | Out-Null
                     }
@@ -233,6 +234,7 @@ function Test-MSCloudLogin
                                 }
                                 
                             }
+                            $WarningPreference='silentlycontinue'
                             $Global:ExchangeOnlineModules = Import-PSSession $Global:ExchangeOnlineSession -AllowClobber -ErrorAction SilentlyContinue
                             $ExchangeOnlineModuleImport = Import-Module $ExchangeOnlineModules -Global -ErrorAction SilentlyContinue
                         }
@@ -259,6 +261,7 @@ function Test-MSCloudLogin
                             Write-Verbose -Message "Opening New ExchangeOnline Session."
                             $VerbosePreference = 'SilentlyContinue'
                             Get-PSSession -Name 'ExchangeOnline' -ErrorAction SilentlyContinue | Remove-PSSession -ErrorAction SilentlyContinue
+                            $WarningPreference='silentlycontinue'
                             $Global:ExchangeOnlineSession = New-PSSession -Name 'ExchangeOnline' -ConfigurationName Microsoft.Exchange -ConnectionUri https://outlook.office365.com/powershell-liveid/ -Credential $O365Credential -Authentication Basic -AllowRedirection
                             $Global:ExchangeOnlineModules = Import-PSSession $Global:ExchangeOnlineSession -AllowClobber -ErrorAction SilentlyContinue
                             $ExchangeOnlineModuleImport = Import-Module $ExchangeOnlineModules -Global -ErrorAction SilentlyContinue
@@ -284,6 +287,7 @@ function Test-MSCloudLogin
         }
         'SecurityComplianceCenter'
         {
+            $WarningPreference='silentlycontinue'
             $Global:SessionSecurityCompliance = Get-PSSession | Where-Object{$_.ComputerName -like "*.ps.compliance.protection.outlook.com" -and $_.State -eq "Opened"}
             #Try Catch doesn't work even with $Global:ErrorActionPreference = "stop"
             if ($null -eq $Global:SessionSecurityCompliance)
@@ -318,11 +322,15 @@ function Test-MSCloudLogin
             {
                 Write-Verbose -Message "Session to Security & Compliance already exists, re-using existing session"
             }
-            $Global:SCModule = Import-PSSession $Global:SessionSecurityCompliance  `
-                    -ErrorAction SilentlyContinue `
-                    -AllowClobber
+            $WarningPreference='silentlycontinue'
+            if ($null -eq $Global:SCModule)
+            {
+                $Global:SCModule = Import-PSSession $Global:SessionSecurityCompliance  `
+                        -ErrorAction SilentlyContinue `
+                        -AllowClobber
 
-            Import-Module $Global:SCModule -Global | Out-Null
+                Import-Module $Global:SCModule -Global | Out-Null
+            }
             return
         }
         'MSOnline'
@@ -488,13 +496,13 @@ function Test-MSCloudLogin
                     {
                         Write-Debug -Message "Login using '$connectCmdlet' and '$connectCmdletMfaRetryArgs' failed."
                         Write-Host -ForegroundColor Red $_.Exception
-                        throw "No/invalid credentials were provided, or another error occurred logging on to $Platform."
+                        throw $_
                     }
                 }
                 else
                 {
                     Write-Host -ForegroundColor Red $_.Exception
-                    throw "No/invalid credentials were provided, or another error occurred logging on to $Platform."
+                    throw $_
                 }
             }
         }
@@ -575,14 +583,14 @@ function Get-AzureADDLL
     [OutputType([System.String])]
     param(
     )
-    [array]$AzureADModules = Get-Module -ListAvailable | where{$_.name -eq "AzureAD" -or $_.name -eq "AzureADPreview"}
+    [array]$AzureADModules = Get-Module -ListAvailable | Where-Object{$_.name -eq "AzureAD" -or $_.name -eq "AzureADPreview"}
     if($AzureADModules.count -eq 0)
     {
         Throw "Can't find Azure AD DLL. Install the module manually 'Install-Module AzureAD'"
     }
     else
     {
-        $AzureDLL = join-path (($AzureADModules | sort version -Descending | Select -first 1).Path | split-Path) Microsoft.IdentityModel.Clients.ActiveDirectory.dll
+        $AzureDLL = Join-Path (($AzureADModules | Sort-Object version -Descending | Select-Object -first 1).Path | split-Path) Microsoft.IdentityModel.Clients.ActiveDirectory.dll
         Return $AzureDLL
     }
 
@@ -609,7 +617,8 @@ function Get-TenantLoginEndPoint
     else {
         $webrequest = Invoke-WebRequest -Uri https://login.microsoftonline.com/$($TenantName)/.well-known/openid-configuration -UseBasicParsing
     }
-    if($webrequest.StatusCode -eq 200){
+    if ($webrequest.StatusCode -eq 200)
+    {
         $TenantInfo = $webrequest.Content |ConvertFrom-Json
     }
     Return $TenantInfo
@@ -673,7 +682,7 @@ function Get-AuthHeader
         [System.String]
         $RedirectURI
     )
-    if($Global:ADALServicePoint -eq $NULL)
+    if($null -eq $Global:ADALServicePoint)
     {
         $TenantName = $UserPrincipalName.split("@")[1]
         $Global:ADALServicePoint = New-ADALServiceInfo -TenantName $TenantName -UserPrincipalName $UserPrincipalName
