@@ -617,8 +617,9 @@ function Get-TenantLoginEndPoint
     else {
         $webrequest = Invoke-WebRequest -Uri https://login.microsoftonline.com/$($TenantName)/.well-known/openid-configuration -UseBasicParsing
     }
-    if($webrequest.StatusCode -eq 200){
-        $webrequest.content.replace("{","").replace("}","").split(",") | ForEach-Object { if($_ -like '*:*'){ $TenantInfo[(($_.split(":")[0]).replace('"',''))]= ($_.substring($($_.split(":")[0]).length +1)).replace('"','') } }
+    if ($webrequest.StatusCode -eq 200)
+    {
+        $TenantInfo = $webrequest.Content |ConvertFrom-Json
     }
     Return $TenantInfo
 }
@@ -656,7 +657,7 @@ function New-ADALServiceInfo
     }
     else
     {
-        [string] $authority = $($TenantInfo.get_item("authorization_endpoint"))
+        [string] $authority = $TenantInfo.authorization_endpoint
     }
     $PromptBehavior = [Microsoft.IdentityModel.Clients.ActiveDirectory.PromptBehavior]::Auto
     $Service=@{}
