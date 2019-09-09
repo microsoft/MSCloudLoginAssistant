@@ -312,7 +312,7 @@ function Test-MSCloudLogin
                             try
                             {
                                 $InformationPreference = "Continue"
-                                Write-Information -Message "[$counter/10]Too many existing workspaces. Waiting an additional 60 seconds for sessions to free up."                            
+                                Write-Information -Message "[$counter/10] Too many existing workspaces. Waiting an additional 60 seconds for sessions to free up."                            
                                 Start-Sleep -Seconds 60
                                 $Global:SessionSecurityCompliance = New-PSSession -ConfigurationName "Microsoft.Exchange" `
                                     -ConnectionUri https://ps.compliance.protection.outlook.com/powershell-liveid/ `
