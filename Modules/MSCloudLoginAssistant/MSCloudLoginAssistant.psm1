@@ -300,22 +300,48 @@ function Test-MSCloudLogin
                     -Credential $O365Credential `
                     -Authentication Basic `
                     -ErrorAction Stop `
-                    -AllowRedirection               
+                    -AllowRedirection
                 }
                 catch
                 {
-                    $clientid = "a0c73c16-a7e3-4564-9a95-2bdf47383716";
-                    $RessourceURI = "https://ps.compliance.protection.outlook.com";
-                    $RedirectURI = "urn:ietf:wg:oauth:2.0:oob";
-                    $AuthHeader = Get-AuthHeader -UserPrincipalName $Global:o365Credential.UserName -RessourceURI $RessourceURI -clientID $clientID -RedirectURI $RedirectURI
-                    $Password = ConvertTo-SecureString -AsPlainText $AuthHeader -Force
-                    $Ctoken = New-Object System.Management.Automation.PSCredential -ArgumentList $Global:o365Credential.UserName, $Password
-                    $Global:SessionSecurityCompliance = New-PSSession -ConfigurationName Microsoft.Exchange `
-                    -ConnectionUri https://ps.compliance.protection.outlook.com/powershell-liveid?BasicAuthToOAuthConversion=true `
-                    -Credential $Ctoken `
-                    -Authentication Basic `
-                    -AllowRedirection
-                    $Global:UseModernAuth = $True
+                    if ($_.ErrorDetails.ToString().Contains('Fail to create a runspace because you have exceeded the maximum number of connections allowed'))
+                    {
+                        $counter = 1
+                        while ($null -eq $Global:SessionSecurityCompliance -and $counter -le 10)
+                        {
+                            try
+                            {
+                                $InformationPreference = "Continue"
+                                Write-Information -Message "[$counter/10]Too many existing workspaces. Waiting an additional 60 seconds for sessions to free up."                            
+                                Start-Sleep -Seconds 60
+                                $Global:SessionSecurityCompliance = New-PSSession -ConfigurationName "Microsoft.Exchange" `
+                                    -ConnectionUri https://ps.compliance.protection.outlook.com/powershell-liveid/ `
+                                    -Credential $O365Credential `
+                                    -Authentication Basic `
+                                    -ErrorAction Stop `
+                                    -AllowRedirection
+                                $InformationPreference = "SilentlyContinue"
+                            }
+                            catch
+                            {}
+                            $counter ++
+                        }
+                    }
+                    else
+                    {
+                        $clientid = "a0c73c16-a7e3-4564-9a95-2bdf47383716";
+                        $RessourceURI = "https://ps.compliance.protection.outlook.com";
+                        $RedirectURI = "urn:ietf:wg:oauth:2.0:oob";
+                        $AuthHeader = Get-AuthHeader -UserPrincipalName $Global:o365Credential.UserName -RessourceURI $RessourceURI -clientID $clientID -RedirectURI $RedirectURI
+                        $Password = ConvertTo-SecureString -AsPlainText $AuthHeader -Force
+                        $Ctoken = New-Object System.Management.Automation.PSCredential -ArgumentList $Global:o365Credential.UserName, $Password
+                        $Global:SessionSecurityCompliance = New-PSSession -ConfigurationName Microsoft.Exchange `
+                            -ConnectionUri https://ps.compliance.protection.outlook.com/powershell-liveid?BasicAuthToOAuthConversion=true `
+                            -Credential $Ctoken `
+                            -Authentication Basic `
+                            -AllowRedirection
+                        $Global:UseModernAuth = $True
+                    }
                 }
             }
             else 
