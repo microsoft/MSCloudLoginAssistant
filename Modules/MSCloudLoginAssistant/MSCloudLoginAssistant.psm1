@@ -55,7 +55,7 @@ function Test-MSCloudLogin
             $RessourceURI = "https://management.core.windows.net";
             $RedirectURI = "urn:ietf:wg:oauth:2.0:oob";
             $connectCmdlet = "Connect-AzAccount";
-            $connectCmdletArgs = "-Credential `$Global:o365Credential";
+            $connectCmdletArgs = ""
             $connectCmdletMfaRetryArgs = "-AccessToken `$AuthToken -AccountId `$global:o365Credential.UserName";
             $variablePrefix = "az"
         }
@@ -92,7 +92,7 @@ function Test-MSCloudLogin
             $variablePrefix = "spo"
         }
         'ExchangeOnline'
-        {  
+        {
             $VerbosePreference = 'SilentlyContinue'
             $WarningPreference = "Continue"
             $clientid = "a0c73c16-a7e3-4564-9a95-2bdf47383716";
@@ -165,7 +165,7 @@ function Test-MSCloudLogin
                                     Throw "The provided account doesn't have admin access to Exchange Online."
                                 }
                             }
-                            
+
                         }
 
                         if ($null -eq $Global:ExchangeOnlineSession)
@@ -232,7 +232,7 @@ function Test-MSCloudLogin
                                     -ErrorAction SilentlyContinue
                                     $Global:UseModernAuth = $True
                                 }
-                                
+
                             }
                             $WarningPreference='silentlycontinue'
                             $Global:ExchangeOnlineModules = Import-PSSession $Global:ExchangeOnlineSession -AllowClobber -ErrorAction SilentlyContinue
@@ -344,7 +344,7 @@ function Test-MSCloudLogin
                     }
                 }
             }
-            else 
+            else
             {
                 Write-Verbose -Message "Session to Security & Compliance already exists, re-using existing session"
             }
@@ -448,8 +448,8 @@ function Test-MSCloudLogin
             Write-Debug -Message "Running '$testCmdlet' failed on initial attempt."
             try
             {
-                # Prompt for Windows-style credentials if we don't already have a credential object
-                if ($null -eq $Global:o365Credential)
+                # Prompt for Windows-style credentials if we don't already have a credential object and not logging into Azure
+                if ($null -eq $Global:o365Credential -and $Platform -ne "Azure")
                 {
                     Write-Host -ForegroundColor Cyan " - Prompting for Microsoft Online credentials..."
                     $Global:o365Credential = Get-Credential -Message "Please enter your credentials for MS Online Services:"
@@ -687,7 +687,7 @@ function New-ADALServiceInfo
     }
     $PromptBehavior = [Microsoft.IdentityModel.Clients.ActiveDirectory.PromptBehavior]::Auto
     $Service=@{}
-    $Service["authContext"] = New-Object "Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext" -ArgumentList $authority   
+    $Service["authContext"] = New-Object "Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext" -ArgumentList $authority
     $Service["platformParam"] = New-Object "Microsoft.IdentityModel.Clients.ActiveDirectory.PlatformParameters" -ArgumentList $PromptBehavior
     $Service["userId"] = New-Object "Microsoft.IdentityModel.Clients.ActiveDirectory.UserIdentifier" -ArgumentList $UserPrincipalName, "OptionalDisplayableId"
     Return $Service
@@ -713,7 +713,7 @@ function Get-AuthHeader
         $TenantName = $UserPrincipalName.split("@")[1]
         $Global:ADALServicePoint = New-ADALServiceInfo -TenantName $TenantName -UserPrincipalName $UserPrincipalName
     }
-    
+
     try{
         Write-Debug "Looking for a refresh token"
         $authResult = $Global:ADALServicePoint.authContext.AcquireTokenSilentAsync($RessourceURI, $clientId)
