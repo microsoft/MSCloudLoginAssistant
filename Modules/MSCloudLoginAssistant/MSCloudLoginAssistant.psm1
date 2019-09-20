@@ -525,6 +525,10 @@ function Test-MSCloudLogin
                         throw $_
                     }
                 }
+                elseif ($Platform -eq 'PnP' -and $_.Exception -like '*The remote server returned an error: (401) Unauthorized.*')
+                {
+                    throw [System.Exception] "Specified account does not have access to connect to the site."
+                }
                 else
                 {
                     Write-Host -ForegroundColor Red $_.Exception
