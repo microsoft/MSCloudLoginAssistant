@@ -315,7 +315,7 @@ function Test-MSCloudLogin
                     {
                         Write-Verbose -Message "Session to Security & Compliance no working session found, creating a new one"
                         $Global:SessionSecurityCompliance = New-PSSession -ConfigurationName "Microsoft.Exchange" `
-                        -ConnectionUri https://ps.compliance.protection.outlook.us/powershell-liveid/ `
+                        -ConnectionUri https://ps.compliance.protection.office365.us/powershell-liveid/ `
                         -Credential $O365Credential `
                         -Authentication Basic `
                         -ErrorAction Stop `
@@ -346,7 +346,7 @@ function Test-MSCloudLogin
                                 catch
                                 {
                                     $Global:SessionSecurityCompliance = New-PSSession -ConfigurationName "Microsoft.Exchange" `
-                                    -ConnectionUri https://ps.compliance.protection.outlook.us/powershell-liveid/ `
+                                    -ConnectionUri https://ps.compliance.protection.office365.us/powershell-liveid/ `
                                     -Credential $O365Credential `
                                     -Authentication Basic `
                                     -ErrorAction Stop `
@@ -379,7 +379,7 @@ function Test-MSCloudLogin
                             if ($null -eq $Global:SessionSecurityCompliance)
                             {
                                 $Global:SessionSecurityCompliance = New-PSSession -ConfigurationName Microsoft.Exchange `
-                                    -ConnectionUri https://ps.compliance.protection.outlook.us/powershell-liveid?BasicAuthToOAuthConversion=true `
+                                    -ConnectionUri https://ps.compliance.protection.office365.us/powershell-liveid/?BasicAuthToOAuthConversion=true `
                                     -Credential $Ctoken `
                                     -Authentication Basic `
                                     -AllowRedirection
@@ -439,7 +439,7 @@ function Test-MSCloudLogin
             $RessourceURI = $Global:ConnectionUrl;
             $RedirectURI = "https://oauth.spops.microsoft.com/";
             $connectCmdlet = "Connect-PnPOnline";
-            $connectCmdletArgs = "-Url `$Global:ConnectionUrl -Credentials `$Global:o365Credential";
+            $connectCmdletArgs = "-Url $Global:ConnectionUrl -Credentials `$Global:o365Credential";
             $connectCmdletMfaRetryArgs = "-AccessToken `$AuthToken";
             $variablePrefix = "pnp"
         }
@@ -610,12 +610,33 @@ function Test-MSCloudLogin
                         }
                     }
                 }
-                elseif ($Platform -eq 'SharePointOnline' -and $_.Exception -like '*Could not connect to SharePoint Online*')
+                elseif ($Platform -eq 'MicrosoftTeams' -and $_.Exception -like '*unknown_user_type*')
+                {
+                    $originalArgs = $connectCmdletArgs
+
+                    $paramName = "-TeamsEnvironmentName"
+
+                    # Try connecting to other Azure Clouds
+                    try {
+                        $connectCmdletArgs = $originalArgs + " $paramName TeamsGCCH"
+                        Invoke-Expression -Command "$connectCmdlet -ErrorAction Stop $connectCmdletArgs -ErrorVariable `$err | Out-Null"
+                    }
+                    catch {
+                        try {
+                            $connectCmdletArgs = $originalArgs + " $paramName TeamsDOD"
+                            Invoke-Expression -Command "$connectCmdlet -ErrorAction Stop $connectCmdletArgs -ErrorVariable `$err | Out-Null"
+                        }
+                        catch {
+                            throw $_
+                        }
+                    }
+                }
+                elseif (($Platform -eq 'SharePointOnline' -and $_.Exception -like '*Could not connect to SharePoint Online*') -or `
+                        ($Platform -eq 'PnP' -and $_.Exception -like '*The remote name could not be resolved*'))
                 {
                     try
                     {
-                        $connectCmdletArgs = $connectCmdletArgs.Replace(".onmicrosoft.com", ".onmicrosoft.us")
-                        $connectCmdletArgs = $originalArgs + " $paramName AzureChinaCloud"
+                        $connectCmdletArgs = $connectCmdletArgs.Replace(".sharepoint.com", ".sharepoint.us")
                         Invoke-Expression -Command "$connectCmdlet -ErrorAction Stop $connectCmdletArgs -ErrorVariable `$err | Out-Null"
                     }
                     catch
