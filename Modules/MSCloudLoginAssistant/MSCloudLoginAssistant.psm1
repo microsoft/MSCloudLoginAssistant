@@ -170,8 +170,15 @@ function Test-MSCloudLogin
 
                         if ($null -eq $Global:ExchangeOnlineSession)
                         {
-                            Write-Warning "Exceeded max number of connections. Waiting 60 seconds"
-                            Start-Sleep 60
+                            try
+                            {
+                                $Global:ExchangeOnlineSession = New-PSSession -Name 'ExchangeOnline' -ConfigurationName Microsoft.Exchange -ConnectionUri https://outlook.office365.us/PowerShell-LiveID -Credential $O365Credential -Authentication Basic -AllowRedirection -ErrorAction Stop
+                            }
+                            catch
+                            {
+                                Write-Warning "Exceeded max number of connections. Waiting 60 seconds"
+                                Start-Sleep 60
+                            }
                         }
                     }
                     if ($null -eq $Global:ExchangeOnlineModules)
@@ -529,7 +536,8 @@ function Test-MSCloudLogin
                 {
                     throw [System.Exception] "Specified account does not have access to connect to the site."
                 }
-                elseif ($Platform -eq 'AzureAD' -and $_.Exception -like '*unknown_user_type*')
+                elseif (($Platform -eq 'AzureAD' -and $_.Exception -like '*unknown_user_type*') -or `
+                        ($Platform -eq 'MSOnline' -and $_.Exception -like '*Bad username or password*'))
                 {
                     $originalArgs = $connectCmdletArgs
                     # Try connecting to other Azure Clouds
