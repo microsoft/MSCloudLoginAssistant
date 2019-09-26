@@ -170,8 +170,15 @@ function Test-MSCloudLogin
 
                         if ($null -eq $Global:ExchangeOnlineSession)
                         {
-                            Write-Warning "Exceeded max number of connections. Waiting 60 seconds"
-                            Start-Sleep 60
+                            try
+                            {
+                                $Global:ExchangeOnlineSession = New-PSSession -Name 'ExchangeOnline' -ConfigurationName Microsoft.Exchange -ConnectionUri https://outlook.office365.us/PowerShell-LiveID -Credential $O365Credential -Authentication Basic -AllowRedirection -ErrorAction Stop
+                            }
+                            catch
+                            {
+                                Write-Warning "Exceeded max number of connections. Waiting 60 seconds"
+                                Start-Sleep 60
+                            }
                         }
                     }
                     if ($null -eq $Global:ExchangeOnlineModules)
@@ -294,13 +301,26 @@ function Test-MSCloudLogin
             {
                 try
                 {
-                    Write-Verbose -Message "Session to Security & Compliance no working session found, creating a new one"
-                    $Global:SessionSecurityCompliance = New-PSSession -ConfigurationName "Microsoft.Exchange" `
-                    -ConnectionUri https://ps.compliance.protection.outlook.com/powershell-liveid/ `
-                    -Credential $O365Credential `
-                    -Authentication Basic `
-                    -ErrorAction Stop `
-                    -AllowRedirection
+                    try
+                    {
+                        Write-Verbose -Message "Session to Security & Compliance no working session found, creating a new one"
+                        $Global:SessionSecurityCompliance = New-PSSession -ConfigurationName "Microsoft.Exchange" `
+                        -ConnectionUri https://ps.compliance.protection.outlook.com/powershell-liveid/ `
+                        -Credential $O365Credential `
+                        -Authentication Basic `
+                        -ErrorAction Stop `
+                        -AllowRedirection
+                    }
+                    catch
+                    {
+                        Write-Verbose -Message "Session to Security & Compliance no working session found, creating a new one"
+                        $Global:SessionSecurityCompliance = New-PSSession -ConfigurationName "Microsoft.Exchange" `
+                        -ConnectionUri https://ps.compliance.protection.office365.us/powershell-liveid/ `
+                        -Credential $O365Credential `
+                        -Authentication Basic `
+                        -ErrorAction Stop `
+                        -AllowRedirection
+                    }
                 }
                 catch
                 {
@@ -314,12 +334,24 @@ function Test-MSCloudLogin
                                 $InformationPreference = "Continue"
                                 Write-Information -Message "[$counter/10] Too many existing workspaces. Waiting an additional 60 seconds for sessions to free up."                            
                                 Start-Sleep -Seconds 60
-                                $Global:SessionSecurityCompliance = New-PSSession -ConfigurationName "Microsoft.Exchange" `
-                                    -ConnectionUri https://ps.compliance.protection.outlook.com/powershell-liveid/ `
+                                try
+                                {
+                                    $Global:SessionSecurityCompliance = New-PSSession -ConfigurationName "Microsoft.Exchange" `
+                                        -ConnectionUri https://ps.compliance.protection.outlook.com/powershell-liveid/ `
+                                        -Credential $O365Credential `
+                                        -Authentication Basic `
+                                        -ErrorAction Stop `
+                                        -AllowRedirection
+                                }
+                                catch
+                                {
+                                    $Global:SessionSecurityCompliance = New-PSSession -ConfigurationName "Microsoft.Exchange" `
+                                    -ConnectionUri https://ps.compliance.protection.office365.us/powershell-liveid/ `
                                     -Credential $O365Credential `
                                     -Authentication Basic `
                                     -ErrorAction Stop `
                                     -AllowRedirection
+                                }
                                 $InformationPreference = "SilentlyContinue"
                             }
                             catch
@@ -329,18 +361,35 @@ function Test-MSCloudLogin
                     }
                     else
                     {
-                        $clientid = "a0c73c16-a7e3-4564-9a95-2bdf47383716";
-                        $RessourceURI = "https://ps.compliance.protection.outlook.com";
-                        $RedirectURI = "urn:ietf:wg:oauth:2.0:oob";
-                        $AuthHeader = Get-AuthHeader -UserPrincipalName $Global:o365Credential.UserName -RessourceURI $RessourceURI -clientID $clientID -RedirectURI $RedirectURI
-                        $Password = ConvertTo-SecureString -AsPlainText $AuthHeader -Force
-                        $Ctoken = New-Object System.Management.Automation.PSCredential -ArgumentList $Global:o365Credential.UserName, $Password
-                        $Global:SessionSecurityCompliance = New-PSSession -ConfigurationName Microsoft.Exchange `
-                            -ConnectionUri https://ps.compliance.protection.outlook.com/powershell-liveid?BasicAuthToOAuthConversion=true `
-                            -Credential $Ctoken `
-                            -Authentication Basic `
-                            -AllowRedirection
-                        $Global:UseModernAuth = $True
+                        try
+                        {
+                            $clientid = "a0c73c16-a7e3-4564-9a95-2bdf47383716";
+                            $RessourceURI = "https://ps.compliance.protection.outlook.com";
+                            $RedirectURI = "urn:ietf:wg:oauth:2.0:oob";
+                            $AuthHeader = Get-AuthHeader -UserPrincipalName $Global:o365Credential.UserName -RessourceURI $RessourceURI -clientID $clientID -RedirectURI $RedirectURI
+                            $Password = ConvertTo-SecureString -AsPlainText $AuthHeader -Force
+                            $Ctoken = New-Object System.Management.Automation.PSCredential -ArgumentList $Global:o365Credential.UserName, $Password
+                            $Global:SessionSecurityCompliance = New-PSSession -ConfigurationName Microsoft.Exchange `
+                                -ConnectionUri https://ps.compliance.protection.outlook.com/powershell-liveid?BasicAuthToOAuthConversion=true `
+                                -Credential $Ctoken `
+                                -Authentication Basic `
+                                -AllowRedirection `
+                                -ErrorAction SilentlyContinue
+                            
+                            if ($null -eq $Global:SessionSecurityCompliance)
+                            {
+                                $Global:SessionSecurityCompliance = New-PSSession -ConfigurationName Microsoft.Exchange `
+                                    -ConnectionUri https://ps.compliance.protection.office365.us/powershell-liveid/?BasicAuthToOAuthConversion=true `
+                                    -Credential $Ctoken `
+                                    -Authentication Basic `
+                                    -AllowRedirection
+                            }
+                            $Global:UseModernAuth = $True
+                        }
+                        catch
+                        {
+                            throw $_
+                        }
                     }
                 }
             }
@@ -390,7 +439,7 @@ function Test-MSCloudLogin
             $RessourceURI = $Global:ConnectionUrl;
             $RedirectURI = "https://oauth.spops.microsoft.com/";
             $connectCmdlet = "Connect-PnPOnline";
-            $connectCmdletArgs = "-Url `$Global:ConnectionUrl -Credentials `$Global:o365Credential";
+            $connectCmdletArgs = "-Url $Global:ConnectionUrl -Credentials `$Global:o365Credential";
             $connectCmdletMfaRetryArgs = "-AccessToken `$AuthToken";
             $variablePrefix = "pnp"
         }
@@ -528,6 +577,72 @@ function Test-MSCloudLogin
                 elseif ($Platform -eq 'PnP' -and $_.Exception -like '*The remote server returned an error: (401) Unauthorized.*')
                 {
                     throw [System.Exception] "Specified account does not have access to connect to the site."
+                }
+                elseif (($Platform -eq 'AzureAD' -and $_.Exception -like '*unknown_user_type*') -or `
+                        ($Platform -eq 'MSOnline' -and $_.Exception -like '*Bad username or password*'))
+                {
+                    $originalArgs = $connectCmdletArgs
+
+                    $paramName = "-AzureEnvironmentName"
+                    if ($Platform -eq 'MSOnline')
+                    {
+                        $paramName = '-AzureEnvironment'
+                    }
+
+                    # Try connecting to other Azure Clouds
+                    try {
+                        $connectCmdletArgs = $originalArgs + " $paramName AzureChinaCloud"
+                        Invoke-Expression -Command "$connectCmdlet -ErrorAction Stop $connectCmdletArgs -ErrorVariable `$err | Out-Null"
+                    }
+                    catch {
+                        try {
+                            $connectCmdletArgs = $originalArgs + " $paramName AzureUSGovernment"
+                            Invoke-Expression -Command "$connectCmdlet -ErrorAction Stop $connectCmdletArgs -ErrorVariable `$err | Out-Null"
+                        }
+                        catch {
+                            try {
+                                $connectCmdletArgs = $originalArgs + " $paramName AzureGermanyCloud"
+                                Invoke-Expression -Command "$connectCmdlet -ErrorAction Stop $connectCmdletArgs -ErrorVariable `$err | Out-Null"
+                            }
+                            catch {
+                                throw $_
+                            }
+                        }
+                    }
+                }
+                elseif ($Platform -eq 'MicrosoftTeams' -and $_.Exception -like '*unknown_user_type*')
+                {
+                    $originalArgs = $connectCmdletArgs
+
+                    $paramName = "-TeamsEnvironmentName"
+
+                    # Try connecting to other Azure Clouds
+                    try {
+                        $connectCmdletArgs = $originalArgs + " $paramName TeamsGCCH"
+                        Invoke-Expression -Command "$connectCmdlet -ErrorAction Stop $connectCmdletArgs -ErrorVariable `$err | Out-Null"
+                    }
+                    catch {
+                        try {
+                            $connectCmdletArgs = $originalArgs + " $paramName TeamsDOD"
+                            Invoke-Expression -Command "$connectCmdlet -ErrorAction Stop $connectCmdletArgs -ErrorVariable `$err | Out-Null"
+                        }
+                        catch {
+                            throw $_
+                        }
+                    }
+                }
+                elseif (($Platform -eq 'SharePointOnline' -and $_.Exception -like '*Could not connect to SharePoint Online*') -or `
+                        ($Platform -eq 'PnP' -and $_.Exception -like '*The remote name could not be resolved*'))
+                {
+                    try
+                    {
+                        $connectCmdletArgs = $connectCmdletArgs.Replace(".sharepoint.com", ".sharepoint.us")
+                        Invoke-Expression -Command "$connectCmdlet -ErrorAction Stop $connectCmdletArgs -ErrorVariable `$err | Out-Null"
+                    }
+                    catch
+                    {
+                        throw $_
+                    }
                 }
                 else
                 {
