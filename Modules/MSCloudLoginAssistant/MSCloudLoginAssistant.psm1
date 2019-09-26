@@ -540,19 +540,26 @@ function Test-MSCloudLogin
                         ($Platform -eq 'MSOnline' -and $_.Exception -like '*Bad username or password*'))
                 {
                     $originalArgs = $connectCmdletArgs
+
+                    $paramName = "-AzureEnvironmentName"
+                    if ($Platform -eq 'MSOnline')
+                    {
+                        $paramName = '-AzureEnvironment'
+                    }
+
                     # Try connecting to other Azure Clouds
                     try {
-                        $connectCmdletArgs = $originalArgs + " -AzureEnvironmentName AzureChinaCloud"
+                        $connectCmdletArgs = $originalArgs + " $paramName AzureChinaCloud"
                         Invoke-Expression -Command "$connectCmdlet -ErrorAction Stop $connectCmdletArgs -ErrorVariable `$err | Out-Null"
                     }
                     catch {
                         try {
-                            $connectCmdletArgs = $originalArgs + " -AzureEnvironmentName AzureUSGovernment"
+                            $connectCmdletArgs = $originalArgs + " $paramName AzureUSGovernment"
                             Invoke-Expression -Command "$connectCmdlet -ErrorAction Stop $connectCmdletArgs -ErrorVariable `$err | Out-Null"
                         }
                         catch {
                             try {
-                                $connectCmdletArgs = $originalArgs + " -AzureEnvironmentName AzureGermanyCloud"
+                                $connectCmdletArgs = $originalArgs + " $paramName AzureGermanyCloud"
                                 Invoke-Expression -Command "$connectCmdlet -ErrorAction Stop $connectCmdletArgs -ErrorVariable `$err | Out-Null"
                             }
                             catch {
