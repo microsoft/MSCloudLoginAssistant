@@ -529,6 +529,30 @@ function Test-MSCloudLogin
                 {
                     throw [System.Exception] "Specified account does not have access to connect to the site."
                 }
+                elseif ($Platform -eq 'AzureAD' -and $_.Exception -like '*unknown_user_type*')
+                {
+                    $originalArgs = $connectCmdletArgs
+                    # Try connecting to other Azure Clouds
+                    try {
+                        $connectCmdletArgs = $originalArgs + " -AzureEnvironmentName AzureChinaCloud"
+                        Invoke-Expression -Command "$connectCmdlet -ErrorAction Stop $connectCmdletArgs -ErrorVariable `$err | Out-Null"
+                    }
+                    catch {
+                        try {
+                            $connectCmdletArgs = $originalArgs + " -AzureEnvironmentName AzureUSGovernment"
+                            Invoke-Expression -Command "$connectCmdlet -ErrorAction Stop $connectCmdletArgs -ErrorVariable `$err | Out-Null"
+                        }
+                        catch {
+                            try {
+                                $connectCmdletArgs = $originalArgs + " -AzureEnvironmentName AzureGermanyCloud"
+                                Invoke-Expression -Command "$connectCmdlet -ErrorAction Stop $connectCmdletArgs -ErrorVariable `$err | Out-Null"
+                            }
+                            catch {
+                                throw $_
+                            }
+                        }
+                    }
+                }
                 else
                 {
                     Write-Host -ForegroundColor Red $_.Exception
