@@ -492,7 +492,8 @@ function Test-MSCloudLogin
     }
     catch
     {
-        if ($_.Exception -like "*$connectCmdlet*" -or $_.Exception -like "*The access token expiry*")
+        if ($_.Exception -like "*$connectCmdlet*" -or $_.Exception -like "*The access token expiry*" -or `
+            ($Platform -eq 'PnP' -and $_.Exception -like '*Microsoft.SharePoint.Client.ServerUnauthorizedAccessException*'))
         {
             Write-Debug -Message "Running '$testCmdlet' failed on initial attempt."
             try
