@@ -12,7 +12,7 @@
     RootModule = 'MSCloudLoginAssistant.psm1'
 
     # Version number of this module.
-    ModuleVersion = '0.7.1'
+    ModuleVersion = '0.7.5'
 
     # Supported PSEditions
     # CompatiblePSEditions = @()
@@ -95,7 +95,7 @@
         PSData = @{
 
             # Tags applied to this module. These help with module discovery in online galleries.
-            Tags = 'Azure','Az','AzureAD','Cloud','Office365', 'PnP','MicrosoftTeams',"ExchangeOnline","SharePointOnline"
+            Tags = 'Azure', 'Az', 'AzureAD', 'Cloud', 'Office365', 'PnP', 'MicrosoftTeams', "ExchangeOnline", "SharePointOnline"
 
             # A URL to the license for this module.
             # LicenseUri = ''
@@ -123,5 +123,5 @@
     # Default prefix for commands exported from this module. Override the default prefix using Import-Module -Prefix.
     # DefaultCommandPrefix = ''
 
-    }
+}
 
