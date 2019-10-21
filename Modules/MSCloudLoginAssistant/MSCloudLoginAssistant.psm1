@@ -176,8 +176,22 @@ function Test-MSCloudLogin
                             }
                             catch
                             {
-                                Write-Warning "Exceeded max number of connections. Waiting 60 seconds"
-                                Start-Sleep 60
+                                try
+                                {
+                                    $Global:ExchangeOnlineSession = New-PSSession -Name 'ExchangeOnline' -ConfigurationName Microsoft.Exchange -ConnectionUri https://outlook.office.de/powershell-liveid/ -Credential $O365Credential -Authentication Basic -AllowRedirection -ErrorAction Stop
+                                }
+                                catch
+                                {
+                                    if ($_.Exception -like '*Access is denied*')
+                                    {
+                                        Throw "Access Denied: The specified account doesn't have access to manage Exchange Online"
+                                    }
+                                    else
+                                    {
+                                        Write-Warning "Exceeded max number of connections. Waiting 60 seconds"
+                                        Start-Sleep 60
+                                    }
+                                }
                             }
                         }
                     }
