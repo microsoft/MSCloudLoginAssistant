@@ -295,7 +295,7 @@ function Test-MSCloudLogin
         'SecurityComplianceCenter'
         {
             $WarningPreference='silentlycontinue'
-            $Global:SessionSecurityCompliance = Get-PSSession | Where-Object{$_.ComputerName -like "*.ps.compliance.protection.outlook.com" -and $_.State -eq "Opened"}
+            $Global:SessionSecurityCompliance = Get-PSSession | Where-Object{($_.ComputerName -like "*.ps.compliance.protection.outlook.com" -or $_.ComputerName -like "*ps.compliance.protection.office365.us")-and $_.State -eq "Opened"}
             #Try Catch doesn't work even with $Global:ErrorActionPreference = "stop"
             if ($null -eq $Global:SessionSecurityCompliance)
             {
