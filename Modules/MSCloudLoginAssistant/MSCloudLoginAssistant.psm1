@@ -319,7 +319,7 @@ function Test-MSCloudLogin
                     {
                         Write-Verbose -Message "Session to Security & Compliance no working session found, creating a new one"
                         $Global:SessionSecurityCompliance = New-PSSession -ConfigurationName "Microsoft.Exchange" `
-                        -ConnectionUri https://ps.compliance.protection.outlook.com/powershell-liveid/ `
+                        -ConnectionUri 'https://ps.compliance.protection.outlook.com/powershell-liveid/' `
                         -Credential $O365Credential `
                         -Authentication Basic `
                         -ErrorAction Stop `
@@ -327,13 +327,26 @@ function Test-MSCloudLogin
                     }
                     catch
                     {
-                        Write-Verbose -Message "Session to Security & Compliance no working session found, creating a new one"
-                        $Global:SessionSecurityCompliance = New-PSSession -ConfigurationName "Microsoft.Exchange" `
-                        -ConnectionUri https://ps.compliance.protection.office365.us/powershell-liveid/ `
-                        -Credential $O365Credential `
-                        -Authentication Basic `
-                        -ErrorAction Stop `
-                        -AllowRedirection
+                        try
+                        {
+                            Write-Verbose -Message "Session to Security & Compliance no working session found, creating a new one"
+                            $Global:SessionSecurityCompliance = New-PSSession -ConfigurationName "Microsoft.Exchange" `
+                                -ConnectionUri 'https://ps.compliance.protection.office365.us/powershell-liveid/' `
+                                -Credential $O365Credential `
+                                -Authentication Basic `
+                                -ErrorAction Stop `
+                                -AllowRedirection
+                        }
+                        catch
+                        {
+                            Write-Verbose -Message "Session to Security & Compliance no working session found, creating a new one"
+                            $Global:SessionSecurityCompliance = New-PSSession -ConfigurationName "Microsoft.Exchange" `
+                                -ConnectionUri 'https://ps.compliance.protection.outlook.de/powershell-liveid/' `
+                                -Credential $O365Credential `
+                                -Authentication Basic `
+                                -ErrorAction Stop `
+                                -AllowRedirection
+                        }
                     }
                 }
                 catch
@@ -351,7 +364,7 @@ function Test-MSCloudLogin
                                 try
                                 {
                                     $Global:SessionSecurityCompliance = New-PSSession -ConfigurationName "Microsoft.Exchange" `
-                                        -ConnectionUri https://ps.compliance.protection.outlook.com/powershell-liveid/ `
+                                        -ConnectionUri 'https://ps.compliance.protection.outlook.com/powershell-liveid/' `
                                         -Credential $O365Credential `
                                         -Authentication Basic `
                                         -ErrorAction Stop `
@@ -359,12 +372,24 @@ function Test-MSCloudLogin
                                 }
                                 catch
                                 {
-                                    $Global:SessionSecurityCompliance = New-PSSession -ConfigurationName "Microsoft.Exchange" `
-                                    -ConnectionUri https://ps.compliance.protection.office365.us/powershell-liveid/ `
-                                    -Credential $O365Credential `
-                                    -Authentication Basic `
-                                    -ErrorAction Stop `
-                                    -AllowRedirection
+                                    try
+                                    {
+                                        $Global:SessionSecurityCompliance = New-PSSession -ConfigurationName "Microsoft.Exchange" `
+                                            -ConnectionUri 'https://ps.compliance.protection.office365.us/powershell-liveid/' `
+                                            -Credential $O365Credential `
+                                            -Authentication Basic `
+                                            -ErrorAction Stop `
+                                            -AllowRedirection
+                                    }
+                                    catch
+                                    {
+                                        $Global:SessionSecurityCompliance = New-PSSession -ConfigurationName "Microsoft.Exchange" `
+                                            -ConnectionUri 'https://ps.compliance.protection.outlook.de/powershell-liveid/' `
+                                            -Credential $O365Credential `
+                                            -Authentication Basic `
+                                            -ErrorAction Stop `
+                                            -AllowRedirection
+                                    }
                                 }
                                 $InformationPreference = "SilentlyContinue"
                             }
@@ -394,6 +419,15 @@ function Test-MSCloudLogin
                             {
                                 $Global:SessionSecurityCompliance = New-PSSession -ConfigurationName Microsoft.Exchange `
                                     -ConnectionUri https://ps.compliance.protection.office365.us/powershell-liveid/?BasicAuthToOAuthConversion=true `
+                                    -Credential $Ctoken `
+                                    -Authentication Basic `
+                                    -AllowRedirection
+                            }
+
+                            if ($null -eq $Global:SessionSecurityCompliance)
+                            {
+                                $Global:SessionSecurityCompliance = New-PSSession -ConfigurationName Microsoft.Exchange `
+                                    -ConnectionUri https://ps.compliance.protection.outlook.de/powershell-liveid/?BasicAuthToOAuthConversion=true `
                                     -Credential $Ctoken `
                                     -Authentication Basic `
                                     -AllowRedirection
