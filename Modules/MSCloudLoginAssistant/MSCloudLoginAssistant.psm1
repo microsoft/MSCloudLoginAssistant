@@ -19,7 +19,8 @@ function Test-MSCloudLogin
     param
     (
         [Parameter(Mandatory=$true)]
-        [ValidateSet("Azure","AzureAD","SharePointOnline","ExchangeOnline","SecurityComplianceCenter","MSOnline","PnP","MicrosoftTeams")]
+        [ValidateSet("Azure","AzureAD","SharePointOnline","ExchangeOnline", `
+                     "SecurityComplianceCenter","MSOnline","PnP","MicrosoftTeams")]
         [System.String]
         $Platform,
 
@@ -109,12 +110,17 @@ function Test-MSCloudLogin
                 }
             }
 
-            $Global:OpenExchangeSession = Get-PSSession -Name 'ExchangeOnline' -ErrorAction SilentlyContinue | Where-Object -FilterScript { $_.State -eq 'Opened' }
+            $Global:OpenExchangeSession = Get-PSSession -Name 'ExchangeOnline' `
+                -ErrorAction SilentlyContinue | `
+                    Where-Object -FilterScript { $_.State -eq 'Opened' }
             if ($null -eq $Global:OpenExchangeSession)
             {
                 try
                 {
-                    $PowerShellConnections = Get-NetTCPConnection | Where-Object -FilterScript { $_.RemotePort -eq '443' -and $_.State -ne 'Established' }
+                    $PowerShellConnections = Get-NetTCPConnection | `
+                        Where-Object -FilterScript { `
+                            $_.RemotePort -eq '443' -and $_.State -ne 'Established' `
+                        }
 
                     while ($PowerShellConnections)
                     {
@@ -176,8 +182,22 @@ function Test-MSCloudLogin
                             }
                             catch
                             {
-                                Write-Warning "Exceeded max number of connections. Waiting 60 seconds"
-                                Start-Sleep 60
+                                try
+                                {
+                                    $Global:ExchangeOnlineSession = New-PSSession -Name 'ExchangeOnline' -ConfigurationName Microsoft.Exchange -ConnectionUri https://outlook.office.de/powershell-liveid/ -Credential $O365Credential -Authentication Basic -AllowRedirection -ErrorAction Stop
+                                }
+                                catch
+                                {
+                                    if ($_.Exception -like '*Access is denied*')
+                                    {
+                                        Throw "Access Denied: The specified account doesn't have access to manage Exchange Online"
+                                    }
+                                    else
+                                    {
+                                        Write-Warning "Exceeded max number of connections. Waiting 60 seconds"
+                                        Start-Sleep 60
+                                    }
+                                }
                             }
                         }
                     }
@@ -198,7 +218,10 @@ function Test-MSCloudLogin
                     {
                         Write-Verbose -Message "Waiting for available runspace..."
                         [regex]$WaitTimePattern = 'Please wait for [0-9]* seconds'
-                        $WaitTimePatternMatch = (($WaitTimePattern.Match($ExceptionMessage)).Value | Select-String -Pattern '[0-9]*' -AllMatches )
+
+                        $WaitTimePatternMatch = (($WaitTimePattern.Match($ExceptionMessage)).Value | `
+                            Select-String -Pattern '[0-9]*' -AllMatches)
+
                         $WaitTimeInSeconds = ($WaitTimePatternMatch | ForEach-Object {$_.Matches} | Where-Object -FilterScript { $_.Value -NotLike $null }).Value
                         Write-Verbose -Message "Waiting for requested $WaitTimeInSeconds seconds..."
                         Start-Sleep -Seconds ($WaitTimeInSeconds + 1)
@@ -294,9 +317,26 @@ function Test-MSCloudLogin
         }
         'SecurityComplianceCenter'
         {
-            $WarningPreference='silentlycontinue'
-            $Global:SessionSecurityCompliance = Get-PSSession | Where-Object{($_.ComputerName -like "*.ps.compliance.protection.outlook.com" -or $_.ComputerName -like "*ps.compliance.protection.office365.us")-and $_.State -eq "Opened"}
-            #Try Catch doesn't work even with $Global:ErrorActionPreference = "stop"
+            $WarningPreference = 'SilentlyContinue'
+            $InformationPreference = 'Continue'
+            $Global:SessionSecurityCompliance = Get-PSSession | `
+                Where-Object{ `
+                    ($_.ComputerName -like "*ps.compliance.protection.outlook.com" -or `
+                     $_.ComputerName -like "*ps.compliance.protection.office365.us" -or `
+                     $_.ComputerName -like "*ps.compliance.protection.outlook.de") `
+                     -and $_.State -eq "Opened"`
+                }
+
+            $CloudEnvironment = "Public"
+            $ConnectionUrl = 'https://ps.compliance.protection.outlook.com/powershell-liveid/'
+
+            # If the CloudCredential received matches the pattern '*.onmicrosoft.de' we assume that we are
+            # trying to connect to the Germany cloud.
+            if ($O365Credential.UserName -like '*.onmicrosoft.de')
+            {
+                $CloudEnvironment = "Germany"
+                $ConnectionUrl = 'https://ps.compliance.protection.outlook.de/powershell-liveid/'
+            }
             if ($null -eq $Global:SessionSecurityCompliance)
             {
                 try
@@ -305,7 +345,7 @@ function Test-MSCloudLogin
                     {
                         Write-Verbose -Message "Session to Security & Compliance no working session found, creating a new one"
                         $Global:SessionSecurityCompliance = New-PSSession -ConfigurationName "Microsoft.Exchange" `
-                        -ConnectionUri https://ps.compliance.protection.outlook.com/powershell-liveid/ `
+                        -ConnectionUri $ConnectionUrl `
                         -Credential $O365Credential `
                         -Authentication Basic `
                         -ErrorAction Stop `
@@ -313,18 +353,29 @@ function Test-MSCloudLogin
                     }
                     catch
                     {
-                        Write-Verbose -Message "Session to Security & Compliance no working session found, creating a new one"
-                        $Global:SessionSecurityCompliance = New-PSSession -ConfigurationName "Microsoft.Exchange" `
-                        -ConnectionUri https://ps.compliance.protection.office365.us/powershell-liveid/ `
-                        -Credential $O365Credential `
-                        -Authentication Basic `
-                        -ErrorAction Stop `
-                        -AllowRedirection
+                        # If the connection failed against either the Public or Germany clouds, then attempt to connect
+                        # to the GCC Cloud.
+                        try
+                        {
+                            $CloudEnvironment = "GCC"
+                            Write-Verbose -Message "Session to Security & Compliance no working session found, creating a new one"
+                            $Global:SessionSecurityCompliance = New-PSSession -ConfigurationName "Microsoft.Exchange" `
+                                -ConnectionUri 'https://ps.compliance.protection.office365.us/powershell-liveid/' `
+                                -Credential $O365Credential `
+                                -Authentication Basic `
+                                -ErrorAction Stop `
+                                -AllowRedirection
+                        }
+                        catch
+                        {
+                            throw $_
+                        }
                     }
                 }
                 catch
                 {
-                    if ($_.ErrorDetails.ToString().Contains('Fail to create a runspace because you have exceeded the maximum number of connections allowed'))
+                    if ($_.ErrorDetails.ToString().Contains('Fail to create a runspace because you have exceeded the maximum number of connections allowed' -and  `
+                        $CloudEnvironment -ne 'Germany'))
                     {
                         $counter = 1
                         while ($null -eq $Global:SessionSecurityCompliance -and $counter -le 10)
@@ -337,7 +388,7 @@ function Test-MSCloudLogin
                                 try
                                 {
                                     $Global:SessionSecurityCompliance = New-PSSession -ConfigurationName "Microsoft.Exchange" `
-                                        -ConnectionUri https://ps.compliance.protection.outlook.com/powershell-liveid/ `
+                                        -ConnectionUri $ConnectionUrl `
                                         -Credential $O365Credential `
                                         -Authentication Basic `
                                         -ErrorAction Stop `
@@ -345,12 +396,19 @@ function Test-MSCloudLogin
                                 }
                                 catch
                                 {
-                                    $Global:SessionSecurityCompliance = New-PSSession -ConfigurationName "Microsoft.Exchange" `
-                                    -ConnectionUri https://ps.compliance.protection.office365.us/powershell-liveid/ `
-                                    -Credential $O365Credential `
-                                    -Authentication Basic `
-                                    -ErrorAction Stop `
-                                    -AllowRedirection
+                                    try
+                                    {
+                                        $Global:SessionSecurityCompliance = New-PSSession -ConfigurationName "Microsoft.Exchange" `
+                                            -ConnectionUri 'https://ps.compliance.protection.office365.us/powershell-liveid/' `
+                                            -Credential $O365Credential `
+                                            -Authentication Basic `
+                                            -ErrorAction Stop `
+                                            -AllowRedirection
+                                    }
+                                    catch
+                                    {
+                                        throw $_
+                                    }
                                 }
                                 $InformationPreference = "SilentlyContinue"
                             }
@@ -365,16 +423,24 @@ function Test-MSCloudLogin
                         {
                             $clientid = "a0c73c16-a7e3-4564-9a95-2bdf47383716";
                             $RessourceURI = "https://ps.compliance.protection.outlook.com";
+                            $NewConnectionUrl = $ConnectionUrl + '?BasicAuthToOAuthConversion=true'
+                            if ($O365Credential.UserName -like '*.onmicrosoft.de')
+                            {
+                                $RessourceURI = "https://ps.compliance.protection.outlook.de";
+                            }
                             $RedirectURI = "urn:ietf:wg:oauth:2.0:oob";
-                            $AuthHeader = Get-AuthHeader -UserPrincipalName $Global:o365Credential.UserName -RessourceURI $RessourceURI -clientID $clientID -RedirectURI $RedirectURI
+                            $AuthHeader = Get-AuthHeader -UserPrincipalName $Global:o365Credential.UserName `
+                                                         -RessourceURI $RessourceURI -clientID $clientID `
+                                                         -RedirectURI $RedirectURI
+
                             $Password = ConvertTo-SecureString -AsPlainText $AuthHeader -Force
+
                             $Ctoken = New-Object System.Management.Automation.PSCredential -ArgumentList $Global:o365Credential.UserName, $Password
                             $Global:SessionSecurityCompliance = New-PSSession -ConfigurationName Microsoft.Exchange `
-                                -ConnectionUri https://ps.compliance.protection.outlook.com/powershell-liveid?BasicAuthToOAuthConversion=true `
+                                -ConnectionUri $NewConnectionUrl `
                                 -Credential $Ctoken `
                                 -Authentication Basic `
-                                -AllowRedirection `
-                                -ErrorAction SilentlyContinue
+                                -AllowRedirection
                             
                             if ($null -eq $Global:SessionSecurityCompliance)
                             {
