@@ -499,7 +499,7 @@ function Test-MSCloudLogin
                 $Global:ConnectionUrl = $ConnectionUrl
             }
             Write-Verbose -Message "`$Global:ConnectionUrl is $Global:ConnectionUrl."
-            $testCmdlet = "Get-PnPSite";
+            $testCmdlet = "Get-PnPConnection";
             $exceptionStringMFA = "sign-in name or password does not match one in the Microsoft account system";
             $clientid = "9bc3ab49-b65d-410a-85ad-de819febfddc";
             $RessourceURI = $Global:ConnectionUrl;
@@ -511,8 +511,6 @@ function Test-MSCloudLogin
         }
         'MicrosoftTeams'
         {
-            # Need to force-import this for some reason as of 1.0.0
-            Import-Module MicrosoftTeams -Force
             $testCmdlet = "Get-Team";
             $exceptionStringMFA = "AADSTS";
             $clientid = "12128f48-ec9e-42f0-b203-ea49fb6af367";
@@ -688,13 +686,24 @@ function Test-MSCloudLogin
                         $connectCmdletArgs = $originalArgs + " $paramName TeamsGCCH"
                         Invoke-Expression -Command "$connectCmdlet -ErrorAction Stop $connectCmdletArgs -ErrorVariable `$err | Out-Null"
                     }
-                    catch {
-                        try {
+                    catch
+                    {
+                        try
+                        {
                             $connectCmdletArgs = $originalArgs + " $paramName TeamsDOD"
                             Invoke-Expression -Command "$connectCmdlet -ErrorAction Stop $connectCmdletArgs -ErrorVariable `$err | Out-Null"
                         }
-                        catch {
-                            throw $_
+                        catch
+                        {
+                            try
+                            {
+                                $connectCmdletArgs = $originalArgs + " $paramName TeamsGCCH"
+                                Invoke-Expression -Command "$connectCmdlet -ErrorAction Stop $connectCmdletArgs -ErrorVariable `$err | Out-Null"
+                            }
+                            catch
+                            {
+                                throw $_
+                            }
                         }
                     }
                 }
@@ -783,10 +792,24 @@ function Get-SPOAdminUrl
     Test-MSCloudLogin -Platform AzureAD
     Write-Verbose -Message "Getting SharePoint Online admin URL..."
     $defaultDomain = Get-AzureADDomain | Where-Object {$_.Name -like "*.onmicrosoft.com" -and $_.IsInitial -eq $true} # We don't use IsDefault here because the default could be a custom domain
-    $tenantName = $defaultDomain[0].Name -replace ".onmicrosoft.com",""
-    $spoAdminUrl = "https://$tenantName-admin.sharepoint.com"
-    Write-Verbose -Message "SharePoint Online admin URL is $spoAdminUrl"
-    return $spoAdminUrl
+
+    if ($null -eq $defaultDomain)
+    {
+        $defaultDomain = Get-AzureADDomain | Where-Object {$_.Name -like "*.onmicrosoft.de" -and $_.IsInitial -eq $true}
+        $domain = '.onmicrosoft.de'
+        $tenantName = $defaultDomain[0].Name.Replace($domain, '')
+        $spoAdminUrl = "https://$tenantName-admin.sharepoint.de"
+        Write-Verbose -Message "SharePoint Online admin URL is $spoAdminUrl"
+        return $spoAdminUrl
+    }
+    else
+    {
+        $domain = '.onmicrosoft.com'
+        $tenantName = $defaultDomain[0].Name.Replace($domain, '')
+        $spoAdminUrl = "https://$tenantName-admin.sharepoint.com"
+        Write-Verbose -Message "SharePoint Online admin URL is $spoAdminUrl"
+        return $spoAdminUrl
+    }
 }
 
 function Get-AzureADDLL
