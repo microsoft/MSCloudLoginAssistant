@@ -511,8 +511,6 @@ function Test-MSCloudLogin
         }
         'MicrosoftTeams'
         {
-            # Need to force-import this for some reason as of 1.0.0
-            Import-Module MicrosoftTeams -Force
             $testCmdlet = "Get-Team";
             $exceptionStringMFA = "AADSTS";
             $clientid = "12128f48-ec9e-42f0-b203-ea49fb6af367";
