@@ -688,13 +688,24 @@ function Test-MSCloudLogin
                         $connectCmdletArgs = $originalArgs + " $paramName TeamsGCCH"
                         Invoke-Expression -Command "$connectCmdlet -ErrorAction Stop $connectCmdletArgs -ErrorVariable `$err | Out-Null"
                     }
-                    catch {
-                        try {
+                    catch
+                    {
+                        try
+                        {
                             $connectCmdletArgs = $originalArgs + " $paramName TeamsDOD"
                             Invoke-Expression -Command "$connectCmdlet -ErrorAction Stop $connectCmdletArgs -ErrorVariable `$err | Out-Null"
                         }
-                        catch {
-                            throw $_
+                        catch
+                        {
+                            try
+                            {
+                                $connectCmdletArgs = $originalArgs + " $paramName TeamsGCCH"
+                                Invoke-Expression -Command "$connectCmdlet -ErrorAction Stop $connectCmdletArgs -ErrorVariable `$err | Out-Null"
+                            }
+                            catch
+                            {
+                                throw $_
+                            }
                         }
                     }
                 }
