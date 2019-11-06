@@ -76,7 +76,7 @@ function Test-MSCloudLogin
         {
             if ([string]::IsNullOrEmpty($ConnectionUrl))
             {
-                $Global:spoAdminUrl = Get-SPOAdminUrl;
+                $Global:spoAdminUrl = Get-SPOAdminUrl -CloudCredential $CloudCredential
             }
             else
             {
@@ -491,7 +491,7 @@ function Test-MSCloudLogin
             if ([string]::IsNullOrEmpty($ConnectionUrl))
             {
                 # If we haven't specified a ConnectionUrl, just make the connection URL central admin
-                $Global:spoAdminUrl = Get-SPOAdminUrl;
+                $Global:spoAdminUrl = Get-SPOAdminUrl -CloudCredential $CloudCredential
                 $Global:ConnectionUrl = $Global:spoAdminUrl
             }
             else
@@ -786,10 +786,13 @@ function Get-SPOAdminUrl
     [OutputType([System.String])]
     param
     (
+        [Parameter()]
+        [System.Management.Automation.PSCredential]
+        $CloudCredential
     )
 
     Write-Verbose -Message "Connection to Azure AD is required to automatically determine SharePoint Online admin URL..."
-    Test-MSCloudLogin -Platform AzureAD
+    Test-MSCloudLogin -Platform AzureAD -CloudCredential $CloudCredential
     Write-Verbose -Message "Getting SharePoint Online admin URL..."
     $defaultDomain = Get-AzureADDomain | Where-Object {$_.Name -like "*.onmicrosoft.com" -and $_.IsInitial -eq $true} # We don't use IsDefault here because the default could be a custom domain
 
