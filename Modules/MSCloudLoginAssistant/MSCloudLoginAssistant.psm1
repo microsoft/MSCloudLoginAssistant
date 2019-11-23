@@ -20,7 +20,8 @@ function Test-MSCloudLogin
     (
         [Parameter(Mandatory=$true)]
         [ValidateSet("Azure","AzureAD","SharePointOnline","ExchangeOnline", `
-                     "SecurityComplianceCenter","MSOnline","PnP","MicrosoftTeams")]
+                     "SecurityComplianceCenter","MSOnline","PnP","MicrosoftTeams", `
+                     "SkypeForBusiness")]
         [System.String]
         $Platform,
 
@@ -521,6 +522,13 @@ function Test-MSCloudLogin
             #$connectCmdletMfaRetryArgs = "-AadAccessToken `$AuthToken -AccountId `$Global:o365Credential.UserName";
             $connectCmdletMfaRetryArgs = "-AccountId `$Global:o365Credential.UserName";
             $variablePrefix = "teams"
+        }
+        'SkypeForBusiness'
+        {
+            Import-Module SkypeOnlineConnector | Out-Null
+            $sfbSession = New-CsOnlineSession -Credential $Global:o365Credential
+            Import-PSSession $sfbSession | Out-Null
+            return
         }
     }
 
