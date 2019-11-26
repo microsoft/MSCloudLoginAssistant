@@ -20,7 +20,8 @@ function Test-MSCloudLogin
     (
         [Parameter(Mandatory=$true)]
         [ValidateSet("Azure","AzureAD","SharePointOnline","ExchangeOnline", `
-                     "SecurityComplianceCenter","MSOnline","PnP","MicrosoftTeams")]
+                     "SecurityComplianceCenter","MSOnline","PnP","MicrosoftTeams", `
+                     "SkypeForBusiness")]
         [System.String]
         $Platform,
 
@@ -76,7 +77,7 @@ function Test-MSCloudLogin
         {
             if ([string]::IsNullOrEmpty($ConnectionUrl))
             {
-                $Global:spoAdminUrl = Get-SPOAdminUrl;
+                $Global:spoAdminUrl = Get-SPOAdminUrl -CloudCredential $CloudCredential
             }
             else
             {
@@ -491,7 +492,7 @@ function Test-MSCloudLogin
             if ([string]::IsNullOrEmpty($ConnectionUrl))
             {
                 # If we haven't specified a ConnectionUrl, just make the connection URL central admin
-                $Global:spoAdminUrl = Get-SPOAdminUrl;
+                $Global:spoAdminUrl = Get-SPOAdminUrl -CloudCredential $CloudCredential
                 $Global:ConnectionUrl = $Global:spoAdminUrl
             }
             else
@@ -521,6 +522,43 @@ function Test-MSCloudLogin
             #$connectCmdletMfaRetryArgs = "-AadAccessToken `$AuthToken -AccountId `$Global:o365Credential.UserName";
             $connectCmdletMfaRetryArgs = "-AccountId `$Global:o365Credential.UserName";
             $variablePrefix = "teams"
+        }
+        'SkypeForBusiness'
+        {
+            $ErrorActionPreference = "Stop"
+
+            $targetUri = "https://adminca1.online.lync.com/OcsPowershellOAuth"
+            $clientId = "7716031e-6f8b-45a4-b82b-922b1af0fbb4"
+            $adminDomain = $Global:o365Credential.UserName.Split('@')[1]
+        
+            try
+            {
+                $AuthHeader = Get-SkypeForBusinessAccessToken -UserPrincipalName $Global:o365Credential.UserName `
+                                             -RessourceURI $targetUri -clientID $clientId `
+                                             -Credentials $Global:o365Credential
+                $networkCreds = [System.Net.NetworkCredential]::new("", $AuthHeader)
+                $accessToken = $networkCreds.SecurePassword
+                $user = "oauth"
+                $cred = [System.Management.Automation.PSCredential]::new($user, $accessToken)
+            }
+            catch
+            {
+                throw $_
+            }
+
+            $queryStr = "AdminDomain=$adminDomain"
+
+            $ConnectionUri = [UriBuilder]$targetUri
+            $ConnectionUri.Query = $queryStr
+
+            $psSessionName = "SfBPowerShellSession_" + [guid]::NewGuid().ToString()
+            $Global:SkypeSession = New-PSSession -Name $psSessionName -ConnectionUri $ConnectionUri.Uri `
+                                                 -Credential $cred -Authentication Basic
+            $Global:SkypeModule = Import-PSSession $Global:SkypeSession `
+                        -ErrorAction SilentlyContinue `
+                        -AllowClobber
+            Import-Module $Global:SkypeModule -Global | Out-Null
+            return
         }
     }
 
@@ -786,10 +824,13 @@ function Get-SPOAdminUrl
     [OutputType([System.String])]
     param
     (
+        [Parameter()]
+        [System.Management.Automation.PSCredential]
+        $CloudCredential
     )
 
     Write-Verbose -Message "Connection to Azure AD is required to automatically determine SharePoint Online admin URL..."
-    Test-MSCloudLogin -Platform AzureAD
+    Test-MSCloudLogin -Platform AzureAD -CloudCredential $CloudCredential
     Write-Verbose -Message "Getting SharePoint Online admin URL..."
     $defaultDomain = Get-AzureADDomain | Where-Object {$_.Name -like "*.onmicrosoft.com" -and $_.IsInitial -eq $true} # We don't use IsDefault here because the default could be a custom domain
 
@@ -866,9 +907,11 @@ function New-ADALServiceInfo
         [Parameter(Mandatory = $True)]
         [System.String]
         $TenantName,
+
         [Parameter(Mandatory = $True)]
         [System.String]
         $UserPrincipalName,
+
         [Parameter(Mandatory = $false)]
         [System.String]
         [ValidateSet('MicrosoftOnline','EvoSTS')]
@@ -884,6 +927,7 @@ function New-ADALServiceInfo
     {
         $tMod = [System.Reflection.Assembly]::LoadFrom($AzureADDLL)
     }
+
     $TenantInfo = Get-TenantLoginEndPoint -TenantName $TenantName
     if([string]::IsNullOrEmpty($TenantInfo))
     {
@@ -896,10 +940,10 @@ function New-ADALServiceInfo
     }
     $PromptBehavior = [Microsoft.IdentityModel.Clients.ActiveDirectory.PromptBehavior]::Auto
     $Service=@{}
-    $Service["authContext"] = New-Object "Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext" -ArgumentList $authority
+    $Service["authContext"] = [Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext]::new($authority, $false)
     $Service["platformParam"] = New-Object "Microsoft.IdentityModel.Clients.ActiveDirectory.PlatformParameters" -ArgumentList $PromptBehavior
     $Service["userId"] = New-Object "Microsoft.IdentityModel.Clients.ActiveDirectory.UserIdentifier" -ArgumentList $UserPrincipalName, "OptionalDisplayableId"
-    Return $Service
+    return $Service
 }
 
 function Get-AuthHeader
@@ -937,4 +981,47 @@ function Get-AuthHeader
         Throw "Can't create Authorization header"
     }
     Return $AuthHeader
+}
+
+function Get-SkypeForBusinessAccessToken
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory = $True)]
+        [System.String]
+        $UserPrincipalName,
+
+        [Parameter(Mandatory = $True)]
+        $RessourceURI,
+
+        [Parameter(Mandatory = $True)]
+        $clientId,
+
+        [Parameter()]
+        [System.String]
+        $RedirectURI,
+
+        [Parameter(Mandatory = $False)]
+        [System.Management.Automation.PSCredential]
+        $Credentials
+    )
+    if($null -eq $Global:SkypeServicePoint)
+    {
+        $TenantName = $UserPrincipalName.split("@")[1]
+        $Global:SkypeServicePoint = New-ADALServiceInfo -TenantName $TenantName -UserPrincipalName $UserPrincipalName
+    }
+
+    try
+    {
+        $TargetUri = $RessourceURI
+        $UserPasswordCreds = [Microsoft.IdentityModel.Clients.ActiveDirectory.UserPasswordCredential]::new($Credentials.UserName, $Credentials.Password)
+
+        $authResult = [Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContextIntegratedAuthExtensions]::AcquireTokenAsync($Global:SkypeServicePoint.authContext, $TargetUri, $clientId, $UserPasswordCreds)
+        $AuthHeader = $authResult.result.AccessToken
+    }
+    catch
+    {
+        throw $_
+    }
+    return $AuthHeader
 }
