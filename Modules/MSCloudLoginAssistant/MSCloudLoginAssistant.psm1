@@ -519,9 +519,9 @@ function Test-MSCloudLogin
             $RedirectURI = "https://teamscmdlet.microsoft.com";
             $connectCmdlet = "Connect-MicrosoftTeams";
             $connectCmdletArgs = "-Credential `$Global:o365Credential";
-            #$connectCmdletMfaRetryArgs = "-AadAccessToken `$AuthToken -AccountId `$Global:o365Credential.UserName";
             $connectCmdletMfaRetryArgs = "-AccountId `$Global:o365Credential.UserName";
             $variablePrefix = "teams"
+            Import-Module MicrosoftTeams -Force
         }
         'SkypeForBusiness'
         {
