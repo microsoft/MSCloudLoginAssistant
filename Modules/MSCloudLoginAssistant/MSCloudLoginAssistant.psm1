@@ -521,43 +521,52 @@ function Test-MSCloudLogin
             $connectCmdletArgs = "-Credential `$Global:o365Credential";
             $connectCmdletMfaRetryArgs = "-AccountId `$Global:o365Credential.UserName";
             $variablePrefix = "teams"
-            Import-Module MicrosoftTeams -Force
         }
         'SkypeForBusiness'
         {
-            $ErrorActionPreference = "Stop"
-
-            $targetUri = "https://adminca1.online.lync.com/OcsPowershellOAuth"
-            $clientId = "7716031e-6f8b-45a4-b82b-922b1af0fbb4"
-            $adminDomain = $Global:o365Credential.UserName.Split('@')[1]
-        
-            try
+            if ($null -eq $Global:SkypeModule -and $null -eq (Get-command Get-CsTeamsClientConfiguration -EA SilentlyContinue))
             {
-                $AuthHeader = Get-SkypeForBusinessAccessToken -UserPrincipalName $Global:o365Credential.UserName `
-                                             -RessourceURI $targetUri -clientID $clientId `
-                                             -Credentials $Global:o365Credential
-                $networkCreds = [System.Net.NetworkCredential]::new("", $AuthHeader)
-                $accessToken = $networkCreds.SecurePassword
-                $user = "oauth"
-                $cred = [System.Management.Automation.PSCredential]::new($user, $accessToken)
+                $ErrorActionPreference = "Stop"
+
+                $adminDomain = $Global:o365Credential.UserName.Split('@')[1]
+                $targetUri = Get-SkypeForBusinessServiceEndpoint -TargetDomain $adminDomain
+                $appAuthInfo = Get-SkypeForBusinessAccessInfo -PowerShellEndpointUri $targetUri
+
+                $clientId = $appAuthInfo.ClientID
+                $authUri = $appAuthInfo.AuthUrl
+                try
+                {
+                    <#$AuthHeader = Get-SkypeForBusinessAccessToken -TargetUri $targetUri -ClientID $clientId `
+                                                                  -AuthUri $authUri `
+                                                                  -Credentials $Global:o365Credential
+                    $networkCreds = [System.Net.NetworkCredential]::new("", $AuthHeader)
+                    $accessToken = $networkCreds.SecurePassword#>
+                    $accessToken = Get-CsOnlinePowerShellAccessToken -AuthUri $authUri -ClientId $clientid -TargetUri $targetUri -Credential $Global:o365Credential
+                    $user = "oauth"
+                    $cred = [System.Management.Automation.PSCredential]::new($user, $accessToken)
+
+                }
+                catch
+                {
+                    throw $_
+                }
+
+                $queryStr = "AdminDomain=$adminDomain"
+
+                $ConnectionUri = [UriBuilder]$targetUri
+                $ConnectionUri.Query = $queryStr
+
+                $psSessionName = "SfBPowerShellSession"
+                $ConnectorVersion = "7.0.2374.2"
+                $SessionOption = New-PsSessionOption
+                $SessionOption.ApplicationArguments = @{}
+                $SessionOption.ApplicationArguments['X-MS-Client-Version'] = $ConnectorVersion
+                $SessionOption.NoMachineProfile = $true
+                $Global:SkypeSession = New-PSSession -Name $psSessionName -ConnectionUri $ConnectionUri.Uri `
+                                                    -Credential $cred -Authentication Basic -SessionOption $SessionOption
+                $Global:SkypeModule = Import-PSSession $Global:SkypeSession
+                Import-Module $Global:SkypeModule -Global | Out-Null
             }
-            catch
-            {
-                throw $_
-            }
-
-            $queryStr = "AdminDomain=$adminDomain"
-
-            $ConnectionUri = [UriBuilder]$targetUri
-            $ConnectionUri.Query = $queryStr
-
-            $psSessionName = "SfBPowerShellSession_" + [guid]::NewGuid().ToString()
-            $Global:SkypeSession = New-PSSession -Name $psSessionName -ConnectionUri $ConnectionUri.Uri `
-                                                 -Credential $cred -Authentication Basic
-            $Global:SkypeModule = Import-PSSession $Global:SkypeSession `
-                        -ErrorAction SilentlyContinue `
-                        -AllowClobber
-            Import-Module $Global:SkypeModule -Global | Out-Null
             return
         }
     }
@@ -988,40 +997,149 @@ function Get-SkypeForBusinessAccessToken
     [CmdletBinding()]
     Param(
         [Parameter(Mandatory = $True)]
-        [System.String]
-        $UserPrincipalName,
+        $TargetUri,
 
         [Parameter(Mandatory = $True)]
-        $RessourceURI,
+        $AuthUri,
 
         [Parameter(Mandatory = $True)]
-        $clientId,
-
-        [Parameter()]
-        [System.String]
-        $RedirectURI,
+        $ClientId,
 
         [Parameter(Mandatory = $False)]
         [System.Management.Automation.PSCredential]
         $Credentials
     )
-    if($null -eq $Global:SkypeServicePoint)
+
+    # Load AAD Assemblies
+    $AzureADDLL = Get-AzureADDLL
+    if([string]::IsNullOrEmpty($AzureADDLL))
     {
-        $TenantName = $UserPrincipalName.split("@")[1]
-        $Global:SkypeServicePoint = New-ADALServiceInfo -TenantName $TenantName -UserPrincipalName $UserPrincipalName
+        throw "Can't find Azure AD DLL"
     }
+    [System.Reflection.Assembly]::LoadFrom($AzureADDLL) | Out-Null
 
     try
     {
-        $TargetUri = $RessourceURI
         $UserPasswordCreds = [Microsoft.IdentityModel.Clients.ActiveDirectory.UserPasswordCredential]::new($Credentials.UserName, $Credentials.Password)
-
-        $authResult = [Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContextIntegratedAuthExtensions]::AcquireTokenAsync($Global:SkypeServicePoint.authContext, $TargetUri, $clientId, $UserPasswordCreds)
-        $AuthHeader = $authResult.result.AccessToken
+        $context= [Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext]::new($AuthUri, $false)
+        $task = [System.Threading.Tasks.Task]::Run([Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContextIntegratedAuthExtensions]::AcquireTokenAsync($context, $targetUri, $ClientId, $UserPasswordCreds))
+        $authResult = $task
+        $AccessToken = $authResult.result.AccessToken
     }
     catch
     {
         throw $_
     }
-    return $AuthHeader
+    return $AccessToken
+}
+
+function Get-SkypeForBusinessServiceEndpoint
+{
+    [CmdletBinding()]
+    [OutputType([Uri])]
+    param(
+        [Parameter(Mandatory = $true)]
+        [System.String]
+        $TargetDomain
+    )
+    $overrideDiscoveryUri = "http://lyncdiscover." + $TargetDomain;
+    $desiredLink = "External/RemotePowerShell";
+    $liveIdUrl = $overrideDiscoveryUri.ToString() + "?Domain=" + $TargetDomain
+
+    $xml = Get-RTCXml -Url $liveIdUrl
+    $root = $xml.AutodiscoverResponse.Root
+
+    $domain = $root.Link | Where-Object -FilterScript {$_.Token -eq 'domain'}
+    if ($null -eq $domain)
+    {
+        $redirect = $root.Link | Where-Object -FilterScript {$_.Token -eq 'redirect'}
+
+        if ($null -eq $redirect)
+        {
+            throw "Could not properly retrieve the Skype for Business service endpoint for $TargetDomain"
+        }
+
+        while ($null -ne $redirect)
+        {
+            $xml = Get-RTCXml -Url $redirect.href
+            $root = $xml.AutodiscoverResponse.Root
+            $domain = $root.Link | Where-Object -FilterScript {$_.Token -eq 'domain'}
+            if ($null -eq $domain)
+            {
+                $redirect = $root.Link | Where-Object -FilterScript {$_.Token -eq 'redirect'}
+            }
+            else
+            {
+                $redirect = $null
+            }
+        }
+    }
+    $xml = Get-RTCXml -Url $domain.href
+    $endpoint = $xml.AutodiscoverResponse.Domain.Link | Where-Object -FilterScript {$_.token -eq $desiredLink}
+    $endpointUrl = $endpoint.href.Replace("/OcsPowershellLiveId","/OcsPowershellOAuth")
+    return [Uri]::new($endpointUrl)
+}
+
+function Get-RTCXml
+{
+    [CmdletBinding()]
+    [OutputType([Xml])]
+    param(
+        [Parameter(Mandatory = $true)]
+        [System.String]
+        $Url
+    )
+
+    $request = [System.Net.WebRequest]::Create($Url);
+    $request.set_Accept("application/vnd.microsoft.rtc.autodiscover+xml;v=1");
+    $response = $request.GetResponse()
+    $arg = [System.IO.StreamReader]::new($response.GetResponseStream()).ReadToEnd();
+    $xml = [Xml]$arg
+    return $xml
+}
+
+function Get-SkypeForBusinessAccessInfo
+{
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [Uri]
+        $PowerShellEndpointUri
+    )
+
+    try
+    {
+        $response = [System.Net.HttpWebResponse] ([System.Net.HttpWebRequest] [System.Net.WebRequest]::Create($PowerShellEndpointUri)).GetResponse();
+    }
+    catch [System.Net.WebException]
+    {
+        $response = ([System.Net.WebException]$_.Exception).Response;
+    }
+    $header = $response.Headers["WWW-Authenticate"]
+
+    # Get ClientID
+    $start = $header.IndexOf("client_id=") + 11
+    $end = $header.IndexOf("`"", $start)
+
+    $clientId = $null
+    if ($end -gt $start)
+    {
+        $clientId = $header.Substring($start, $end-$start)
+    }
+
+    # Get Auth Url
+    $start = $header.IndexOf("authorization_uri=") + 19
+    $end = $header.IndexOf("`"", $start)
+
+    $authUrl = $null
+    if ($end -gt $start)
+    {
+        $authUrl = $header.Substring($start, $end-$start)
+    }
+
+    $result = @{
+        ClientID = $clientId
+        AuthUrl = $authUrl
+    }
+    return $result
 }
