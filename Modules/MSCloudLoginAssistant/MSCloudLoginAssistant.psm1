@@ -518,7 +518,7 @@ function Test-MSCloudLogin
             $RessourceURI = "https://graph.windows.net";
             $RedirectURI = "https://teamscmdlet.microsoft.com";
             $connectCmdlet = "Connect-MicrosoftTeams";
-            $connectCmdletArgs = "-Credential `$Global:o365Credential -TeamsEnvironmentName TeamsCloud";
+            $connectCmdletArgs = "-Credential `$Global:o365Credential";
             $connectCmdletMfaRetryArgs = "-AccountId `$Global:o365Credential.UserName";
             $variablePrefix = "teams"
         }
