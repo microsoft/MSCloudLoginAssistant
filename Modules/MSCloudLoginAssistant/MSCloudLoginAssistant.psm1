@@ -38,12 +38,12 @@ function Test-MSCloudLogin
         [Switch]
         $UseModernAuth
     )
-
     # If we specified the CloudCredential parameter then set the global o365Credential object to its value
     if ($null -ne $CloudCredential)
     {
         $Global:o365Credential = $CloudCredential
     }
+
     if($null -eq $Global:UseModernAuth){
         $Global:UseModernAuth = $UseModernAuth.IsPresent
     }
@@ -526,6 +526,7 @@ function Test-MSCloudLogin
         {
             if ($null -eq $Global:SkypeModule -and $null -eq (Get-command Get-CsTeamsClientConfiguration -EA SilentlyContinue))
             {
+                Write-Verbose "Creating a new Session to Skype for Business Servers"
                 $ErrorActionPreference = "Stop"
 
                 $adminDomain = $Global:o365Credential.UserName.Split('@')[1]
@@ -536,14 +537,14 @@ function Test-MSCloudLogin
                 $authUri = $appAuthInfo.AuthUrl
                 try
                 {
-                    <#$AuthHeader = Get-SkypeForBusinessAccessToken -TargetUri $targetUri -ClientID $clientId `
+                    $AccessToken = Get-AccessToken -TargetUri $targetUri -ClientID $clientId `
                                                                   -AuthUri $authUri `
                                                                   -Credentials $Global:o365Credential
-                    $networkCreds = [System.Net.NetworkCredential]::new("", $AuthHeader)
-                    $accessToken = $networkCreds.SecurePassword#>
-                    $accessToken = Get-CsOnlinePowerShellAccessToken -AuthUri $authUri -ClientId $clientid -TargetUri $targetUri -Credential $Global:o365Credential
+                                                                  
+                    $networkCreds = [System.Net.NetworkCredential]::new("", $AccessToken)
+                    $secPassword = $networkCreds.SecurePassword
                     $user = "oauth"
-                    $cred = [System.Management.Automation.PSCredential]::new($user, $accessToken)
+                    $cred = [System.Management.Automation.PSCredential]::new($user, $secPassword)
 
                 }
                 catch
@@ -563,9 +564,13 @@ function Test-MSCloudLogin
                 $SessionOption.ApplicationArguments['X-MS-Client-Version'] = $ConnectorVersion
                 $SessionOption.NoMachineProfile = $true
                 $Global:SkypeSession = New-PSSession -Name $psSessionName -ConnectionUri $ConnectionUri.Uri `
-                                                    -Credential $cred -Authentication Basic -SessionOption $SessionOption
+                                                     -Credential $cred -Authentication Basic -SessionOption $SessionOption
                 $Global:SkypeModule = Import-PSSession $Global:SkypeSession
                 Import-Module $Global:SkypeModule -Global | Out-Null
+            }
+            else
+            {
+                Write-Verbose "Session to Skype For Business Servers already existed"
             }
             return
         }
@@ -992,7 +997,7 @@ function Get-AuthHeader
     Return $AuthHeader
 }
 
-function Get-SkypeForBusinessAccessToken
+function Get-AccessToken
 {
     [CmdletBinding()]
     Param(
@@ -1010,27 +1015,57 @@ function Get-SkypeForBusinessAccessToken
         $Credentials
     )
 
-    # Load AAD Assemblies
-    $AzureADDLL = Get-AzureADDLL
-    if([string]::IsNullOrEmpty($AzureADDLL))
-    {
-        throw "Can't find Azure AD DLL"
-    }
-    [System.Reflection.Assembly]::LoadFrom($AzureADDLL) | Out-Null
-
     try
     {
-        $UserPasswordCreds = [Microsoft.IdentityModel.Clients.ActiveDirectory.UserPasswordCredential]::new($Credentials.UserName, $Credentials.Password)
-        $context= [Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext]::new($AuthUri, $false)
-        $task = [System.Threading.Tasks.Task]::Run([Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContextIntegratedAuthExtensions]::AcquireTokenAsync($context, $targetUri, $ClientId, $UserPasswordCreds))
-        $authResult = $task
-        $AccessToken = $authResult.result.AccessToken
+        Write-Verbose "There was no existing Access Token for $ClientId. Requesting a new one from $TargetUri"
+        $VerbosePreference = 'Continue'
+        $jobName = "AcquireTokenAsync" + (New-Guid).ToString()
+        Start-Job -Name $jobName -ScriptBlock {
+            Param(
+                [Parameter(Mandatory = $True)]
+                $TargetUri,
+
+                [Parameter(Mandatory = $True)]
+                $AuthUri,
+
+                [Parameter(Mandatory = $True)]
+                $ClientId,
+
+                [Parameter(Mandatory = $False)]
+                [System.Management.Automation.PSCredential]
+                $Credentials
+            )
+            Import-Module MSCloudLoginAssistant -Force
+            # Load AAD Assemblies
+            $AzureADDLL = Get-AzureADDLL
+            if([string]::IsNullOrEmpty($AzureADDLL))
+            {
+                throw "Can't find Azure AD DLL"
+            }
+            [System.Reflection.Assembly]::LoadFrom($AzureADDLL) | Out-Null
+
+            $UserPasswordCreds = [Microsoft.IdentityModel.Clients.ActiveDirectory.UserPasswordCredential]::new($Credentials.UserName, $Credentials.Password)
+            $context= [Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext]::new($AuthUri, $false, [Microsoft.IdentityModel.Clients.ActiveDirectory.TokenCache]::DefaultShared)
+            $authResult = $context.AcquireTokenSilentAsync($TargetUri, $ClientId)
+            if ($null -eq $authResult.result)
+            {            
+                $authResult = [Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContextIntegratedAuthExtensions]::AcquireTokenAsync($context, $targetUri, $ClientId, $UserPasswordCreds)
+            }
+            $token = $authResult.result.AccessToken
+            return $token
+        } -ArgumentList @($targetUri, $AuthUri, $ClientId, $Credentials) | Out-Null
+        $job = Get-Job | Where-Object -FilterScript {$_.Name -eq $jobName}
+        do
+        {
+            Start-Sleep -Seconds 1
+        } while($job.JobStateInfo.State -ne "Completed")
+        $Global:AccessToken = Receive-Job -Name $jobName
+        return $Global:AccessToken
     }
     catch
     {
         throw $_
     }
-    return $AccessToken
 }
 
 function Get-SkypeForBusinessServiceEndpoint
@@ -1142,4 +1177,62 @@ function Get-SkypeForBusinessAccessInfo
         AuthUrl = $authUrl
     }
     return $result
+}
+
+function Get-MicrosoftTeamsAzureName
+{
+    [CmdletBinding()]
+    [OutputType([System.String])]
+    param(
+        [Parameter()]
+        [System.String]
+        [ValidateSet('TeamsCloud', 'TeamsGCCH', 'TeamsDOD')]
+        $TeamsEnvironmentName
+    )
+
+    if ($null -eq $TeamsEnvironmentName)
+    {
+        return "AzureCloud"
+    }
+    return $TeamsEnvironmentName
+}
+
+function Get-MicrosoftTeamsAzureEnvironmentName
+{
+    [CmdletBinding()]
+    [OutputType([System.String])]
+    param(
+        [Parameter(Mandatory = $true)]
+        [System.String]
+        [ValidateSet('TeamsCloud', 'TeamsGCCH', 'TeamsDOD')]
+        $TeamsEnvironmentName
+    )
+
+    if ($TeamsEnvironmentName -eq 'AzureCloud')
+    {
+        return 'AzureCloud'
+    }
+    return 'AzureUSGovernment'
+}
+
+function Get-MicrosoftTeamsMSGraphEndPoint
+{
+    [CmdletBinding()]
+    [OutPutType([System.String])]
+    param(
+        [Parameter(Mandatory = $true)]
+        [System.String]
+        [ValidateSet('TeamsCloud', 'TeamsGCCH', 'TeamsDOD')]
+        $TeamsEnvironmentName
+    )
+
+    if ($TeamsEnvironmentName -eq 'TeamsCloud')
+    {
+        return "https://graph.microsoft.com"
+    }
+    elseif ($TeamsEnvironmentName -eq 'TeamsGCCH')
+    {
+        return "https://graph.microsoft.us"
+    }
+    return "https://dod-graph.microsoft.us"
 }
