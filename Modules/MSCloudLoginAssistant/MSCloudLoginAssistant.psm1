@@ -1018,7 +1018,7 @@ function Get-AccessToken
     try
     {
         Write-Verbose "There was no existing Access Token for $ClientId. Requesting a new one from $TargetUri"
-        $VerbosePreference = 'Continue'
+
         $jobName = "AcquireTokenAsync" + (New-Guid).ToString()
         Start-Job -Name $jobName -ScriptBlock {
             Param(
@@ -1035,7 +1035,6 @@ function Get-AccessToken
                 [System.Management.Automation.PSCredential]
                 $Credentials
             )
-            Import-Module MSCloudLoginAssistant -Force
             # Load AAD Assemblies
             $AzureADDLL = Get-AzureADDLL
             if([string]::IsNullOrEmpty($AzureADDLL))
@@ -1048,7 +1047,7 @@ function Get-AccessToken
             $context= [Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext]::new($AuthUri, $false, [Microsoft.IdentityModel.Clients.ActiveDirectory.TokenCache]::DefaultShared)
             $authResult = $context.AcquireTokenSilentAsync($TargetUri, $ClientId)
             if ($null -eq $authResult.result)
-            {            
+            {
                 $authResult = [Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContextIntegratedAuthExtensions]::AcquireTokenAsync($context, $targetUri, $ClientId, $UserPasswordCreds)
             }
             $token = $authResult.result.AccessToken
@@ -1059,8 +1058,9 @@ function Get-AccessToken
         {
             Start-Sleep -Seconds 1
         } while($job.JobStateInfo.State -ne "Completed")
-        $Global:AccessToken = Receive-Job -Name $jobName
-        return $Global:AccessToken
+        $AccessToken = Receive-Job -Name $jobName
+        Write-Verbose "Token Found --> $AccessToken"
+        return $AccessToken
     }
     catch
     {
