@@ -109,7 +109,7 @@
             # ReleaseNotes of this module
             # ReleaseNotes = ''
             # Prerelease string of this module
-            ##Prerelease = '-pre'
+            # Prerelease = '-pre'
             # External dependent modules of this module
             # ExternalModuleDependencies = @()
 
