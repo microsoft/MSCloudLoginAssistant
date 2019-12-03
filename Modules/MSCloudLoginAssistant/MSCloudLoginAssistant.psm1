@@ -20,8 +20,8 @@ function Test-MSCloudLogin
     (
         [Parameter(Mandatory=$true)]
         [ValidateSet("Azure","AzureAD","SharePointOnline","ExchangeOnline", `
-                     "SecurityComplianceCenter","MSOnline","PnP","MicrosoftTeams", `
-                     "SkypeForBusiness")]
+                     "SecurityComplianceCenter","MSOnline","PnP", "PowerPlatforms", `
+                     "MicrosoftTeams","SkypeForBusiness")]
         [System.String]
         $Platform,
 
@@ -572,6 +572,136 @@ function Test-MSCloudLogin
             else
             {
                 Write-Verbose "Session to Skype For Business Servers already existed"
+            }
+            return
+        }
+        'PowerPlatforms'
+        {
+            $WarningPreference = 'SilentlyContinue'
+            Import-Module 'Microsoft.PowerApps.Administration.PowerShell' -Global -ErrorAction SilentlyContinue -Force | Out-Null
+            $WarningPreference = 'Continue'
+            if ($null -eq $Global:currentSession -or $global:currentSession.loggedIn -eq $false -or `
+                $global:currentSession.expiresOn -lt (Get-Date))
+            {
+                
+                $tenantName = $Global:o365Credential.UserName.Split('@')[1]
+                $tenantInfo = Get-TenantLoginEndPoint -TenantName $tenantName
+                $tenantId = $tenantInfo.issuer.Replace("https://", "").Split('/')[1]
+                $Endpoint = 'prod'
+
+                $ManagementAudience = "https://management.azure.com/"
+                $TokenInfoManagement = Get-PowerPlatformTokenInfo -Audience $ManagementAudience -Credentials $Global:o365Credential
+                $Global:currentSession = @{
+                    loggedIn = $true;
+                    idToken = $TokenInfoManagement.JwtToken;
+                    upn = $TokenInfoManagement.Claims.upn;
+                    tenantId = $tenantId;
+                    userId = $TokenInfoManagement.Claims.oid;
+                    refreshToken = $TokenInfoManagement.RefreshToken;
+                    expiresOn = (Get-Date).AddHours(8);
+                    resourceTokens = @{
+                        $ManagementAudience = @{
+                            accessToken = $TokenInfoManagement.AccessToken;
+                            expiresOn = $TokenInfoManagement.ExpiresOn.DateTime;
+                        }
+                    };
+                    selectedEnvironment = "~default";
+                    flowEndpoint = 
+                        switch ($Endpoint)
+                        {
+                            "prod"      { "api.flow.microsoft.com" }
+                            "usgov"     { "gov.api.flow.microsoft.us" }
+                            "usgovhigh" { "high.api.flow.microsoft.us" }
+                            "preview"   { "preview.api.flow.microsoft.com" }
+                            "tip1"      { "tip1.api.flow.microsoft.com"}
+                            "tip2"      { "tip2.api.flow.microsoft.com" }
+                            default     { throw "Unsupported endpoint '$Endpoint'"}
+                        };
+                    powerAppsEndpoint = 
+                        switch ($Endpoint)
+                        {
+                            "prod"      { "api.powerapps.com" }
+                            "usgov"     { "gov.api.powerapps.us" }
+                            "usgovhigh" { "high.api.powerapps.us" }
+                            "preview"   { "preview.api.powerapps.com" }
+                            "tip1"      { "tip1.api.powerapps.com"}
+                            "tip2"      { "tip2.api.powerapps.com" }
+                            default     { throw "Unsupported endpoint '$Endpoint'"}
+                        };            
+                    bapEndpoint = 
+                        switch ($Endpoint)
+                        {
+                            "prod"      { "api.bap.microsoft.com" }
+                            "usgov"     { "gov.api.bap.microsoft.us" }
+                            "usgovhigh" { "high.api.bap.microsoft.us" }
+                            "preview"   { "preview.api.bap.microsoft.com" }
+                            "tip1"      { "tip1.api.bap.microsoft.com"}
+                            "tip2"      { "tip2.api.bap.microsoft.com" }
+                            default     { throw "Unsupported endpoint '$Endpoint'"}
+                        };      
+                    graphEndpoint = 
+                        switch ($Endpoint)
+                        {
+                            "prod"      { "graph.windows.net" }
+                            "usgov"     { "graph.windows.net" }
+                            "usgovhigh" { "graph.windows.net" }
+                            "preview"   { "graph.windows.net" }
+                            "tip1"      { "graph.windows.net"}
+                            "tip2"      { "graph.windows.net" }
+                            default     { throw "Unsupported endpoint '$Endpoint'"}
+                        };
+                    cdsOneEndpoint = 
+                        switch ($Endpoint)
+                        {
+                            "prod"      { "api.cds.microsoft.com" }
+                            "usgov"     { "gov.api.cds.microsoft.us" }
+                            "usgovhigh" { "high.api.cds.microsoft.us" }
+                            "preview"   { "preview.api.cds.microsoft.com" }
+                            "tip1"      { "tip1.api.cds.microsoft.com"}
+                            "tip2"      { "tip2.api.cds.microsoft.com" }
+                            default     { throw "Unsupported endpoint '$Endpoint'"}
+                        };
+                };
+
+                $Route = "https://{bapEndpoint}/providers/Microsoft.BusinessAppPlatform/scopes/admin/environments/~default?`$expand=permissions&api-version={apiVersion}" `
+
+                $uri = $Route `
+                    | ReplaceMacro -Macro "{apiVersion}"  -Value $ApiVersion `
+                    | ReplaceMacro -Macro "{flowEndpoint}" -Value $global:currentSession.flowEndpoint `
+                    | ReplaceMacro -Macro "{powerAppsEndpoint}" -Value $global:currentSession.powerAppsEndpoint `
+                    | ReplaceMacro -Macro "{bapEndpoint}" -Value $global:currentSession.bapEndpoint `
+                    | ReplaceMacro -Macro "{graphEndpoint}" -Value $global:currentSession.graphEndpoint `
+                    | ReplaceMacro -Macro "{cdsOneEndpoint}" -Value $global:currentSession.cdsOneEndpoint;
+
+                $hostMapping = @{
+                    "management.azure.com" = "https://management.azure.com/";
+                    "api.powerapps.com" = "https://service.powerapps.com/";
+                    "tip1.api.powerapps.com" = "https://service.powerapps.com/";
+                    "tip2.api.powerapps.com" = "https://service.powerapps.com/";
+                    "graph.windows.net" = "https://graph.windows.net/";
+                    "api.bap.microsoft.com" = "https://service.powerapps.com/";
+                    "tip1.api.bap.microsoft.com" = "https://service.powerapps.com/";
+                    "tip2.api.bap.microsoft.com" = "https://service.powerapps.com/";
+                    "api.flow.microsoft.com" = "https://service.flow.microsoft.com/";
+                    "tip1.api.flow.microsoft.com" = "https://service.flow.microsoft.com/";
+                    "tip2.api.flow.microsoft.com" = "https://service.flow.microsoft.com/";
+                    "gov.api.bap.microsoft.us" = "https://gov.service.powerapps.us/";
+                    "high.api.bap.microsoft.us" = "https://high.service.powerapps.us/";
+                    "gov.api.powerapps.us" = "https://gov.service.powerapps.us/";
+                    "high.api.powerapps.us" = "https://high.service.powerapps.us/";
+                    "gov.api.flow.microsoft.us" = "https://gov.service.flow.microsoft.us/";
+                    "high.api.flow.microsoft.us" = "https://high.service.flow.microsoft.us/";
+                }
+
+                $uriObject = New-Object System.Uri($Uri)
+                $host = $uriObject.Host
+                $ServiceAudience = $hostMapping[$host]
+                $TokenInfoService = Get-PowerPlatformTokenInfo -Audience $ServiceAudience -Credentials $Global:o365Credential
+                $ServiceResourceToken = @{
+                    accessToken = $TokenInfoService.AccessToken;
+                    expiresOn = $TokenInfoService.ExpiresOn.DateTime;
+                }
+                $Global:currentSession.resourceTokens.Add($ServiceAudience, $ServiceResourceToken)
             }
             return
         }
@@ -1236,4 +1366,74 @@ function Get-MicrosoftTeamsMSGraphEndPoint
         return "https://graph.microsoft.us"
     }
     return "https://dod-graph.microsoft.us"
+}
+
+function Get-PowerPlatformTokenInfo
+{
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$true)]
+        [System.String]
+        $Audience,
+
+        [Parameter()]
+        [System.Management.Automation.PSCredential]
+        $Credentials
+    )
+
+    $jobName = 'AcquireTokenAsync' + (New-Guid).ToString()
+    Start-Job -Name $jobName -ScriptBlock {
+        Param(
+            [Parameter(Mandatory=$true)]
+            [System.Management.Automation.PSCredential]
+            $O365Credentials,
+
+            [Parameter(Mandatory = $true)]
+            [System.String]
+            $Audience
+        )
+        try
+        {
+            $WarningPreference = 'SilentlyContinue'
+            Import-Module 'Microsoft.PowerApps.Administration.PowerShell' -Force
+            $authContext = New-Object Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext("https://login.windows.net/common");
+            $credential = [Microsoft.IdentityModel.Clients.ActiveDirectory.UserCredential]::new($O365Credentials.Username, $O365Credentials.Password)
+            $authResult = $authContext.AcquireToken($Audience, "1950a258-227b-4e31-a9cf-717495945fc2", $credential);
+
+            $JwtToken = $authResult.IdToken
+            $tokenSplit = $JwtToken.Split(".")
+            $claimsSegment = $tokenSplit[1].Replace(" ", "+");
+
+            $mod = $claimsSegment.Length % 4
+            if ($mod -gt 0)
+            {
+                $paddingCount = 4 - $mod;
+                for ($i = 0; $i -lt $paddingCount; $i++)
+                {
+                    $claimsSegment += "="
+                }
+            }
+            $decodedClaimsSegment = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($claimsSegment))
+            $claims = ConvertFrom-Json $decodedClaimsSegment
+        }
+        catch
+        {
+            $_ | Out-File C:\dsc\error.txt
+        }
+        return @{
+            JwtToken     = $JwtToken
+            Claims       = $claims
+            RefreshToken = $authResult.RefreshToken
+            AccessToken  = $authResult.AccessToken
+            ExpiresOn    = $authResult.ExpiresOn
+        }
+    } -ArgumentList @($Credentials, $Audience) | Out-Null
+
+    $job = Get-Job | Where-Object -FilterScript {$_.Name -eq $jobName}
+    do
+    {
+        Start-Sleep -Seconds 1
+    } while($job.JobStateInfo.State -ne "Completed")
+    $TokenInfo = Receive-Job -Name $jobName
+    return $TokenInfo
 }
