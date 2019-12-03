@@ -20,8 +20,8 @@ function Test-MSCloudLogin
     (
         [Parameter(Mandatory=$true)]
         [ValidateSet("Azure","AzureAD","SharePointOnline","ExchangeOnline", `
-                     "SecurityComplianceCenter","MSOnline","PnP","MicrosoftTeams", `
-                     "SkypeForBusiness")]
+                     "SecurityComplianceCenter","MSOnline","PnP", "PowerPlatforms", `
+                     "MicrosoftTeams","SkypeForBusiness")]
         [System.String]
         $Platform,
 
@@ -573,6 +573,18 @@ function Test-MSCloudLogin
             {
                 Write-Verbose "Session to Skype For Business Servers already existed"
             }
+            return
+        }
+        'PowerPlatforms'
+        {
+            $AdminModuleName = 'Microsoft.PowerApps.Administration.PowerShell'
+            $PPModule = Get-Module $AdminModuleName
+
+            if ($null -eq $AdminModuleName)
+            {
+                Import-Module 'Microsoft.PowerApps.Administration.PowerShell' -ErrorAction SilentlyContinue -Force | Out-Null
+            }
+            Add-PowerAppsAccount -UserName $Global:O365Credential.Username -Password $Global:O365Credential.Password | Out-Null
             return
         }
     }
