@@ -586,6 +586,10 @@ function Test-MSCloudLogin
                 $tenantId = $tenantInfo.issuer.Replace("https://", "").Split('/')[1]
                 $Endpoint = 'prod'
 
+                if ($tenantInfo.tenant_region_sub_scope -eq 'GCC')
+                {
+                    $Endpoint = 'usgov'
+                }
                 $ManagementAudience = "https://management.azure.com/"
                 $TokenInfoManagement = Get-PowerPlatformTokenInfo -Audience $ManagementAudience -Credentials $Global:o365Credential
                 $Global:currentSession = @{
