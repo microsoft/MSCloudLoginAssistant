@@ -6,7 +6,7 @@
 .EXAMPLE
     Test-MSCloudLogin -Platform PnP
 .PARAMETER Platform
-    The Platform parameter specifies which cloud service for which we are testing the login state. Possible values are Azure, AzureAD, SharePointOnline, ExchangeOnline, MSOnline, and PnP.
+    The Platform parameter specifies which cloud service for which we are testing the login state. Possible values are Azure, AzureAD, SharePointOnline, ExchangeOnline, SecurityComplianceCenter, MSOnline, PnP, PowerPlatforms, MicrosoftTeams, and SkypeForBusiness.
 .NOTES
     Created & maintained by Brian Lalancette (@brianlala), 2019.
 .LINK
@@ -20,7 +20,7 @@ function Test-MSCloudLogin
     (
         [Parameter(Mandatory=$true)]
         [ValidateSet("Azure","AzureAD","SharePointOnline","ExchangeOnline", `
-                     "SecurityComplianceCenter","MSOnline","PnP", "PowerPlatforms", `
+                     "SecurityComplianceCenter","MSOnline","PnP","PowerPlatforms", `
                      "MicrosoftTeams","SkypeForBusiness")]
         [System.String]
         $Platform,
@@ -44,17 +44,19 @@ function Test-MSCloudLogin
         $Global:o365Credential = $CloudCredential
     }
 
-    if($null -eq $Global:UseModernAuth){
+    if ($null -eq $Global:UseModernAuth)
+    {
         $Global:UseModernAuth = $UseModernAuth.IsPresent
     }
     switch ($Platform)
     {
         'Azure'
         {
+            $moduleName = "Az"
             $testCmdlet = "Get-AzResource";
             $exceptionStringMFA = "AADSTS";
             $clientid = "1950a258-227b-4e31-a9cf-717495945fc2";
-            $RessourceURI = "https://management.core.windows.net";
+            $ResourceURI = "https://management.core.windows.net";
             $RedirectURI = "urn:ietf:wg:oauth:2.0:oob";
             $connectCmdlet = "Connect-AzAccount";
             $connectCmdletArgs = ""
@@ -63,10 +65,11 @@ function Test-MSCloudLogin
         }
         'AzureAD'
         {
+            $moduleName = $Platform
             $testCmdlet = "Get-AzureADUser";
             $exceptionStringMFA = "AADSTS";
             $clientid = "1b730954-1685-4b74-9bfd-dac224a7b894";
-            $RessourceURI = "https://graph.windows.net";
+            $ResourceURI = "https://graph.windows.net";
             $RedirectURI = "urn:ietf:wg:oauth:2.0:oob";
             $connectCmdlet = "Connect-AzureAD";
             $connectCmdletArgs = "-Credential `$Global:o365Credential";
@@ -75,6 +78,7 @@ function Test-MSCloudLogin
         }
         'SharePointOnline'
         {
+            $moduleName = "Microsoft.Online.SharePoint.PowerShell"
             if ([string]::IsNullOrEmpty($ConnectionUrl))
             {
                 $Global:spoAdminUrl = Get-SPOAdminUrl -CloudCredential $CloudCredential
@@ -86,7 +90,7 @@ function Test-MSCloudLogin
             $testCmdlet = "Get-SPOSite";
             $exceptionStringMFA = "sign-in name or password does not match one in the Microsoft account system";
             $clientid = "9bc3ab49-b65d-410a-85ad-de819febfddc";
-            $RessourceURI = $Global:spoAdminUrl;
+            $ResourceURI = $Global:spoAdminUrl;
             $RedirectURI = "urn:ietf:wg:oauth:2.0:oob";
             $connectCmdlet = "Connect-SPOService";
             $connectCmdletArgs = "-Url $Global:spoAdminUrl -Credential `$Global:o365Credential";
@@ -98,7 +102,7 @@ function Test-MSCloudLogin
             $VerbosePreference = 'SilentlyContinue'
             $WarningPreference = "Continue"
             $clientid = "a0c73c16-a7e3-4564-9a95-2bdf47383716";
-            $RessourceURI = "https://outlook.office365.com";
+            $ResourceURI = "https://outlook.office365.com";
             $RedirectURI = "urn:ietf:wg:oauth:2.0:oob";
             $ClosedOrBrokenSessions = Get-PSSession -ErrorAction SilentlyContinue | Where-Object -FilterScript { $_.State -ne 'Opened' }
             if ($ClosedOrBrokenSessions)
@@ -154,8 +158,9 @@ function Test-MSCloudLogin
                         }
                         catch
                         {
-                            try {
-                                $AuthHeader = Get-AuthHeader -UserPrincipalName $Global:o365Credential.UserName -RessourceURI $RessourceURI -clientID $clientID -RedirectURI $RedirectURI
+                            try
+                            {
+                                $AuthHeader = Get-AuthHeader -UserPrincipalName $Global:o365Credential.UserName -ResourceURI $ResourceURI -clientID $clientID -RedirectURI $RedirectURI
                                 $Password = ConvertTo-SecureString -AsPlainText $AuthHeader -Force
                                 $Ctoken = New-Object System.Management.Automation.PSCredential -ArgumentList $Global:o365Credential.UserName, $Password
                                 $Global:ExchangeOnlineSession = New-PSSession -ConfigurationName Microsoft.Exchange `
@@ -166,7 +171,8 @@ function Test-MSCloudLogin
                                 -AllowRedirection
                                 $Global:UseModernAuth = $True
                             }
-                            catch {
+                            catch
+                            {
                                 if ($_ -like '*Connecting to remote server *Access is denied.*')
                                 {
                                     Throw "The provided account doesn't have admin access to Exchange Online."
@@ -205,7 +211,7 @@ function Test-MSCloudLogin
                     if ($null -eq $Global:ExchangeOnlineModules)
                     {
                         Write-Verbose -Message "Importing all commands into the EXO Session"
-                        $WarningPreference = 'silentlycontinue'
+                        $WarningPreference = 'SilentlyContinue'
                         $Global:ExchangeOnlineModules = Import-PSSession $Global:ExchangeOnlineSession -AllowClobber
                         Import-Module $Global:ExchangeOnlineModules -Global | Out-Null
                     }
@@ -248,11 +254,13 @@ function Test-MSCloudLogin
                             $Global:ExchangeOnlineSession = $null
                             while (-not $Global:ExchangeOnlineSession)
                             {
-                                try {
+                                try
+                                {
                                     $Global:ExchangeOnlineSession = New-PSSession -Name 'ExchangeOnline' -ConfigurationName Microsoft.Exchange -ConnectionUri https://outlook.office365.com/powershell-liveid/ -Credential $O365Credential -Authentication Basic -AllowRedirection -ErrorAction Stop
                                 }
-                                catch {
-                                    $AuthHeader = Get-AuthHeader -UserPrincipalName $Global:o365Credential.UserName -RessourceURI $RessourceURI -clientID $clientID -RedirectURI $RedirectURI
+                                catch
+                                {
+                                    $AuthHeader = Get-AuthHeader -UserPrincipalName $Global:o365Credential.UserName -ResourceURI $ResourceURI -clientID $clientID -RedirectURI $RedirectURI
                                     $Password = ConvertTo-SecureString -AsPlainText $AuthHeader -Force
                                     $Ctoken = New-Object System.Management.Automation.PSCredential -ArgumentList $Global:o365Credential.UserName, $Password
                                     $Global:ExchangeOnlineSession = New-PSSession -ConfigurationName Microsoft.Exchange `
@@ -265,7 +273,7 @@ function Test-MSCloudLogin
                                 }
 
                             }
-                            $WarningPreference='silentlycontinue'
+                            $WarningPreference = 'SilentlyContinue'
                             $Global:ExchangeOnlineModules = Import-PSSession $Global:ExchangeOnlineSession -AllowClobber -ErrorAction SilentlyContinue
                             $ExchangeOnlineModuleImport = Import-Module $ExchangeOnlineModules -Global -ErrorAction SilentlyContinue
                         }
@@ -292,7 +300,7 @@ function Test-MSCloudLogin
                             Write-Verbose -Message "Opening New ExchangeOnline Session."
                             $VerbosePreference = 'SilentlyContinue'
                             Get-PSSession -Name 'ExchangeOnline' -ErrorAction SilentlyContinue | Remove-PSSession -ErrorAction SilentlyContinue
-                            $WarningPreference='silentlycontinue'
+                            $WarningPreference = 'SilentlyContinue'
                             $Global:ExchangeOnlineSession = New-PSSession -Name 'ExchangeOnline' -ConfigurationName Microsoft.Exchange -ConnectionUri https://outlook.office365.com/powershell-liveid/ -Credential $O365Credential -Authentication Basic -AllowRedirection
                             $Global:ExchangeOnlineModules = Import-PSSession $Global:ExchangeOnlineSession -AllowClobber -ErrorAction SilentlyContinue
                             $ExchangeOnlineModuleImport = Import-Module $ExchangeOnlineModules -Global -ErrorAction SilentlyContinue
@@ -318,10 +326,11 @@ function Test-MSCloudLogin
         }
         'SecurityComplianceCenter'
         {
+            $moduleName = "O365SecurityAndComplianceShell"
             $WarningPreference = 'SilentlyContinue'
             $InformationPreference = 'Continue'
             $Global:SessionSecurityCompliance = Get-PSSession | `
-                Where-Object{ `
+                Where-Object { `
                     ($_.ComputerName -like "*ps.compliance.protection.outlook.com" -or `
                      $_.ComputerName -like "*ps.compliance.protection.office365.us" -or `
                      $_.ComputerName -like "*ps.compliance.protection.outlook.de") `
@@ -375,7 +384,7 @@ function Test-MSCloudLogin
                 }
                 catch
                 {
-                    if ($_.ErrorDetails.ToString().Contains('Fail to create a runspace because you have exceeded the maximum number of connections allowed' -and  `
+                    if ($_.ErrorDetails.ToString().Contains('Fail to create a runspace because you have exceeded the maximum number of connections allowed' -and `
                         $CloudEnvironment -ne 'Germany'))
                     {
                         $counter = 1
@@ -423,15 +432,15 @@ function Test-MSCloudLogin
                         try
                         {
                             $clientid = "a0c73c16-a7e3-4564-9a95-2bdf47383716";
-                            $RessourceURI = "https://ps.compliance.protection.outlook.com";
+                            $ResourceURI = "https://ps.compliance.protection.outlook.com";
                             $NewConnectionUrl = $ConnectionUrl + '?BasicAuthToOAuthConversion=true'
                             if ($O365Credential.UserName -like '*.onmicrosoft.de')
                             {
-                                $RessourceURI = "https://ps.compliance.protection.outlook.de";
+                                $ResourceURI = "https://ps.compliance.protection.outlook.de";
                             }
                             $RedirectURI = "urn:ietf:wg:oauth:2.0:oob";
                             $AuthHeader = Get-AuthHeader -UserPrincipalName $Global:o365Credential.UserName `
-                                                         -RessourceURI $RessourceURI -clientID $clientID `
+                                                         -ResourceURI $ResourceURI -clientID $clientID `
                                                          -RedirectURI $RedirectURI
 
                             $Password = ConvertTo-SecureString -AsPlainText $AuthHeader -Force
@@ -463,12 +472,12 @@ function Test-MSCloudLogin
             {
                 Write-Verbose -Message "Session to Security & Compliance already exists, re-using existing session"
             }
-            $WarningPreference='silentlycontinue'
+            $WarningPreference = 'SilentlyContinue'
             if ($null -eq $Global:SCModule)
             {
                 $Global:SCModule = Import-PSSession $Global:SessionSecurityCompliance  `
-                        -ErrorAction SilentlyContinue `
-                        -AllowClobber
+                    -ErrorAction SilentlyContinue `
+                    -AllowClobber
 
                 Import-Module $Global:SCModule -Global | Out-Null
             }
@@ -476,10 +485,11 @@ function Test-MSCloudLogin
         }
         'MSOnline'
         {
+            $moduleName = $Platform
             $testCmdlet = "Get-MsolUser";
             $exceptionStringMFA = "AADSTS";
             $clientid = "1b730954-1685-4b74-9bfd-dac224a7b894";
-            $RessourceURI = "https://graph.windows.net";
+            $ResourceURI = "https://graph.windows.net";
             $RedirectURI = "urn:ietf:wg:oauth:2.0:oob";
             $connectCmdlet = "Connect-MsolService";
             $connectCmdletArgs = "-Credential `$Global:o365Credential";
@@ -488,6 +498,7 @@ function Test-MSCloudLogin
         }
         'PnP'
         {
+            $moduleName = "SharePointPnPPowerShellOnline"
             if ([string]::IsNullOrEmpty($ConnectionUrl))
             {
                 # If we haven't specified a ConnectionUrl, just make the connection URL central admin
@@ -502,7 +513,7 @@ function Test-MSCloudLogin
             $testCmdlet = "Get-PnPConnection";
             $exceptionStringMFA = "sign-in name or password does not match one in the Microsoft account system";
             $clientid = "9bc3ab49-b65d-410a-85ad-de819febfddc";
-            $RessourceURI = $Global:ConnectionUrl;
+            $ResourceURI = $Global:ConnectionUrl;
             $RedirectURI = "https://oauth.spops.microsoft.com/";
             $connectCmdlet = "Connect-PnPOnline";
             $connectCmdletArgs = "-Url $Global:ConnectionUrl -Credentials `$Global:o365Credential";
@@ -511,11 +522,12 @@ function Test-MSCloudLogin
         }
         'MicrosoftTeams'
         {
-            Import-Module MicrosoftTeams -Force
+            $moduleName = $Platform
+            Import-Module -Name $moduleName -Force
             $testCmdlet = "Get-Team";
             $exceptionStringMFA = "AADSTS";
             $clientid = "12128f48-ec9e-42f0-b203-ea49fb6af367";
-            $RessourceURI = "https://graph.windows.net";
+            $ResourceURI = "https://graph.windows.net";
             $RedirectURI = "https://teamscmdlet.microsoft.com";
             $connectCmdlet = "Connect-MicrosoftTeams";
             $connectCmdletArgs = "-Credential `$Global:o365Credential";
@@ -538,8 +550,8 @@ function Test-MSCloudLogin
                 try
                 {
                     $AccessToken = Get-AccessToken -TargetUri $targetUri -ClientID $clientId `
-                                                                  -AuthUri $authUri `
-                                                                  -Credentials $Global:o365Credential
+                        -AuthUri $authUri `
+                        -Credentials $Global:o365Credential
                     $networkCreds = [System.Net.NetworkCredential]::new("", $AccessToken)
                     $secPassword = $networkCreds.SecurePassword
                     $user = "oauth"
@@ -575,8 +587,9 @@ function Test-MSCloudLogin
         }
         'PowerPlatforms'
         {
+            $moduleName = "Microsoft.PowerApps.Administration.PowerShell"
             $WarningPreference = 'SilentlyContinue'
-            Import-Module 'Microsoft.PowerApps.Administration.PowerShell' -Global -ErrorAction SilentlyContinue -Force | Out-Null
+            Import-Module -Name $moduleName -Global -ErrorAction SilentlyContinue -Force | Out-Null
             $WarningPreference = 'Continue'
             if ($null -eq $Global:currentSession -or $global:currentSession.loggedIn -eq $false -or `
                 $global:currentSession.expiresOn -lt (Get-Date))
@@ -675,23 +688,23 @@ function Test-MSCloudLogin
                     | ReplaceMacro -Macro "{cdsOneEndpoint}" -Value $global:currentSession.cdsOneEndpoint;
 
                 $hostMapping = @{
-                    "management.azure.com" = "https://management.azure.com/";
-                    "api.powerapps.com" = "https://service.powerapps.com/";
-                    "tip1.api.powerapps.com" = "https://service.powerapps.com/";
-                    "tip2.api.powerapps.com" = "https://service.powerapps.com/";
-                    "graph.windows.net" = "https://graph.windows.net/";
-                    "api.bap.microsoft.com" = "https://service.powerapps.com/";
-                    "tip1.api.bap.microsoft.com" = "https://service.powerapps.com/";
-                    "tip2.api.bap.microsoft.com" = "https://service.powerapps.com/";
-                    "api.flow.microsoft.com" = "https://service.flow.microsoft.com/";
+                    "management.azure.com"        = "https://management.azure.com/";
+                    "api.powerapps.com"           = "https://service.powerapps.com/";
+                    "tip1.api.powerapps.com"      = "https://service.powerapps.com/";
+                    "tip2.api.powerapps.com"      = "https://service.powerapps.com/";
+                    "graph.windows.net"           = "https://graph.windows.net/";
+                    "api.bap.microsoft.com"       = "https://service.powerapps.com/";
+                    "tip1.api.bap.microsoft.com"  = "https://service.powerapps.com/";
+                    "tip2.api.bap.microsoft.com"  = "https://service.powerapps.com/";
+                    "api.flow.microsoft.com"      = "https://service.flow.microsoft.com/";
                     "tip1.api.flow.microsoft.com" = "https://service.flow.microsoft.com/";
                     "tip2.api.flow.microsoft.com" = "https://service.flow.microsoft.com/";
-                    "gov.api.bap.microsoft.us" = "https://gov.service.powerapps.us/";
-                    "high.api.bap.microsoft.us" = "https://high.service.powerapps.us/";
-                    "gov.api.powerapps.us" = "https://gov.service.powerapps.us/";
-                    "high.api.powerapps.us" = "https://high.service.powerapps.us/";
-                    "gov.api.flow.microsoft.us" = "https://gov.service.flow.microsoft.us/";
-                    "high.api.flow.microsoft.us" = "https://high.service.flow.microsoft.us/";
+                    "gov.api.bap.microsoft.us"    = "https://gov.service.powerapps.us/";
+                    "high.api.bap.microsoft.us"   = "https://high.service.powerapps.us/";
+                    "gov.api.powerapps.us"        = "https://gov.service.powerapps.us/";
+                    "high.api.powerapps.us"       = "https://high.service.powerapps.us/";
+                    "gov.api.flow.microsoft.us"   = "https://gov.service.flow.microsoft.us/";
+                    "high.api.flow.microsoft.us"  = "https://high.service.flow.microsoft.us/";
                 }
 
                 $uriObject = New-Object System.Uri($Uri)
@@ -741,6 +754,7 @@ function Test-MSCloudLogin
     catch
     {
         if ($_.Exception -like "*$connectCmdlet*" -or $_.Exception -like "*The access token expiry*" -or `
+            $_.Exception -like "*Authentication_ExpiredToken*" -or `
             ($Platform -eq 'PnP' -and $_.Exception -like '*Microsoft.SharePoint.Client.ServerUnauthorizedAccessException*'))
         {
             Write-Debug -Message "Running '$testCmdlet' failed on initial attempt."
@@ -757,11 +771,11 @@ function Test-MSCloudLogin
                     }
                     Write-Verbose -Message "Will now attempt to use credential for '$($Global:o365Credential.UserName)'..."
                 }
-                if($_.Exception -like "*The access token expiry*")
+                if ($_.Exception -like "*The access token expiry*")
                 {
                     throw
                 }
-                if($Global:UseModernAuth -eq $True)
+                if ($Global:UseModernAuth -eq $True)
                 {
                     throw
                 }
@@ -788,8 +802,8 @@ function Test-MSCloudLogin
                 {
                     throw  "Bad credentials were supplied"
                 }
-                elseif ($_.Exception -like "*$exceptionStringMFA*" -or `
-                        $_.Exception -like "*Sequence contains no elements*" -or `
+                elseif (($_.Exception -like "*$exceptionStringMFA*") -or `
+                        ($_.Exception -like "*Sequence contains no elements*") -or `
                         ($_.Exception -like "*System.Reflection.TargetInvocationException: Exception has been thrown*" -and $Platform -eq "PNP") -or `
                         ($_.Exception -like "*or the web site does not support SharePoint Online credentials*" -and $Platform -eq "SharePointOnline") -or `
                         ($_.Exception -like "*The access token expiry*" -and $Platform -eq "Azure") -or `
@@ -800,8 +814,9 @@ function Test-MSCloudLogin
                     try
                     {
                         Write-Debug -Message "Replacing connection parameters '$connectCmdletArgs' with '$connectCmdletMfaRetryArgs'..."
-                        if($Platform -ne "SharePointOnline" -and $Platform -ne "MicrosoftTeams"){
-                            $AuthHeader = Get-AuthHeader -UserPrincipalName $Global:o365Credential.UserName -RessourceURI $RessourceURI -clientID $clientID -RedirectURI $RedirectURI
+                        if ($Platform -ne "SharePointOnline" -and $Platform -ne "MicrosoftTeams")
+                        {
+                            $AuthHeader = Get-AuthHeader -UserPrincipalName $Global:o365Credential.UserName -ResourceURI $ResourceURI -clientID $clientID -RedirectURI $RedirectURI
                             $AuthToken = $AuthHeader.split(" ")[1]
                         }
                         Invoke-Expression -Command "$connectCmdlet -ErrorAction Stop $connectCmdletMfaRetryArgs | Out-Null"
@@ -839,21 +854,27 @@ function Test-MSCloudLogin
                     }
 
                     # Try connecting to other Azure Clouds
-                    try {
+                    try
+                    {
                         $connectCmdletArgs = $originalArgs + " $paramName AzureChinaCloud"
                         Invoke-Expression -Command "$connectCmdlet -ErrorAction Stop $connectCmdletArgs -ErrorVariable `$err | Out-Null"
                     }
-                    catch {
-                        try {
+                    catch
+                    {
+                        try
+                        {
                             $connectCmdletArgs = $originalArgs + " $paramName AzureUSGovernment"
                             Invoke-Expression -Command "$connectCmdlet -ErrorAction Stop $connectCmdletArgs -ErrorVariable `$err | Out-Null"
                         }
-                        catch {
-                            try {
+                        catch
+                        {
+                            try
+                            {
                                 $connectCmdletArgs = $originalArgs + " $paramName AzureGermanyCloud"
                                 Invoke-Expression -Command "$connectCmdlet -ErrorAction Stop $connectCmdletArgs -ErrorVariable `$err | Out-Null"
                             }
-                            catch {
+                            catch
+                            {
                                 throw $_
                             }
                         }
@@ -866,7 +887,8 @@ function Test-MSCloudLogin
                     $paramName = "-TeamsEnvironmentName"
 
                     # Try connecting to other Azure Clouds
-                    try {
+                    try
+                    {
                         $connectCmdletArgs = $originalArgs + " $paramName TeamsGCCH"
                         Invoke-Expression -Command "$connectCmdlet -ErrorAction Stop $connectCmdletArgs -ErrorVariable `$err | Out-Null"
                     }
@@ -913,7 +935,7 @@ function Test-MSCloudLogin
         }
         elseif ($_.Exception -like "*Unable to acquire token for tenant*")
         {
-           Write-Host -ForegroundColor Red $_.Exception
+            Write-Host -ForegroundColor Red $_.Exception
         }
         elseif ($_.Exception -like "*null array*")
         {
@@ -922,13 +944,11 @@ function Test-MSCloudLogin
         elseif ($_.Exception -like "*$testCmdlet*")
         {
             # If the exception contains the name of the cmdlet we're trying to run, we probably don't have the required module installed yet
-            Write-Error -Message "It appears you don't have the '$Platform' module installed, or it isn't loaded. Please install/load the module and try again."
-            Exit
+            throw "It appears you don't have module for '$Platform' installed, or it isn't loaded.`nPlease install/load the module and try again. `nYou can quickly and easily install the '$moduleName' module with: `n`"Install-Module -Name $moduleName`""
         }
         elseif ($_.Exception -like "*this.Client.SubscriptionId*" -and $Platform -eq "Azure")
         {
             throw "It appears there are no Azure subscriptions associated with the account '$($Global:o365Credential.UserName)'."
-            Exit
         }
         else
         {
@@ -1007,8 +1027,8 @@ function Get-AzureADDLL
     [OutputType([System.String])]
     param(
     )
-    [array]$AzureADModules = Get-Module -ListAvailable | Where-Object{$_.name -eq "AzureAD" -or $_.name -eq "AzureADPreview"}
-    if($AzureADModules.count -eq 0)
+    [array]$AzureADModules = Get-Module -ListAvailable | Where-Object {$_.name -eq "AzureAD" -or $_.name -eq "AzureADPreview"}
+    if ($AzureADModules.count -eq 0)
     {
         Throw "Can't find Azure AD DLL. Install the module manually 'Install-Module AzureAD'"
     }
@@ -1034,16 +1054,17 @@ function Get-TenantLoginEndPoint
         $LoginSource = "EvoSTS"
     )
     $TenantInfo = @{}
-    if($LoginSource -eq "EvoSTS")
+    if ($LoginSource -eq "EvoSTS")
     {
         $webrequest = Invoke-WebRequest -Uri https://login.windows.net/$($TenantName)/.well-known/openid-configuration -UseBasicParsing
     }
-    else {
+    else
+    {
         $webrequest = Invoke-WebRequest -Uri https://login.microsoftonline.com/$($TenantName)/.well-known/openid-configuration -UseBasicParsing
     }
     if ($webrequest.StatusCode -eq 200)
     {
-        $TenantInfo = $webrequest.Content |ConvertFrom-Json
+        $TenantInfo = $webrequest.Content | ConvertFrom-Json
     }
     Return $TenantInfo
 }
@@ -1066,7 +1087,7 @@ function New-ADALServiceInfo
         $LoginSource = "EvoSTS"
     )
     $AzureADDLL = Get-AzureADDLL
-    if([string]::IsNullOrEmpty($AzureADDLL))
+    if ([string]::IsNullOrEmpty($AzureADDLL))
     {
         Throw "Can't find Azure AD DLL"
         Exit
@@ -1077,7 +1098,7 @@ function New-ADALServiceInfo
     }
 
     $TenantInfo = Get-TenantLoginEndPoint -TenantName $TenantName
-    if([string]::IsNullOrEmpty($TenantInfo))
+    if ([string]::IsNullOrEmpty($TenantInfo))
     {
         Throw "Can't find Tenant Login Endpoint"
         Exit
@@ -1087,7 +1108,7 @@ function New-ADALServiceInfo
         [string] $authority = $TenantInfo.authorization_endpoint
     }
     $PromptBehavior = [Microsoft.IdentityModel.Clients.ActiveDirectory.PromptBehavior]::Auto
-    $Service=@{}
+    $Service = @{}
     $Service["authContext"] = [Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext]::new($authority, $false)
     $Service["platformParam"] = New-Object "Microsoft.IdentityModel.Clients.ActiveDirectory.PlatformParameters" -ArgumentList $PromptBehavior
     $Service["userId"] = New-Object "Microsoft.IdentityModel.Clients.ActiveDirectory.UserIdentifier" -ArgumentList $UserPrincipalName, "OptionalDisplayableId"
@@ -1102,30 +1123,33 @@ function Get-AuthHeader
         [System.String]
         $UserPrincipalName,
         [Parameter(Mandatory = $True)]
-        $RessourceURI,
+        [Alias("RessourceURI")] # For backward compat with anything using the misspelled parameter
+        $ResourceURI,
         [Parameter(Mandatory = $True)]
         $clientId,
         [Parameter(Mandatory = $True)]
         [System.String]
         $RedirectURI
     )
-    if($null -eq $Global:ADALServicePoint)
+    if ($null -eq $Global:ADALServicePoint)
     {
         $TenantName = $UserPrincipalName.split("@")[1]
         $Global:ADALServicePoint = New-ADALServiceInfo -TenantName $TenantName -UserPrincipalName $UserPrincipalName
     }
 
-    try{
+    try
+    {
         Write-Debug "Looking for a refresh token"
-        $authResult = $Global:ADALServicePoint.authContext.AcquireTokenSilentAsync($RessourceURI, $clientId)
-        if($null -eq $authResult.result)
+        $authResult = $Global:ADALServicePoint.authContext.AcquireTokenSilentAsync($ResourceURI, $clientId)
+        if ($null -eq $authResult.result)
         {
             Write-Debug "Creating a new Token"
-            $authResult = $Global:ADALServicePoint.authContext.AcquireTokenAsync($RessourceURI, $clientId, $RedirectURI, $Global:ADALServicePoint.platformParam, $Global:ADALServicePoint.userId)
+            $authResult = $Global:ADALServicePoint.authContext.AcquireTokenAsync($ResourceURI, $clientId, $RedirectURI, $Global:ADALServicePoint.platformParam, $Global:ADALServicePoint.userId)
         }
-        $AuthHeader=$authResult.result.CreateAuthorizationHeader()
-        }
-    catch{
+        $AuthHeader = $authResult.result.CreateAuthorizationHeader()
+    }
+    catch
+    {
         Throw "Can't create Authorization header"
     }
     Return $AuthHeader
@@ -1171,14 +1195,14 @@ function Get-AccessToken
             )
             # Load AAD Assemblies
             $AzureADDLL = Get-AzureADDLL
-            if([string]::IsNullOrEmpty($AzureADDLL))
+            if ([string]::IsNullOrEmpty($AzureADDLL))
             {
                 throw "Can't find Azure AD DLL"
             }
             [System.Reflection.Assembly]::LoadFrom($AzureADDLL) | Out-Null
 
             $UserPasswordCreds = [Microsoft.IdentityModel.Clients.ActiveDirectory.UserPasswordCredential]::new($Credentials.UserName, $Credentials.Password)
-            $context= [Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext]::new($AuthUri, $false, [Microsoft.IdentityModel.Clients.ActiveDirectory.TokenCache]::DefaultShared)
+            $context = [Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext]::new($AuthUri, $false, [Microsoft.IdentityModel.Clients.ActiveDirectory.TokenCache]::DefaultShared)
             $authResult = $context.AcquireTokenSilentAsync($TargetUri, $ClientId)
             if ($null -eq $authResult.result)
             {
@@ -1191,7 +1215,7 @@ function Get-AccessToken
         do
         {
             Start-Sleep -Seconds 1
-        } while($job.JobStateInfo.State -ne "Completed")
+        } while ($job.JobStateInfo.State -ne "Completed")
         $AccessToken = Receive-Job -Name $jobName
         Write-Verbose "Token Found --> $AccessToken"
         return $AccessToken
@@ -1398,7 +1422,7 @@ function Get-PowerPlatformTokenInfo
         try
         {
             $WarningPreference = 'SilentlyContinue'
-            Import-Module 'Microsoft.PowerApps.Administration.PowerShell' -Force
+            Import-Module -Name 'Microsoft.PowerApps.Administration.PowerShell' -Force
             $authContext = New-Object Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext("https://login.windows.net/common");
             $credential = [Microsoft.IdentityModel.Clients.ActiveDirectory.UserCredential]::new($O365Credentials.Username, $O365Credentials.Password)
             $authResult = $authContext.AcquireToken($Audience, "1950a258-227b-4e31-a9cf-717495945fc2", $credential);
@@ -1436,7 +1460,7 @@ function Get-PowerPlatformTokenInfo
     do
     {
         Start-Sleep -Seconds 1
-    } while($job.JobStateInfo.State -ne "Completed")
+    } while ($job.JobStateInfo.State -ne "Completed")
     $TokenInfo = Receive-Job -Name $jobName
     return $TokenInfo
 }
