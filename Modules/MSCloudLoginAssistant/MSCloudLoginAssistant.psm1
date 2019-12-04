@@ -384,7 +384,7 @@ function Test-MSCloudLogin
                             try
                             {
                                 $InformationPreference = "Continue"
-                                Write-Information -Message "[$counter/10] Too many existing workspaces. Waiting an additional 60 seconds for sessions to free up."                            
+                                Write-Information -Message "[$counter/10] Too many existing workspaces. Waiting an additional 60 seconds for sessions to free up."
                                 Start-Sleep -Seconds 60
                                 try
                                 {
@@ -442,7 +442,6 @@ function Test-MSCloudLogin
                                 -Credential $Ctoken `
                                 -Authentication Basic `
                                 -AllowRedirection
-                            
                             if ($null -eq $Global:SessionSecurityCompliance)
                             {
                                 $Global:SessionSecurityCompliance = New-PSSession -ConfigurationName Microsoft.Exchange `
@@ -541,7 +540,6 @@ function Test-MSCloudLogin
                     $AccessToken = Get-AccessToken -TargetUri $targetUri -ClientID $clientId `
                                                                   -AuthUri $authUri `
                                                                   -Credentials $Global:o365Credential
-                                                                  
                     $networkCreds = [System.Net.NetworkCredential]::new("", $AccessToken)
                     $secPassword = $networkCreds.SecurePassword
                     $user = "oauth"
@@ -583,7 +581,6 @@ function Test-MSCloudLogin
             if ($null -eq $Global:currentSession -or $global:currentSession.loggedIn -eq $false -or `
                 $global:currentSession.expiresOn -lt (Get-Date))
             {
-                
                 $tenantName = $Global:o365Credential.UserName.Split('@')[1]
                 $tenantInfo = Get-TenantLoginEndPoint -TenantName $tenantName
                 $tenantId = $tenantInfo.issuer.Replace("https://", "").Split('/')[1]
@@ -606,7 +603,7 @@ function Test-MSCloudLogin
                         }
                     };
                     selectedEnvironment = "~default";
-                    flowEndpoint = 
+                    flowEndpoint =
                         switch ($Endpoint)
                         {
                             "prod"      { "api.flow.microsoft.com" }
@@ -617,7 +614,7 @@ function Test-MSCloudLogin
                             "tip2"      { "tip2.api.flow.microsoft.com" }
                             default     { throw "Unsupported endpoint '$Endpoint'"}
                         };
-                    powerAppsEndpoint = 
+                    powerAppsEndpoint =
                         switch ($Endpoint)
                         {
                             "prod"      { "api.powerapps.com" }
@@ -627,8 +624,8 @@ function Test-MSCloudLogin
                             "tip1"      { "tip1.api.powerapps.com"}
                             "tip2"      { "tip2.api.powerapps.com" }
                             default     { throw "Unsupported endpoint '$Endpoint'"}
-                        };            
-                    bapEndpoint = 
+                        };
+                    bapEndpoint =
                         switch ($Endpoint)
                         {
                             "prod"      { "api.bap.microsoft.com" }
@@ -638,8 +635,8 @@ function Test-MSCloudLogin
                             "tip1"      { "tip1.api.bap.microsoft.com"}
                             "tip2"      { "tip2.api.bap.microsoft.com" }
                             default     { throw "Unsupported endpoint '$Endpoint'"}
-                        };      
-                    graphEndpoint = 
+                        };
+                    graphEndpoint =
                         switch ($Endpoint)
                         {
                             "prod"      { "graph.windows.net" }
@@ -650,7 +647,7 @@ function Test-MSCloudLogin
                             "tip2"      { "graph.windows.net" }
                             default     { throw "Unsupported endpoint '$Endpoint'"}
                         };
-                    cdsOneEndpoint = 
+                    cdsOneEndpoint =
                         switch ($Endpoint)
                         {
                             "prod"      { "api.cds.microsoft.com" }
@@ -694,8 +691,8 @@ function Test-MSCloudLogin
                 }
 
                 $uriObject = New-Object System.Uri($Uri)
-                $host = $uriObject.Host
-                $ServiceAudience = $hostMapping[$host]
+                $uriObjectHost = $uriObject.Host
+                $ServiceAudience = $hostMapping[$uriObjectHost]
                 $TokenInfoService = Get-PowerPlatformTokenInfo -Audience $ServiceAudience -Credentials $Global:o365Credential
                 $ServiceResourceToken = @{
                     accessToken = $TokenInfoService.AccessToken;
@@ -922,10 +919,12 @@ function Test-MSCloudLogin
         {
             # If the exception contains the name of the cmdlet we're trying to run, we probably don't have the required module installed yet
             Write-Error -Message "It appears you don't have the '$Platform' module installed, or it isn't loaded. Please install/load the module and try again."
+            Exit
         }
         elseif ($_.Exception -like "*this.Client.SubscriptionId*" -and $Platform -eq "Azure")
         {
             throw "It appears there are no Azure subscriptions associated with the account '$($Global:o365Credential.UserName)'."
+            Exit
         }
         else
         {
@@ -1418,7 +1417,7 @@ function Get-PowerPlatformTokenInfo
         }
         catch
         {
-            $_ | Out-File C:\dsc\error.txt
+            $_ | Out-File "$env:temp\MSCloudLoginAssistant_Error.txt"
         }
         return @{
             JwtToken     = $JwtToken
