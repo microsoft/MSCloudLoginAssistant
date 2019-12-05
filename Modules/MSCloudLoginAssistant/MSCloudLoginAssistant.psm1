@@ -944,7 +944,7 @@ function Test-MSCloudLogin
         elseif ($_.Exception -like "*$testCmdlet*")
         {
             # If the exception contains the name of the cmdlet we're trying to run, we probably don't have the required module installed yet
-            throw "It appears you don't have module for '$Platform' installed, or it isn't loaded.`nPlease install/load the module and try again. `nYou can quickly and easily install the '$moduleName' module with: `n`"Install-Module -Name $moduleName`""
+            throw "It appears you don't have the module for '$Platform' installed, or it isn't loaded.`nPlease install/load the module and try again. `nYou can quickly and easily install the '$moduleName' module with: `n`"Install-Module -Name $moduleName`""
         }
         elseif ($_.Exception -like "*this.Client.SubscriptionId*" -and $Platform -eq "Azure")
         {
