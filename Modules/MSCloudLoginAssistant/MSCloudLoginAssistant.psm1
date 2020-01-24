@@ -173,7 +173,8 @@ function Test-MSCloudLogin
                         }
                         catch
                         {
-                            try {
+                            try
+                            {
                                 
                                 $AuthHeader = Get-AuthHeader -UserPrincipalName $Global:o365Credential.UserName -RessourceURI $ResourceURI -clientID $clientID -RedirectURI $RedirectURI
                                 $Password = ConvertTo-SecureString -AsPlainText $AuthHeader -Force
@@ -186,7 +187,8 @@ function Test-MSCloudLogin
                                 -AllowRedirection
                                 $Global:UseModernAuth = $True
                             }
-                            catch {
+                            catch
+                            {
                                 if ($_ -like '*Connecting to remote server *Access is denied.*')
                                 {
                                     Throw "The provided account doesn't have admin access to Exchange Online."
