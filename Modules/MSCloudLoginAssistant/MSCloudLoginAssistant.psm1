@@ -798,7 +798,7 @@ function Test-MSCloudLogin
                         $Global:UseModernAuth -eq $True)
                 {
                     Write-Verbose -Message "The specified account is configured for Multi-Factor Authentication. Please re-enter your credentials."
-                    Write-Host -ForegroundColor Green " - Prompting for credentials with MFA for $Platform"
+
                     try
                     {
                         Write-Debug -Message "Replacing connection parameters '$connectCmdletArgs' with '$connectCmdletMfaRetryArgs'..."
