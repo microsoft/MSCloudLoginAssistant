@@ -871,11 +871,13 @@ function Test-MSCloudLogin
                             }
                             else
                             {
-                                try {
+                                try
+                                {
                                     $connectCmdletArgs = $originalArgs + " $paramName AzureGermanyCloud"
                                     Invoke-Expression -Command "$connectCmdlet -ErrorAction Stop $connectCmdletArgs -ErrorVariable `$err | Out-Null"
                                 }
-                                catch {
+                                catch
+                                {
                                     throw $_
                                 }
                             }
