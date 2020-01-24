@@ -151,20 +151,36 @@ function Test-MSCloudLogin
                     while ($null -eq $Global:ExchangeOnlineSession)
                     {
                         Write-Verbose -Message "Creating new EXO Session"
+                        $TenantName = $Global:o365Credential.UserName.split("@")[1]
+                        $TenantInfo = Get-TenantLoginEndPoint -TenantName $TenantName
+
+                        if ($TenantInfo -like '*login.microsoftonline.us*')
+                        {                                    
+                            $ResourceURI = 'https://outlook.office365.us'
+                        }
+                        elseif ($TenantInfo -like '*login.microsoftonline.com*')
+                        {
+                            $ResourceURI = 'https://outlook.office365.com'
+                        }
+                        elseif ($TenantInfo -like '*login.microsoftonline.de*')
+                        {
+                            $ResourceURI = 'https://outlook.office.de'
+                        }
 
                         try
                         {
-                            $Global:ExchangeOnlineSession = New-PSSession -Name 'ExchangeOnline' -ConfigurationName Microsoft.Exchange -ConnectionUri https://outlook.office365.com/powershell-liveid/ -Credential $O365Credential -Authentication Basic -AllowRedirection -ErrorAction Stop
+                            $Global:ExchangeOnlineSession = New-PSSession -Name 'ExchangeOnline' -ConfigurationName Microsoft.Exchange -ConnectionUri "$ResourceURI/powershell-liveid/" -Credential $O365Credential -Authentication Basic -AllowRedirection -ErrorAction Stop
                         }
                         catch
                         {
                             try
                             {
-                                $AuthHeader = Get-AuthHeader -UserPrincipalName $Global:o365Credential.UserName -ResourceURI $ResourceURI -clientID $clientID -RedirectURI $RedirectURI
+                                
+                                $AuthHeader = Get-AuthHeader -UserPrincipalName $Global:o365Credential.UserName -RessourceURI $ResourceURI -clientID $clientID -RedirectURI $RedirectURI
                                 $Password = ConvertTo-SecureString -AsPlainText $AuthHeader -Force
                                 $Ctoken = New-Object System.Management.Automation.PSCredential -ArgumentList $Global:o365Credential.UserName, $Password
                                 $Global:ExchangeOnlineSession = New-PSSession -ConfigurationName Microsoft.Exchange `
-                                -ConnectionUri https://outlook.office365.com/PowerShell-LiveId?BasicAuthToOAuthConversion=true `
+                                -ConnectionUri "$ResourceURI/PowerShell-LiveId?BasicAuthToOAuthConversion=true" `
                                 -Credential $Ctoken `
                                 -Authentication Basic `
                                 -ErrorAction Stop `
@@ -176,34 +192,6 @@ function Test-MSCloudLogin
                                 if ($_ -like '*Connecting to remote server *Access is denied.*')
                                 {
                                     Throw "The provided account doesn't have admin access to Exchange Online."
-                                }
-                            }
-
-                        }
-
-                        if ($null -eq $Global:ExchangeOnlineSession)
-                        {
-                            try
-                            {
-                                $Global:ExchangeOnlineSession = New-PSSession -Name 'ExchangeOnline' -ConfigurationName Microsoft.Exchange -ConnectionUri https://outlook.office365.us/PowerShell-LiveID -Credential $O365Credential -Authentication Basic -AllowRedirection -ErrorAction Stop
-                            }
-                            catch
-                            {
-                                try
-                                {
-                                    $Global:ExchangeOnlineSession = New-PSSession -Name 'ExchangeOnline' -ConfigurationName Microsoft.Exchange -ConnectionUri https://outlook.office.de/powershell-liveid/ -Credential $O365Credential -Authentication Basic -AllowRedirection -ErrorAction Stop
-                                }
-                                catch
-                                {
-                                    if ($_.Exception -like '*Access is denied*')
-                                    {
-                                        Throw "Access Denied: The specified account doesn't have access to manage Exchange Online"
-                                    }
-                                    else
-                                    {
-                                        Write-Warning "Exceeded max number of connections. Waiting 60 seconds"
-                                        Start-Sleep 60
-                                    }
                                 }
                             }
                         }
@@ -810,7 +798,7 @@ function Test-MSCloudLogin
                         $Global:UseModernAuth -eq $True)
                 {
                     Write-Verbose -Message "The specified account is configured for Multi-Factor Authentication. Please re-enter your credentials."
-                    Write-Host -ForegroundColor Green " - Prompting for credentials with MFA for $Platform"
+
                     try
                     {
                         Write-Debug -Message "Replacing connection parameters '$connectCmdletArgs' with '$connectCmdletMfaRetryArgs'..."
@@ -868,14 +856,28 @@ function Test-MSCloudLogin
                         }
                         catch
                         {
-                            try
+                            if ($_.Exception -like '*AADSTS50076: Due to a configuration change made by your administrator*' -and `
+                            $Platform -eq 'AzureAD')
                             {
-                                $connectCmdletArgs = $originalArgs + " $paramName AzureGermanyCloud"
-                                Invoke-Expression -Command "$connectCmdlet -ErrorAction Stop $connectCmdletArgs -ErrorVariable `$err | Out-Null"
+                                try
+                                {
+                                    Connect-AzureAD -AzureEnvironmentName AzureUSGovernment -AccountId $Global:o365Credential.UserName | Out-Null
+                                    $CloudEnvironment = "GCC"
+                                }
+                                catch
+                                {
+                                    throw $_
+                                }
                             }
-                            catch
+                            else
                             {
-                                throw $_
+                                try {
+                                    $connectCmdletArgs = $originalArgs + " $paramName AzureGermanyCloud"
+                                    Invoke-Expression -Command "$connectCmdlet -ErrorAction Stop $connectCmdletArgs -ErrorVariable `$err | Out-Null"
+                                }
+                                catch {
+                                    throw $_
+                                }
                             }
                         }
                     }
