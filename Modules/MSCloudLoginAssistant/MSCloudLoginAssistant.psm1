@@ -38,6 +38,7 @@ function Test-MSCloudLogin
         [Switch]
         $UseModernAuth
     )
+
     # If we specified the CloudCredential parameter then set the global o365Credential object to its value
     if ($null -ne $CloudCredential)
     {
@@ -48,33 +49,20 @@ function Test-MSCloudLogin
     {
         $Global:UseModernAuth = $UseModernAuth.IsPresent
     }
+
+    $Global:DomainName = $Global:o365Credential.UserName.Split('@')[1]
+
     switch ($Platform)
     {
         'Azure'
         {
-            $moduleName = "Az"
-            $testCmdlet = "Get-AzResource";
-            $exceptionStringMFA = "AADSTS";
-            $clientid = "1950a258-227b-4e31-a9cf-717495945fc2";
-            $ResourceURI = "https://management.core.windows.net";
-            $RedirectURI = "urn:ietf:wg:oauth:2.0:oob";
-            $connectCmdlet = "Connect-AzAccount";
-            $connectCmdletArgs = ""
-            $connectCmdletMfaRetryArgs = "-AccessToken `$AuthToken -AccountId `$global:o365Credential.UserName";
-            $variablePrefix = "az"
+            Connect-MSCloudLoginAzure
+            return
         }
         'AzureAD'
         {
-            $moduleName = $Platform
-            $testCmdlet = "Get-AzureADUser";
-            $exceptionStringMFA = "AADSTS";
-            $clientid = "1b730954-1685-4b74-9bfd-dac224a7b894";
-            $ResourceURI = "https://graph.windows.net";
-            $RedirectURI = "urn:ietf:wg:oauth:2.0:oob";
-            $connectCmdlet = "Connect-AzureAD";
-            $connectCmdletArgs = "-Credential `$Global:o365Credential";
-            $connectCmdletMfaRetryArgs = "-AadAccessToken `$AuthToken -AccountId `$global:o365Credential.UserName"
-            $variablePrefix = "aad"
+            Connect-MSCloudLoginAzureAD
+            return
         }
         'SharePointOnline'
         {
@@ -99,376 +87,12 @@ function Test-MSCloudLogin
         }
         'ExchangeOnline'
         {
-            $VerbosePreference = 'SilentlyContinue'
-            $WarningPreference = "Continue"
-            $clientid = "a0c73c16-a7e3-4564-9a95-2bdf47383716";
-            $ResourceURI = "https://outlook.office365.com";
-            $RedirectURI = "urn:ietf:wg:oauth:2.0:oob";
-            $ClosedOrBrokenSessions = Get-PSSession -ErrorAction SilentlyContinue | Where-Object -FilterScript { $_.State -ne 'Opened' }
-            if ($ClosedOrBrokenSessions)
-            {
-                Write-Verbose -Message "Found Existing Unusable Session(s)."
-                foreach ($SessionToBeClosed in $ClosedOrBrokenSessions)
-                {
-                    Write-Verbose -Message "Closing Session: $(($SessionToBeClosed).InstanceId)"
-                    $SessionToBeClosed | Remove-PSSession
-                }
-            }
-
-            $Global:OpenExchangeSession = Get-PSSession -Name 'ExchangeOnline' `
-                -ErrorAction SilentlyContinue | `
-                    Where-Object -FilterScript { $_.State -eq 'Opened' }
-            if ($null -eq $Global:OpenExchangeSession)
-            {
-                try
-                {
-                    $PowerShellConnections = Get-NetTCPConnection | `
-                        Where-Object -FilterScript { `
-                            $_.RemotePort -eq '443' -and $_.State -ne 'Established' `
-                        }
-
-                    while ($PowerShellConnections)
-                    {
-                        Write-Verbose -Message "This process is using the following connections in a non-Established state: $($PowerShellConnections | Out-String)"
-                        Write-Verbose -Message "Waiting for closing connections to close..."
-                        Get-PSSession -Name 'ExchangeOnline' -ErrorAction SilentlyContinue | Remove-PSSession
-                        Start-Sleep -seconds 1
-                        $CheckConnectionsWithoutKillingWhileLoop = Get-NetTCPConnection | Where-Object -FilterScript { $_.OwningProcess -eq $PID -and $_.RemotePort -eq '443' -and $_.State -ne 'Established' }
-                        if (-not $CheckConnectionsWithoutKillingWhileLoop)
-                        {
-                            Write-Verbose -Message "Connections have closed.  Waiting 5 more seconds..."
-                            Start-Sleep -seconds 5
-                            $PowerShellConnections = Get-NetTCPConnection | Where-Object -FilterScript { $_.OwningProcess -eq $PID -and $_.RemotePort -eq '443' -and $_.State -ne 'Established' }
-                        }
-                    }
-
-                    if ($Global:ExchangeOnlineSession.State -eq "Closed")
-                    {
-                        Remove-PSSession $Global:ExchangeOnlineSession
-                        $Global:ExchangeOnlineSession = $null
-                    }
-
-                    while ($null -eq $Global:ExchangeOnlineSession)
-                    {
-                        Write-Verbose -Message "Creating new EXO Session"
-                        $TenantName = $Global:o365Credential.UserName.split("@")[1]
-                        $TenantInfo = Get-TenantLoginEndPoint -TenantName $TenantName
-
-                        if ($TenantInfo -like '*login.microsoftonline.us*')
-                        {                                    
-                            $ResourceURI = 'https://outlook.office365.us'
-                        }
-                        elseif ($TenantInfo -like '*login.microsoftonline.com*')
-                        {
-                            $ResourceURI = 'https://outlook.office365.com'
-                        }
-                        elseif ($TenantInfo -like '*login.microsoftonline.de*')
-                        {
-                            $ResourceURI = 'https://outlook.office.de'
-                        }
-
-                        try
-                        {
-                            $Global:ExchangeOnlineSession = New-PSSession -Name 'ExchangeOnline' -ConfigurationName Microsoft.Exchange -ConnectionUri "$ResourceURI/powershell-liveid/" -Credential $O365Credential -Authentication Basic -AllowRedirection -ErrorAction Stop
-                        }
-                        catch
-                        {
-                            try
-                            {
-                                
-                                $AuthHeader = Get-AuthHeader -UserPrincipalName $Global:o365Credential.UserName -RessourceURI $ResourceURI -clientID $clientID -RedirectURI $RedirectURI
-                                $Password = ConvertTo-SecureString -AsPlainText $AuthHeader -Force
-                                $Ctoken = New-Object System.Management.Automation.PSCredential -ArgumentList $Global:o365Credential.UserName, $Password
-                                $Global:ExchangeOnlineSession = New-PSSession -ConfigurationName Microsoft.Exchange `
-                                -ConnectionUri "$ResourceURI/PowerShell-LiveId?BasicAuthToOAuthConversion=true" `
-                                -Credential $Ctoken `
-                                -Authentication Basic `
-                                -ErrorAction Stop `
-                                -AllowRedirection
-                                $Global:UseModernAuth = $True
-                            }
-                            catch
-                            {
-                                if ($_ -like '*Connecting to remote server *Access is denied.*')
-                                {
-                                    Throw "The provided account doesn't have admin access to Exchange Online."
-                                }
-                            }
-                        }
-                    }
-                    if ($null -eq $Global:ExchangeOnlineModules)
-                    {
-                        Write-Verbose -Message "Importing all commands into the EXO Session"
-                        $WarningPreference = 'SilentlyContinue'
-                        $Global:ExchangeOnlineModules = Import-PSSession $Global:ExchangeOnlineSession -AllowClobber
-                        Import-Module $Global:ExchangeOnlineModules -Global | Out-Null
-                    }
-                }
-                catch
-                {
-                    $ExceptionMessage = $_.Exception
-                    $Error.Clear()
-                    $VerbosePreference = 'SilentlyContinue'
-                    if ($ExceptionMessage -imatch 'Please wait for [0-9]* seconds')
-                    {
-                        Write-Verbose -Message "Waiting for available runspace..."
-                        [regex]$WaitTimePattern = 'Please wait for [0-9]* seconds'
-
-                        $WaitTimePatternMatch = (($WaitTimePattern.Match($ExceptionMessage)).Value | `
-                            Select-String -Pattern '[0-9]*' -AllMatches)
-
-                        $WaitTimeInSeconds = ($WaitTimePatternMatch | ForEach-Object {$_.Matches} | Where-Object -FilterScript { $_.Value -NotLike $null }).Value
-                        Write-Verbose -Message "Waiting for requested $WaitTimeInSeconds seconds..."
-                        Start-Sleep -Seconds ($WaitTimeInSeconds + 1)
-                        try
-                        {
-                            Write-Verbose -Message "Opening New ExchangeOnline Session."
-                            $PowerShellConnections = Get-NetTCPConnection | Where-Object -FilterScript { $_.OwningProcess -eq $PID -and $_.RemotePort -eq '443' -and $_.State -ne 'Established' }
-                            while ($PowerShellConnections)
-                            {
-                                Write-Verbose -Message "This process is using the following connections in a non-Established state: $($PowerShellConnections | Out-String)"
-                                Write-Verbose -Message "Waiting for closing connections to close..."
-                                Get-PSSession -Name 'ExchangeOnline' -ErrorAction SilentlyContinue | Remove-PSSession
-                                Start-Sleep -seconds 1
-                                $CheckConnectionsWithoutKillingWhileLoop = Get-NetTCPConnection | Where-Object -FilterScript { $_.OwningProcess -eq $PID -and $_.RemotePort -eq '443' -and $_.State -ne 'Established' }
-                                if (-not $CheckConnectionsWithoutKillingWhileLoop)
-                                {
-                                    Write-Verbose -Message "Connections have closed.  Waiting 5 more seconds..."
-                                    Start-Sleep -seconds 5
-                                    $PowerShellConnections = Get-NetTCPConnection | Where-Object -FilterScript { $_.OwningProcess -eq $PID -and $_.RemotePort -eq '443' -and $_.State -ne 'Established' }
-                                }
-                            }
-                            $VerbosePreference = 'SilentlyContinue'
-                            $Global:ExchangeOnlineSession = $null
-                            while (-not $Global:ExchangeOnlineSession)
-                            {
-                                try
-                                {
-                                    $Global:ExchangeOnlineSession = New-PSSession -Name 'ExchangeOnline' -ConfigurationName Microsoft.Exchange -ConnectionUri https://outlook.office365.com/powershell-liveid/ -Credential $O365Credential -Authentication Basic -AllowRedirection -ErrorAction Stop
-                                }
-                                catch
-                                {
-                                    $AuthHeader = Get-AuthHeader -UserPrincipalName $Global:o365Credential.UserName -ResourceURI $ResourceURI -clientID $clientID -RedirectURI $RedirectURI
-                                    $Password = ConvertTo-SecureString -AsPlainText $AuthHeader -Force
-                                    $Ctoken = New-Object System.Management.Automation.PSCredential -ArgumentList $Global:o365Credential.UserName, $Password
-                                    $Global:ExchangeOnlineSession = New-PSSession -ConfigurationName Microsoft.Exchange `
-                                    -ConnectionUri https://outlook.office365.com/PowerShell-LiveId?BasicAuthToOAuthConversion=true `
-                                    -Credential $Ctoken `
-                                    -Authentication Basic `
-                                    -AllowRedirection `
-                                    -ErrorAction SilentlyContinue
-                                    $Global:UseModernAuth = $True
-                                }
-
-                            }
-                            $WarningPreference = 'SilentlyContinue'
-                            $Global:ExchangeOnlineModules = Import-PSSession $Global:ExchangeOnlineSession -AllowClobber -ErrorAction SilentlyContinue
-                            $ExchangeOnlineModuleImport = Import-Module $ExchangeOnlineModules -Global -ErrorAction SilentlyContinue
-                        }
-                        catch
-                        {
-                            $VerbosePreference = 'SilentlyContinue'
-                            $WarningPreference = "SilentlyContinue"
-                            $Global:ExchangeOnlineSession = $null
-                            Close-SessionsAndReturnError -ExceptionMessage $_.Exception
-                            $Message = "Can't open Exchange Online session from Connect-ExchangeOnline"
-                            New-Office365DSCLogEntry -Error $_ -Message $Message
-                        }
-                    }
-                    else
-                    {
-                        Write-Verbose $_.Exception
-                        $VerbosePreference = 'SilentlyContinue'
-                        Get-PSSession -Name 'ExchangeOnline' -ErrorAction SilentlyContinue | Remove-PSSession
-                        Write-Verbose -Message "Exchange Online connection failed."
-                        Write-Verbose -Message "Waiting 60 seconds..."
-                        Start-Sleep -Seconds 60
-                        try
-                        {
-                            Write-Verbose -Message "Opening New ExchangeOnline Session."
-                            $VerbosePreference = 'SilentlyContinue'
-                            Get-PSSession -Name 'ExchangeOnline' -ErrorAction SilentlyContinue | Remove-PSSession -ErrorAction SilentlyContinue
-                            $WarningPreference = 'SilentlyContinue'
-                            $Global:ExchangeOnlineSession = New-PSSession -Name 'ExchangeOnline' -ConfigurationName Microsoft.Exchange -ConnectionUri https://outlook.office365.com/powershell-liveid/ -Credential $O365Credential -Authentication Basic -AllowRedirection
-                            $Global:ExchangeOnlineModules = Import-PSSession $Global:ExchangeOnlineSession -AllowClobber -ErrorAction SilentlyContinue
-                            $ExchangeOnlineModuleImport = Import-Module $ExchangeOnlineModules -Global -ErrorAction SilentlyContinue
-                        }
-                        catch
-                        {
-                            $VerbosePreference = 'SilentlyContinue'
-                            $WarningPreference = "SilentlyContinue"
-                            $Global:ExchangeOnlineSession = $null
-                            Close-SessionsAndReturnError -ExceptionMessage $_.Exception
-                        }
-                    }
-                }
-            }
-            else
-            {
-                Write-Verbose -Message "Using Existing ExchangeOnline Session."
-                $Global:OpenExchangeSession = Get-PSSession -Name 'ExchangeOnline' -ErrorAction SilentlyContinue | Where-Object -FilterScript { $_.State -eq 'Opened' }
-                $VerbosePreference = 'SilentlyContinue'
-                $WarningPreference = "SilentlyContinue"
-            }
+            Connect-MSCloudLoginExchangeOnline
             return
         }
         'SecurityComplianceCenter'
         {
-            $moduleName = "O365SecurityAndComplianceShell"
-            $WarningPreference = 'SilentlyContinue'
-            $InformationPreference = 'Continue'
-            $Global:SessionSecurityCompliance = Get-PSSession | `
-                Where-Object { `
-                    ($_.ComputerName -like "*ps.compliance.protection.outlook.com" -or `
-                     $_.ComputerName -like "*ps.compliance.protection.office365.us" -or `
-                     $_.ComputerName -like "*ps.compliance.protection.outlook.de") `
-                     -and $_.State -eq "Opened"`
-                }
-
-            $CloudEnvironment = "Public"
-            $ConnectionUrl = 'https://ps.compliance.protection.outlook.com/powershell-liveid/'
-
-            # If the CloudCredential received matches the pattern '*.onmicrosoft.de' we assume that we are
-            # trying to connect to the Germany cloud.
-            if ($O365Credential.UserName -like '*.onmicrosoft.de')
-            {
-                $CloudEnvironment = "Germany"
-                $ConnectionUrl = 'https://ps.compliance.protection.outlook.de/powershell-liveid/'
-            }
-            if ($null -eq $Global:SessionSecurityCompliance)
-            {
-                try
-                {
-                    try
-                    {
-                        Write-Verbose -Message "Session to Security & Compliance no working session found, creating a new one"
-                        $Global:SessionSecurityCompliance = New-PSSession -ConfigurationName "Microsoft.Exchange" `
-                        -ConnectionUri $ConnectionUrl `
-                        -Credential $O365Credential `
-                        -Authentication Basic `
-                        -ErrorAction Stop `
-                        -AllowRedirection
-                    }
-                    catch
-                    {
-                        # If the connection failed against either the Public or Germany clouds, then attempt to connect
-                        # to the GCC Cloud.
-                        try
-                        {
-                            $CloudEnvironment = "GCC"
-                            Write-Verbose -Message "Session to Security & Compliance no working session found, creating a new one"
-                            $Global:SessionSecurityCompliance = New-PSSession -ConfigurationName "Microsoft.Exchange" `
-                                -ConnectionUri 'https://ps.compliance.protection.office365.us/powershell-liveid/' `
-                                -Credential $O365Credential `
-                                -Authentication Basic `
-                                -ErrorAction Stop `
-                                -AllowRedirection
-                        }
-                        catch
-                        {
-                            throw $_
-                        }
-                    }
-                }
-                catch
-                {
-                    if ($_.ErrorDetails.ToString().Contains('Fail to create a runspace because you have exceeded the maximum number of connections allowed' -and `
-                        $CloudEnvironment -ne 'Germany'))
-                    {
-                        $counter = 1
-                        while ($null -eq $Global:SessionSecurityCompliance -and $counter -le 10)
-                        {
-                            try
-                            {
-                                $InformationPreference = "Continue"
-                                Write-Information -Message "[$counter/10] Too many existing workspaces. Waiting an additional 60 seconds for sessions to free up."
-                                Start-Sleep -Seconds 60
-                                try
-                                {
-                                    $Global:SessionSecurityCompliance = New-PSSession -ConfigurationName "Microsoft.Exchange" `
-                                        -ConnectionUri $ConnectionUrl `
-                                        -Credential $O365Credential `
-                                        -Authentication Basic `
-                                        -ErrorAction Stop `
-                                        -AllowRedirection
-                                }
-                                catch
-                                {
-                                    try
-                                    {
-                                        $Global:SessionSecurityCompliance = New-PSSession -ConfigurationName "Microsoft.Exchange" `
-                                            -ConnectionUri 'https://ps.compliance.protection.office365.us/powershell-liveid/' `
-                                            -Credential $O365Credential `
-                                            -Authentication Basic `
-                                            -ErrorAction Stop `
-                                            -AllowRedirection
-                                    }
-                                    catch
-                                    {
-                                        throw $_
-                                    }
-                                }
-                                $InformationPreference = "SilentlyContinue"
-                            }
-                            catch
-                            {}
-                            $counter ++
-                        }
-                    }
-                    else
-                    {
-                        try
-                        {
-                            $clientid = "a0c73c16-a7e3-4564-9a95-2bdf47383716";
-                            $ResourceURI = "https://ps.compliance.protection.outlook.com";
-                            $NewConnectionUrl = $ConnectionUrl + '?BasicAuthToOAuthConversion=true'
-                            if ($O365Credential.UserName -like '*.onmicrosoft.de')
-                            {
-                                $ResourceURI = "https://ps.compliance.protection.outlook.de";
-                            }
-                            $RedirectURI = "urn:ietf:wg:oauth:2.0:oob";
-                            $AuthHeader = Get-AuthHeader -UserPrincipalName $Global:o365Credential.UserName `
-                                                         -ResourceURI $ResourceURI -clientID $clientID `
-                                                         -RedirectURI $RedirectURI
-
-                            $Password = ConvertTo-SecureString -AsPlainText $AuthHeader -Force
-
-                            $Ctoken = New-Object System.Management.Automation.PSCredential -ArgumentList $Global:o365Credential.UserName, $Password
-                            $Global:SessionSecurityCompliance = New-PSSession -ConfigurationName Microsoft.Exchange `
-                                -ConnectionUri $NewConnectionUrl `
-                                -Credential $Ctoken `
-                                -Authentication Basic `
-                                -AllowRedirection
-                            if ($null -eq $Global:SessionSecurityCompliance)
-                            {
-                                $Global:SessionSecurityCompliance = New-PSSession -ConfigurationName Microsoft.Exchange `
-                                    -ConnectionUri https://ps.compliance.protection.office365.us/powershell-liveid/?BasicAuthToOAuthConversion=true `
-                                    -Credential $Ctoken `
-                                    -Authentication Basic `
-                                    -AllowRedirection
-                            }
-                            $Global:UseModernAuth = $True
-                        }
-                        catch
-                        {
-                            throw $_
-                        }
-                    }
-                }
-            }
-            else
-            {
-                Write-Verbose -Message "Session to Security & Compliance already exists, re-using existing session"
-            }
-            $WarningPreference = 'SilentlyContinue'
-            if ($null -eq $Global:SCModule)
-            {
-                $Global:SCModule = Import-PSSession $Global:SessionSecurityCompliance  `
-                    -ErrorAction SilentlyContinue `
-                    -AllowClobber
-
-                Import-Module $Global:SCModule -Global | Out-Null
-            }
+            Connect-MSCloudLoginSecurityCompliance
             return
         }
         'MSOnline'
@@ -486,91 +110,17 @@ function Test-MSCloudLogin
         }
         'PnP'
         {
-            $moduleName = "SharePointPnPPowerShellOnline"
-            if ([string]::IsNullOrEmpty($ConnectionUrl))
-            {
-                # If we haven't specified a ConnectionUrl, just make the connection URL central admin
-                $Global:spoAdminUrl = Get-SPOAdminUrl -CloudCredential $CloudCredential
-                $Global:ConnectionUrl = $Global:spoAdminUrl
-            }
-            else
-            {
-                $Global:ConnectionUrl = $ConnectionUrl
-            }
-            Write-Verbose -Message "`$Global:ConnectionUrl is $Global:ConnectionUrl."
-            $testCmdlet = "Get-PnPConnection";
-            $exceptionStringMFA = "sign-in name or password does not match one in the Microsoft account system";
-            $clientid = "9bc3ab49-b65d-410a-85ad-de819febfddc";
-            $ResourceURI = $Global:ConnectionUrl;
-            $RedirectURI = "https://oauth.spops.microsoft.com/";
-            $connectCmdlet = "Connect-PnPOnline";
-            $connectCmdletArgs = "-Url $Global:ConnectionUrl -Credentials `$Global:o365Credential";
-            $connectCmdletMfaRetryArgs = "-AccessToken `$AuthToken";
-            $variablePrefix = "pnp"
+            Connect-MSCloudLoginPnP -ConnectionUrl $ConnectionUrl
+            return
         }
         'MicrosoftTeams'
         {
-            $moduleName = $Platform
-            Import-Module -Name $moduleName -Force
-            $testCmdlet = "Get-Team";
-            $exceptionStringMFA = "AADSTS";
-            $clientid = "12128f48-ec9e-42f0-b203-ea49fb6af367";
-            $ResourceURI = "https://graph.windows.net";
-            $RedirectURI = "https://teamscmdlet.microsoft.com";
-            $connectCmdlet = "Connect-MicrosoftTeams";
-            $connectCmdletArgs = "-Credential `$Global:o365Credential";
-            $connectCmdletMfaRetryArgs = "-AccountId `$Global:o365Credential.UserName";
-            $variablePrefix = "teams"
+            Connect-MSCloudLoginTeams
+            return
         }
         'SkypeForBusiness'
         {
-            if ($null -eq $Global:SkypeModule -and $null -eq (Get-command Get-CsTeamsClientConfiguration -EA SilentlyContinue))
-            {
-                Write-Verbose "Creating a new Session to Skype for Business Servers"
-                $ErrorActionPreference = "Stop"
-
-                $adminDomain = $Global:o365Credential.UserName.Split('@')[1]
-                $targetUri = Get-SkypeForBusinessServiceEndpoint -TargetDomain $adminDomain
-                $appAuthInfo = Get-SkypeForBusinessAccessInfo -PowerShellEndpointUri $targetUri
-
-                $clientId = $appAuthInfo.ClientID
-                $authUri = $appAuthInfo.AuthUrl
-                try
-                {
-                    $AccessToken = Get-AccessToken -TargetUri $targetUri -ClientID $clientId `
-                        -AuthUri $authUri `
-                        -Credentials $Global:o365Credential
-                    $networkCreds = [System.Net.NetworkCredential]::new("", $AccessToken)
-                    $secPassword = $networkCreds.SecurePassword
-                    $user = "oauth"
-                    $cred = [System.Management.Automation.PSCredential]::new($user, $secPassword)
-
-                }
-                catch
-                {
-                    throw $_
-                }
-
-                $queryStr = "AdminDomain=$adminDomain"
-
-                $ConnectionUri = [UriBuilder]$targetUri
-                $ConnectionUri.Query = $queryStr
-
-                $psSessionName = "SfBPowerShellSession"
-                $ConnectorVersion = "7.0.2374.2"
-                $SessionOption = New-PsSessionOption
-                $SessionOption.ApplicationArguments = @{}
-                $SessionOption.ApplicationArguments['X-MS-Client-Version'] = $ConnectorVersion
-                $SessionOption.NoMachineProfile = $true
-                $Global:SkypeSession = New-PSSession -Name $psSessionName -ConnectionUri $ConnectionUri.Uri `
-                                                     -Credential $cred -Authentication Basic -SessionOption $SessionOption
-                $Global:SkypeModule = Import-PSSession $Global:SkypeSession
-                Import-Module $Global:SkypeModule -Global | Out-Null
-            }
-            else
-            {
-                Write-Verbose "Session to Skype For Business Servers already existed"
-            }
+            Connect-MSCloudLoginSkypeForBusiness
             return
         }
         'PowerPlatforms'
@@ -742,8 +292,7 @@ function Test-MSCloudLogin
     catch
     {
         if ($_.Exception -like "*$connectCmdlet*" -or $_.Exception -like "*The access token expiry*" -or `
-            $_.Exception -like "*Authentication_ExpiredToken*" -or `
-            ($Platform -eq 'PnP' -and $_.Exception -like '*Microsoft.SharePoint.Client.ServerUnauthorizedAccessException*'))
+            $_.Exception -like "*Authentication_ExpiredToken*")
         {
             Write-Debug -Message "Running '$testCmdlet' failed on initial attempt."
             try
@@ -826,10 +375,6 @@ function Test-MSCloudLogin
                         throw $_
                     }
                 }
-                elseif ($Platform -eq 'PnP' -and $_.Exception -like '*The remote server returned an error: (401) Unauthorized.*')
-                {
-                    throw [System.Exception] "Specified account does not have access to connect to the site."
-                }
                 elseif (($Platform -eq 'AzureAD' -and $_.Exception -like '*unknown_user_type*') -or `
                         ($Platform -eq 'MSOnline' -and $_.Exception -like '*Bad username or password*'))
                 {
@@ -846,6 +391,7 @@ function Test-MSCloudLogin
                     {
                         $connectCmdletArgs = $originalArgs + " $paramName AzureChinaCloud"
                         Invoke-Expression -Command "$connectCmdlet -ErrorAction Stop $connectCmdletArgs -ErrorVariable `$err | Out-Null"
+                        $Global:CloudEnvironment = 'China'
                     }
                     catch
                     {
@@ -853,6 +399,7 @@ function Test-MSCloudLogin
                         {
                             $connectCmdletArgs = $originalArgs + " $paramName AzureUSGovernment"
                             Invoke-Expression -Command "$connectCmdlet -ErrorAction Stop $connectCmdletArgs -ErrorVariable `$err | Out-Null"
+                            $Global:CloudEnvironment = 'USGovernment'
                         }
                         catch
                         {
@@ -862,7 +409,8 @@ function Test-MSCloudLogin
                                 try
                                 {
                                     Connect-AzureAD -AzureEnvironmentName AzureUSGovernment -AccountId $Global:o365Credential.UserName | Out-Null
-                                    $CloudEnvironment = "GCC"
+                                    $Global:CloudEnvironment = "GCCHigh"
+                                    $Global:IsMFAAuth = $true
                                 }
                                 catch
                                 {
@@ -874,6 +422,7 @@ function Test-MSCloudLogin
                                 try {
                                     $connectCmdletArgs = $originalArgs + " $paramName AzureGermanyCloud"
                                     Invoke-Expression -Command "$connectCmdlet -ErrorAction Stop $connectCmdletArgs -ErrorVariable `$err | Out-Null"
+                                    $Global:CloudEnvironment = 'Germany'
                                 }
                                 catch {
                                     throw $_
@@ -925,7 +474,16 @@ function Test-MSCloudLogin
                     }
                     catch
                     {
-                        throw $_
+                        if ($_.Exception -like '*The sign-in name or password does not match one in the Microsoft account system*')
+                        {
+                            $connectCmdletArgs = $connectCmdletArgs.Replace("-Credential `$Global:o365Credential", '')
+                            $connectCmdletArgs = $connectCmdletArgs.Replace("-Credentials `$Global:o365Credential", '')
+                            Invoke-Expression -Command "$connectCmdlet -ErrorAction Stop $connectCmdletArgs -ErrorVariable `$err | Out-Null"
+                        }
+                        else
+                        {
+                            throw $_
+                        }
                     }
                 }
                 else
@@ -1009,7 +567,14 @@ function Get-SPOAdminUrl
         $defaultDomain = Get-AzureADDomain | Where-Object {$_.Name -like "*.onmicrosoft.de" -and $_.IsInitial -eq $true}
         $domain = '.onmicrosoft.de'
         $tenantName = $defaultDomain[0].Name.Replace($domain, '')
-        $spoAdminUrl = "https://$tenantName-admin.sharepoint.de"
+        if ($Global:CloudEnvironment -eq 'Germany')
+        {
+            $spoAdminUrl = "https://$tenantName-admin.sharepoint.de"
+        }
+        elseif ($Global:CloudEnvironment -eq 'GCCHigh')
+        {
+            $spoAdminUrl = "https://$tenantName-admin.sharepoint.us"
+        }
         Write-Verbose -Message "SharePoint Online admin URL is $spoAdminUrl"
         return $spoAdminUrl
     }
@@ -1017,7 +582,16 @@ function Get-SPOAdminUrl
     {
         $domain = '.onmicrosoft.com'
         $tenantName = $defaultDomain[0].Name.Replace($domain, '')
-        $spoAdminUrl = "https://$tenantName-admin.sharepoint.com"
+        $extension = 'sharepoint.com'
+        if ($Global:CloudEnvironment -eq 'Germany')
+        {
+            $extension = 'sharepoint.de'
+        }
+        elseif ($Global:CloudEnvironment -eq 'GCCHigh')
+        {
+            $extension = 'sharepoint.us'
+        }
+        $spoAdminUrl = "https://$tenantName-admin.$extension"
         Write-Verbose -Message "SharePoint Online admin URL is $spoAdminUrl"
         return $spoAdminUrl
     }
@@ -1029,7 +603,7 @@ function Get-AzureADDLL
     [OutputType([System.String])]
     param(
     )
-    [array]$AzureADModules = Get-Module -ListAvailable | Where-Object {$_.name -eq "AzureAD" -or $_.name -eq "AzureADPreview"}
+    [array]$AzureADModules = Get-Module -ListAvailable | Where-Object {$_.name -eq "AzureAD"}
     if ($AzureADModules.count -eq 0)
     {
         Throw "Can't find Azure AD DLL. Install the module manually 'Install-Module AzureAD'"
@@ -1037,7 +611,7 @@ function Get-AzureADDLL
     else
     {
         $AzureDLL = Join-Path (($AzureADModules | Sort-Object version -Descending | Select-Object -first 1).Path | split-Path) Microsoft.IdentityModel.Clients.ActiveDirectory.dll
-        Return $AzureDLL
+        return $AzureDLL
     }
 
 }
@@ -1068,7 +642,7 @@ function Get-TenantLoginEndPoint
     {
         $TenantInfo = $webrequest.Content | ConvertFrom-Json
     }
-    Return $TenantInfo
+    return $TenantInfo
 }
 
 function New-ADALServiceInfo
@@ -1148,11 +722,12 @@ function Get-AuthHeader
             Write-Debug "Creating a new Token"
             $authResult = $Global:ADALServicePoint.authContext.AcquireTokenAsync($ResourceURI, $clientId, $RedirectURI, $Global:ADALServicePoint.platformParam, $Global:ADALServicePoint.userId)
         }
+        Write-Host $authResult
         $AuthHeader = $authResult.result.CreateAuthorizationHeader()
     }
     catch
     {
-        Throw "Can't create Authorization header"
+        Throw "Can't create Authorization header: $_"
     }
     Return $AuthHeader
 }
@@ -1206,6 +781,7 @@ function Get-AccessToken
             $UserPasswordCreds = [Microsoft.IdentityModel.Clients.ActiveDirectory.UserPasswordCredential]::new($Credentials.UserName, $Credentials.Password)
             $context = [Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext]::new($AuthUri, $false, [Microsoft.IdentityModel.Clients.ActiveDirectory.TokenCache]::DefaultShared)
             $authResult = $context.AcquireTokenSilentAsync($TargetUri, $ClientId)
+            
             if ($null -eq $authResult.result)
             {
                 $authResult = [Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContextIntegratedAuthExtensions]::AcquireTokenAsync($context, $targetUri, $ClientId, $UserPasswordCreds)
@@ -1308,7 +884,7 @@ function Get-SkypeForBusinessAccessInfo
     }
     catch [System.Net.WebException]
     {
-        $response = ([System.Net.WebException]$_.Exception).Response;
+        $response = ([System.Net.WebException]$_.Exception).Response
     }
     $header = $response.Headers["WWW-Authenticate"]
 
