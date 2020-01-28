@@ -70,6 +70,7 @@
         'Workloads\Azure.psm1',
         'Workloads\AzureAD.psm1',
         'Workloads\ExchangeOnline.psm1',
+        'Workloads\MSOnline.psm1',
         'Workloads\PnP.psm1',
         'Workloads\SecurityCompliance.psm1',
         'Workloads\SkypeForBusiness.psm1',

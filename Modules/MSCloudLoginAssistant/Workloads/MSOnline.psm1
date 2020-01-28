@@ -1,0 +1,69 @@
+function Connect-MSCloudLoginMSOnline
+{
+    [CmdletBinding()]
+    param()
+    Test-MSCloudLogin -Platform AzureAD -CloudCredential $Global:o365Credential
+    if ($Global:IsMFAAuth)
+    {
+        Connect-MSCloudLoginMSOnlineMFA
+    }
+    try
+    {
+        $InformationPreference ='SilentlyContinue'
+        $EnvironmentName = 'AzureCloud'
+        if ($Global:o365Credential.UserName.Split('@')[1] -like '*.de')
+        {
+            $Global:CloudEnvironment = 'Germany'
+            $EnvironmentName = 'AzureGermanyCloud'
+        }
+            $clientid = "1b730954-1685-4b74-9bfd-dac224a7b894";
+            $ResourceURI = "https://graph.windows.net";
+            $RedirectURI = "urn:ietf:wg:oauth:2.0:oob";
+            $connectCmdlet = "Connect-MsolService";
+            $connectCmdletArgs = "-Credential `$Global:o365Credential";
+            $connectCmdletMfaRetryArgs = "-AdGraphAccessToken `$AuthToken";
+            $variablePrefix = "msol"
+        Connect-MsolService -Credential $Global:o365Credential -AzureEnvironment $EnvironmentName -ErrorAction Stop | Out-Null
+        $Global:MSCloudLoginMSOnlineConnected = $true
+        $Global:IsMFAAuth = $false
+    }
+    catch
+    {
+        if ($_.Exception -like '*Authentication Error: Bad username or password.*')
+        {
+            try
+            {
+                Connect-MsolService -Credential $Global:o365Credential -AzureEnvironment 'AzureUSGovernmentCloud' -ErrorAction Stop | Out-Null
+                $Global:MSCloudLoginMSOnlineConnected = $true
+                $Global:IsMFAAuth = $false
+            }
+            catch
+            {
+                $Global:MSCloudLoginMSOnlineConnected = $false
+                throw $_
+            }
+            
+        }
+        else
+        {
+            $Global:MSCloudLoginMSOnlineConnected = $false
+            throw $_
+        }
+    }
+    return
+}
+
+function Connect-MSCloudLoginMSOnlineMFA
+{
+    [CmdletBinding()]
+    param()
+
+    try
+    {
+        Connect-MsolService
+    }
+    catch
+    {
+        throw $_
+    }
+}

@@ -97,16 +97,8 @@ function Test-MSCloudLogin
         }
         'MSOnline'
         {
-            $moduleName = $Platform
-            $testCmdlet = "Get-MsolUser";
-            $exceptionStringMFA = "AADSTS";
-            $clientid = "1b730954-1685-4b74-9bfd-dac224a7b894";
-            $ResourceURI = "https://graph.windows.net";
-            $RedirectURI = "urn:ietf:wg:oauth:2.0:oob";
-            $connectCmdlet = "Connect-MsolService";
-            $connectCmdletArgs = "-Credential `$Global:o365Credential";
-            $connectCmdletMfaRetryArgs = "-AdGraphAccessToken `$AuthToken";
-            $variablePrefix = "msol"
+            Connect-MSCloudLoginMSOnline
+            return
         }
         'PnP'
         {
@@ -722,7 +714,6 @@ function Get-AuthHeader
             Write-Debug "Creating a new Token"
             $authResult = $Global:ADALServicePoint.authContext.AcquireTokenAsync($ResourceURI, $clientId, $RedirectURI, $Global:ADALServicePoint.platformParam, $Global:ADALServicePoint.userId)
         }
-        Write-Host $authResult
         $AuthHeader = $authResult.result.CreateAuthorizationHeader()
     }
     catch

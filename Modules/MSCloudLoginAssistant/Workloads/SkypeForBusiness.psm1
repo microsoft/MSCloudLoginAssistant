@@ -65,21 +65,16 @@ function Connect-MSCloudLoginSkypeForBusiness
         {
             $adminDomain = $Global:o365Credential.UserName.Split('@')[1]
             $targetUri = Get-SkypeForBusinessServiceEndpoint -TargetDomain $adminDomain
-            $appAuthInfo = Get-SkypeForBusinessAccessInfo -PowerShellEndpointUri $targetUri
             $RedirectURI = "urn:ietf:wg:oauth:2.0:oob";
+            $clientId = '1950a258-227b-4e31-a9cf-717495945fc2'
+            $Global:ADALServicePoint = New-ADALServiceInfo -TenantName $adminDomain -UserPrincipalName $Global:o365Credential.UserName
+            $authResult = $Global:ADALServicePoint.authContext.AcquireTokenAsync($targetUri, $clientId, $RedirectURI, $Global:ADALServicePoint.platformParam, $Global:ADALServicePoint.userId)
 
-            $clientId = $appAuthInfo.ClientID
-            $authUri = 'https://login.windows.net/common/oauth2/authorize'
-            Write-Host $clientId
-            Write-Host $targetUri
-            Write-Host $authUri
-            $psSessionName = "SfBPowerShellSession"
-            $AuthHeader = Get-AuthHeader -UserPrincipalName $Global:o365Credential.UserName `
-                -RessourceURI $AuthUri `
-                -clientID $clientID `
-                -RedirectURI $targetUri
-            $Password = ConvertTo-SecureString -AsPlainText $AuthHeader -Force
-            $Ctoken = New-Object System.Management.Automation.PSCredential -ArgumentList $Global:o365Credential.UserName, $Password
+            $token = $authResult.result.AccessToken
+            $networkCreds = [System.Net.NetworkCredential]::new("", $token)
+            $secPassword = $networkCreds.SecurePassword
+            $user = "oauth"
+            $cred = [System.Management.Automation.PSCredential]::new($user, $secPassword)
             $queryStr = "AdminDomain=$adminDomain"
 
             $ConnectionUri = [UriBuilder]$targetUri
@@ -92,8 +87,9 @@ function Connect-MSCloudLoginSkypeForBusiness
             $SessionOption.ApplicationArguments['X-MS-Client-Version'] = $ConnectorVersion
             $SessionOption.NoMachineProfile = $true
             $Global:SkypeSession = New-PSSession -Name $psSessionName -ConnectionUri $ConnectionUri.Uri `
-                -Credential $Ctoken -Authentication Basic -SessionOption $SessionOption
+                -Credential $cred -Authentication Basic -SessionOption $SessionOption
             $Global:SkypeModule = Import-PSSession $Global:SkypeSession
+            Import-Module $Global:SkypeModule -Global | Out-Null
         }
         else
         {
