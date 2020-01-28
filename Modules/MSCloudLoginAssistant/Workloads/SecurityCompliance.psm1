@@ -2,7 +2,10 @@ function Connect-MSCloudLoginSecurityCompliance
 {
     [CmdletBinding()]
     param()
-
+    if ($null -eq $Global:o365Credential)
+    {
+       $Global:o365Credential = Get-Credential -Message "Cloud Credential"
+    }
     $moduleName = "O365SecurityAndComplianceShell"
     $WarningPreference = 'SilentlyContinue'
     $InformationPreference = 'Continue'

@@ -2,6 +2,11 @@ function Connect-MSCloudLoginSkypeForBusiness
 {
     [CmdletBinding()]
     param()
+
+    if ($null -eq $Global:o365Credential)
+    {
+       $Global:o365Credential = Get-Credential -Message "Cloud Credential"
+    }
     if ($Global:o365Credential.UserName.Split('@')[1] -like '*.de')
     {
         $Global:CloudEnvironment = 'Germany'

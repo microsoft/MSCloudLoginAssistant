@@ -9,9 +9,14 @@ function Connect-MSCloudLoginPnP
     $clientid = "9bc3ab49-b65d-410a-85ad-de819febfddc"
     $RedirectURI = "https://oauth.spops.microsoft.com/"
 
+    if ($null -eq $Global:o365Credential)
+    {
+       $Global:o365Credential = Get-Credential -Message "Cloud Credential"
+    }
+
     if ([string]::IsNullOrEmpty($Global:SPOAdminUrl))
     {
-        $Global:SPOAdminUrl = Get-SPOAdminUrl -CloudCredential $CloudCredential
+        $Global:SPOAdminUrl = Get-SPOAdminUrl -CloudCredential $Global:o365Credential
     }
 
     if ([string]::IsNullOrEmpty($ConnectionUrl))

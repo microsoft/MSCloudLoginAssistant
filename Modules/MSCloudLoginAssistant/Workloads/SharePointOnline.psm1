@@ -5,22 +5,31 @@ function Connect-MSCloudLoginSharePointOnline
 
     try
     {
-        if ([string]::IsNullOrEmpty($ConnectionUrl))
+        if ($null -eq $Global:o365Credential)
         {
-            $Global:spoAdminUrl = Get-SPOAdminUrl -CloudCredential $Global:o365Credential
+            if ([string]::IsNullOrEmpty($ConnectionUrl))
+            {
+                $Global:spoAdminUrl = Get-SPOAdminUrl -CloudCredential $Global:o365Credential
+            }
+            else
+            {
+                $Global:spoAdminUrl = $ConnectionUrl
+            }
+            if ($Global:IsMFAAuth)
+            {
+                Connect-MSCloudLoginSharePointOnlineMFA
+                return
+            }
+            Connect-SPOService -Credential $Global:o365Credential -Url $Global:spoAdminUrl
+            $Global:MSCloudLoginSharePointOnlineConnected = $true
+            $Global:IsMFAAuth = $false
         }
         else
         {
-            $Global:spoAdminUrl = $ConnectionUrl
+            $Global:spoAdminUrl = Get-SPOAdminUrl
+            Connect-SPOService -Url $Global:spoAdminUrl
+            $Global:MSCloudLoginSharePointOnlineConnected = $true
         }
-        if ($Global:IsMFAAuth)
-        {
-            Connect-MSCloudLoginSharePointOnlineMFA
-            return
-        }
-        Connect-SPOService -Credential $Global:o365Credential -Url $Global:spoAdminUrl
-        $Global:MSCloudLoginSharePointOnlineConnected = $true
-        $Global:IsMFAAuth = $false
     }
     catch
     {

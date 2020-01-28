@@ -43,14 +43,13 @@ function Test-MSCloudLogin
     if ($null -ne $CloudCredential)
     {
         $Global:o365Credential = $CloudCredential
+        $Global:DomainName = $Global:o365Credential.UserName.Split('@')[1]
     }
 
     if ($null -eq $Global:UseModernAuth)
     {
         $Global:UseModernAuth = $UseModernAuth.IsPresent
     }
-
-    $Global:DomainName = $Global:o365Credential.UserName.Split('@')[1]
 
     switch ($Platform)
     {

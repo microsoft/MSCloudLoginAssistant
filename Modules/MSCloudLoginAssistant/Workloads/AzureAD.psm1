@@ -58,18 +58,26 @@ function Connect-MSCloudLoginAzureADMFA
     # We are using an MFA enabled account. Need to call Azure AD
     try
     {
-        if ($Global:o365Credential.UserName.Split('@')[1] -like '*.de')
+        if ($null -ne $Global:o365Credential)
         {
-            $EnvironmentName = 'AzureGermanyCloud'
-            $Global:CloudEnvironment = 'Germany'
+            if ($Global:o365Credential.UserName.Split('@')[1] -like '*.de')
+            {
+                $EnvironmentName = 'AzureGermanyCloud'
+                $Global:CloudEnvironment = 'Germany'
+            }
+            else
+            {
+                $EnvironmentName = 'AzureCloud'
+            }
+            Connect-AzureAD -AccountId $Global:o365Credential.UserName -AzureEnvironmentName $EnvironmentName -ErrorAction Stop | Out-Null
+            $Global:IsMFAAuth = $true
+            $Global:MSCloudLoginAzureADConnected = $true
         }
         else
         {
-            $EnvironmentName = 'AzureCloud'
+            Connect-AzureAD -ErrorAction Stop | Out-Null
+            $Global:MSCloudLoginAzureADConnected = $true
         }
-        Connect-AzureAD -AccountId $Global:o365Credential.UserName -AzureEnvironmentName $EnvironmentName -ErrorAction Stop | Out-Null
-        $Global:IsMFAAuth = $true
-        $Global:MSCloudLoginAzureADConnected = $true
     }
     catch
     {

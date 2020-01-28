@@ -2,6 +2,10 @@ function Connect-MSCloudLoginExchangeOnline
 {
     [CmdletBinding()]
     param()
+    if ($null -eq $Global:o365Credential)
+    {
+       $Global:o365Credential = Get-Credential -Message "Cloud Credential"
+    }
     $VerbosePreference = 'SilentlyContinue'
     $WarningPreference = "Continue"
     $clientid = "a0c73c16-a7e3-4564-9a95-2bdf47383716";

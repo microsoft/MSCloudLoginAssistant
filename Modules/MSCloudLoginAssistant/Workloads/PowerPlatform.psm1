@@ -2,18 +2,27 @@ function Connect-MSCloudLoginPowerPlatform
 {
     [CmdletBinding()]
     param()
-    if ($Global:o365Credential.UserName.Split('@')[1] -like '*.de')
-    {
-        $Global:CloudEnvironment = 'Germany'
-        Write-Warning 'Microsoft PowerPlatform is not supported in the Germany Cloud'
-        return
-    }
+
     try
     {
-        Add-PowerAppsAccount -UserName $Global:o365credential.UserName `
-            -Password $Global:o365Credential.Password `
-            -ErrorAction Stop | Out-Null
-        $Global:MSCloudLoginPowerPlatformConnected = $true
+        if ($null -eq $Global:o365Credential)
+        {
+            Add-PowerAppsAccount -ErrorAction Stop | Out-Null
+            $Global:MSCloudLoginPowerPlatformConnected = $true
+        }
+        else
+        {
+            if ($Global:o365Credential.UserName.Split('@')[1] -like '*.de')
+            {
+                $Global:CloudEnvironment = 'Germany'
+                Write-Warning 'Microsoft PowerPlatform is not supported in the Germany Cloud'
+                return
+            }
+            Add-PowerAppsAccount -UserName $Global:o365credential.UserName `
+                -Password $Global:o365Credential.Password `
+                -ErrorAction Stop | Out-Null
+            $Global:MSCloudLoginPowerPlatformConnected = $true
+        }
     }
     catch
     {

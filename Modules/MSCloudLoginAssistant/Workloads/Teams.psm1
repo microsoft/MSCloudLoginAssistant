@@ -3,55 +3,71 @@ function Connect-MSCloudLoginTeams
     [CmdletBinding()]
     param()
 
-    if ($Global:o365Credential.UserName.Split('@')[1] -like '*.de')
+    if ($null -ne $Global:o365Credential)
     {
-        $Global:CloudEnvironment = 'Germany'
-        Write-Warning 'Microsoft Teams is not supported in the Germany Cloud'
-        return
-    }
-    Import-Module -Name 'MicrosoftTeams' -Force
-
-    Test-MSCloudLogin -Platform AzureAD -CloudCredential $Global:o365Credential
-    if ($Global:IsMFAAuth)
-    {
-        Connect-MSCloudLoginTeamsMFA -EnvironmentName $Global:CloudEnvironment
-    }
-    try 
-    {
-        Connect-MicrosoftTeams -Credential $Global:o365Credential -ErrorAction Stop | Out-Null
-        $Global:MSCloudLoginTeamsConnected = $true
-    }
-    catch
-    {
-        if ($_.Exception -like '*unknown_user_type: Unknown User Type*')
+        if ($Global:o365Credential.UserName.Split('@')[1] -like '*.de')
         {
-            $Global:CloudEnvironment = 'GCCHigh'
+            $Global:CloudEnvironment = 'Germany'
+            Write-Warning 'Microsoft Teams is not supported in the Germany Cloud'
+            return
+        }
+        Import-Module -Name 'MicrosoftTeams' -Force
 
-            try
+        Test-MSCloudLogin -Platform AzureAD -CloudCredential $Global:o365Credential
+        if ($Global:IsMFAAuth)
+        {
+            Connect-MSCloudLoginTeamsMFA -EnvironmentName $Global:CloudEnvironment
+        }
+        try 
+        {
+            Connect-MicrosoftTeams -Credential $Global:o365Credential -ErrorAction Stop | Out-Null
+            $Global:MSCloudLoginTeamsConnected = $true
+        }
+        catch
+        {
+            if ($_.Exception -like '*unknown_user_type: Unknown User Type*')
             {
-                Connect-MicrosoftTeams -TeamsEnvironmentName 'TeamsGCCH' -Credential $Global:o365Credential -ErrorAction Stop | Out-Null
-                $Global:MSCloudLoginTeamsConnected = $true
-            }
-            catch
-            {
+                $Global:CloudEnvironment = 'GCCHigh'
+
                 try
                 {
-                    Connect-MicrosoftTeams -TeamsEnvironmentName 'TeamsDOD' -Credential $Global:o365Credential -ErrorAction Stop | Out-Null
+                    Connect-MicrosoftTeams -TeamsEnvironmentName 'TeamsGCCH' -Credential $Global:o365Credential -ErrorAction Stop | Out-Null
                     $Global:MSCloudLoginTeamsConnected = $true
-                    $Global:CloudEnvironment = 'DoD'
                 }
                 catch
                 {
-                    $Global:MSCloudLoginTeamsConnected = $false
-                    throw $_
+                    try
+                    {
+                        Connect-MicrosoftTeams -TeamsEnvironmentName 'TeamsDOD' -Credential $Global:o365Credential -ErrorAction Stop | Out-Null
+                        $Global:MSCloudLoginTeamsConnected = $true
+                        $Global:CloudEnvironment = 'DoD'
+                    }
+                    catch
+                    {
+                        $Global:MSCloudLoginTeamsConnected = $false
+                        throw $_
+                    }
                 }
             }
+            elseif ($_.Exception -like '*AADSTS50076*')
+            {
+                Connect-MSCloudLoginTeamsMFA
+            }
+            else
+            {
+                $Global:MSCloudLoginTeamsConnected = $false
+                throw $_
+            }
         }
-        elseif ($_.Exception -like '*AADSTS50076*')
+    }
+    else
+    {
+        try 
         {
-            Connect-MSCloudLoginTeamsMFA
+            Connect-MicrosoftTeams -ErrorAction Stop | Out-Null
+            $Global:MSCloudLoginTeamsConnected = $true
         }
-        else
+        catch
         {
             $Global:MSCloudLoginTeamsConnected = $false
             throw $_

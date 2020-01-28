@@ -3,38 +3,60 @@ function Connect-MSCloudLoginMSOnline
     [CmdletBinding()]
     param()
 
-    try
+    if ($null -ne $Global:o365Credential)
     {
-        $InformationPreference ='SilentlyContinue'
-        $EnvironmentName = 'AzureCloud'
-        if ($Global:o365Credential.UserName.Split('@')[1] -like '*.de')
+        Test-MSCloudLogin -Platform AzureAD -CloudCredential $Global:o365Credential
+        if ($Global:IsMFAAuth)
         {
-            $Global:CloudEnvironment = 'Germany'
-            $EnvironmentName = 'AzureGermanyCloud'
+            Connect-MSCloudLoginMSOnlineMFA
+            return
         }
-
-        Connect-MsolService -Credential $Global:o365Credential -AzureEnvironment $EnvironmentName -ErrorAction Stop | Out-Null
-        $Global:MSCloudLoginMSOnlineConnected = $true
-        $Global:IsMFAAuth = $false
-    }
-    catch
-    {
-        if ($_.Exception -like '*Authentication Error: Bad username or password.*')
+        try
         {
-            try
+            $InformationPreference ='SilentlyContinue'
+            $EnvironmentName = 'AzureCloud'
+            
+            if ($Global:o365Credential.UserName.Split('@')[1] -like '*.de')
             {
-                Connect-MsolService -Credential $Global:o365Credential -AzureEnvironment 'AzureUSGovernmentCloud' -ErrorAction Stop | Out-Null
-                $Global:MSCloudLoginMSOnlineConnected = $true
-                $Global:IsMFAAuth = $false
+                $Global:CloudEnvironment = 'Germany'
+                $EnvironmentName = 'AzureGermanyCloud'
             }
-            catch
+
+            Connect-MsolService -Credential $Global:o365Credential -AzureEnvironment $EnvironmentName -ErrorAction Stop | Out-Null
+            $Global:MSCloudLoginMSOnlineConnected = $true
+            $Global:IsMFAAuth = $false
+        }
+        catch
+        {
+            if ($_.Exception -like '*Authentication Error: Bad username or password.*')
+            {
+                try
+                {
+                    Connect-MsolService -Credential $Global:o365Credential -AzureEnvironment 'AzureUSGovernmentCloud' -ErrorAction Stop | Out-Null
+                    $Global:MSCloudLoginMSOnlineConnected = $true
+                    $Global:IsMFAAuth = $false
+                }
+                catch
+                {
+                    $Global:MSCloudLoginMSOnlineConnected = $false
+                    throw $_
+                }
+            }
+            else
             {
                 $Global:MSCloudLoginMSOnlineConnected = $false
                 throw $_
             }
-            
         }
-        else
+    }
+    else
+    {
+        try
+        {
+            Connect-MsolService | Out-Null
+            $Global:MSCloudLoginMSOnlineConnected = $true
+        }
+        catch
         {
             $Global:MSCloudLoginMSOnlineConnected = $false
             throw $_
