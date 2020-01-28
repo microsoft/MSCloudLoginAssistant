@@ -24,10 +24,6 @@ function Connect-MSCloudLoginPnP
     }
     Write-Verbose -Message "`$Global:SPOConnectionUrl is $Global:SPOConnectionUrl."
 
-    
-    Write-Host "Environment:" $Global:CloudEnvironment
-    Write-Host "MFA:" $Global:IsMFAAuth
-    Write-Host "Url:" $Global:SPOConnectionUrl
     try
     {
         Connect-PnPOnline -Url $Global:SPOConnectionUrl -Credentials $Global:o365Credential
