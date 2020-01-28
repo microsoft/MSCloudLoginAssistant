@@ -465,64 +465,6 @@ function Get-SkypeForBusinessAccessInfo
     return $result
 }
 
-function Get-MicrosoftTeamsAzureName
-{
-    [CmdletBinding()]
-    [OutputType([System.String])]
-    param(
-        [Parameter()]
-        [System.String]
-        [ValidateSet('TeamsCloud', 'TeamsGCCH', 'TeamsDOD')]
-        $TeamsEnvironmentName
-    )
-
-    if ($null -eq $TeamsEnvironmentName)
-    {
-        return "AzureCloud"
-    }
-    return $TeamsEnvironmentName
-}
-
-function Get-MicrosoftTeamsAzureEnvironmentName
-{
-    [CmdletBinding()]
-    [OutputType([System.String])]
-    param(
-        [Parameter(Mandatory = $true)]
-        [System.String]
-        [ValidateSet('TeamsCloud', 'TeamsGCCH', 'TeamsDOD')]
-        $TeamsEnvironmentName
-    )
-
-    if ($TeamsEnvironmentName -eq 'AzureCloud')
-    {
-        return 'AzureCloud'
-    }
-    return 'AzureUSGovernment'
-}
-
-function Get-MicrosoftTeamsMSGraphEndPoint
-{
-    [CmdletBinding()]
-    [OutPutType([System.String])]
-    param(
-        [Parameter(Mandatory = $true)]
-        [System.String]
-        [ValidateSet('TeamsCloud', 'TeamsGCCH', 'TeamsDOD')]
-        $TeamsEnvironmentName
-    )
-
-    if ($TeamsEnvironmentName -eq 'TeamsCloud')
-    {
-        return "https://graph.microsoft.com"
-    }
-    elseif ($TeamsEnvironmentName -eq 'TeamsGCCH')
-    {
-        return "https://graph.microsoft.us"
-    }
-    return "https://dod-graph.microsoft.us"
-}
-
 function Get-PowerPlatformTokenInfo
 {
     [CmdletBinding()]
