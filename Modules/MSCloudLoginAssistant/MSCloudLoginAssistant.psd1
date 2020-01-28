@@ -72,7 +72,9 @@
         'Workloads\ExchangeOnline.psm1',
         'Workloads\MSOnline.psm1',
         'Workloads\PnP.psm1',
+        'Workloads\PowerPlatform.psm1',
         'Workloads\SecurityCompliance.psm1',
+        'Workloads\SharePointOnline.psm1',
         'Workloads\SkypeForBusiness.psm1',
         'Workloads\Teams.psm1'
     )

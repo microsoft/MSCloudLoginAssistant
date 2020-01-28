@@ -2,11 +2,7 @@ function Connect-MSCloudLoginMSOnline
 {
     [CmdletBinding()]
     param()
-    Test-MSCloudLogin -Platform AzureAD -CloudCredential $Global:o365Credential
-    if ($Global:IsMFAAuth)
-    {
-        Connect-MSCloudLoginMSOnlineMFA
-    }
+
     try
     {
         $InformationPreference ='SilentlyContinue'
@@ -16,13 +12,7 @@ function Connect-MSCloudLoginMSOnline
             $Global:CloudEnvironment = 'Germany'
             $EnvironmentName = 'AzureGermanyCloud'
         }
-            $clientid = "1b730954-1685-4b74-9bfd-dac224a7b894";
-            $ResourceURI = "https://graph.windows.net";
-            $RedirectURI = "urn:ietf:wg:oauth:2.0:oob";
-            $connectCmdlet = "Connect-MsolService";
-            $connectCmdletArgs = "-Credential `$Global:o365Credential";
-            $connectCmdletMfaRetryArgs = "-AdGraphAccessToken `$AuthToken";
-            $variablePrefix = "msol"
+
         Connect-MsolService -Credential $Global:o365Credential -AzureEnvironment $EnvironmentName -ErrorAction Stop | Out-Null
         $Global:MSCloudLoginMSOnlineConnected = $true
         $Global:IsMFAAuth = $false
@@ -60,10 +50,19 @@ function Connect-MSCloudLoginMSOnlineMFA
 
     try
     {
-        Connect-MsolService
+        $clientID = "1b730954-1685-4b74-9bfd-dac224a7b894";
+        $ResourceURI = "https://graph.windows.net";
+        $RedirectURI = "urn:ietf:wg:oauth:2.0:oob";
+        $AuthHeader = Get-AuthHeader -UserPrincipalName $Global:o365Credential.UserName `
+            -ResourceURI $ResourceURI -clientID $clientID -RedirectURI $RedirectURI
+        $AccessToken = $AuthHeader.split(" ")[1]
+        Connect-MsolService -AdGraphAccessToken $AccessToken
+        $Global:MSCloudLoginMSOnlineConnected = $true
+        $Global:IsMFAAuth = $true
     }
     catch
     {
+        $Global:MSCloudLoginMSOnlineConnected = $false
         throw $_
     }
 }

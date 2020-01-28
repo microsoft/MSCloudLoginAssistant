@@ -58,6 +58,24 @@ function Connect-MSCloudLoginAzure
             }
         }
     }
+
+    [array]$subscriptions = Get-AzSubscription -WarningAction Continue
+    # Prompt for a subscription in case we have more than one
+    if ($subscriptions.Count -gt 1)
+    {
+        Write-Host -ForegroundColor Cyan " - Prompting for Azure subscription..."
+        $Global:subscriptionDetails = Get-AzSubscription -WarningAction SilentlyContinue | Sort-Object Name | Out-GridView -Title "Select ONE subscription..." -PassThru
+        if ($null -eq $subscriptionDetails)
+        {
+            throw " - A subscription must be selected."
+        }
+        elseif ($subscriptionDetails.Count -gt 1)
+        {
+            throw " - Please select *only one* subscription."
+        }
+        Write-Host -ForegroundColor White " - Setting active subscription to '$($Global:subscriptionDetails.Name)'..."
+        Set-AzContext -Subscription $Global:subscriptionDetails.Id
+    }
     return
 }
 
