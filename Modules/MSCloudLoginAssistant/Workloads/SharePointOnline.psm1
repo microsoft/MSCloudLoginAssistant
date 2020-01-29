@@ -5,7 +5,7 @@ function Connect-MSCloudLoginSharePointOnline
 
     try
     {
-        if ($null -eq $Global:o365Credential)
+        if ($null -ne $Global:o365Credential)
         {
             if ([string]::IsNullOrEmpty($ConnectionUrl))
             {
