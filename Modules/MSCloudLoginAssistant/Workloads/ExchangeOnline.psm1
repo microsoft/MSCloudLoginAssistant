@@ -2,6 +2,11 @@ function Connect-MSCloudLoginExchangeOnline
 {
     [CmdletBinding()]
     param()
+    if($Global:UseApplicationIdentity -and $null -eq $Global:o365Credential)
+    {
+        throw "The Exchange Platform does not support connecting with application identity."
+    }
+    
     if ($null -eq $Global:o365Credential)
     {
        $Global:o365Credential = Get-Credential -Message "Cloud Credential"

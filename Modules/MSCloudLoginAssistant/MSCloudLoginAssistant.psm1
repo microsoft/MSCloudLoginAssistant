@@ -36,7 +36,23 @@ function Test-MSCloudLogin
 
         [Parameter()]
         [Switch]
-        $UseModernAuth
+        $UseModernAuth,
+
+        [Parameter()]
+        [System.String]
+        $AppId,
+
+        [Parameter()]
+        [System.String]
+        $AppSecret,
+
+        [Parameter()]
+        [System.String]
+        $CertificateThumbprint,
+
+        [Parameter()]
+        [System.String]
+        $Tenant
     )
 
     # If we specified the CloudCredential parameter then set the global o365Credential object to its value
@@ -49,6 +65,38 @@ function Test-MSCloudLogin
     if ($null -eq $Global:UseModernAuth)
     {
         $Global:UseModernAuth = $UseModernAuth.IsPresent
+    }
+    
+    $Global:UseApplicationIdentity = ![string]::IsNullOrEmpty($AppId) -or ![string]::IsNullOrEmpty($AppSecret) -or ![string]::IsNullOrEmpty($CertificateThumbprint)
+
+    if($Global:UseApplicationIdentity) 
+    {            
+        if(!$AppId -or (!$AppSecret -and !$CertificateThumbprint)) 
+        {
+            throw "When connecting with an application identity the ApplicationId and the AppSecret or CertificateThumbprint parameters must be provided"
+        }
+
+        if(-not $Tenant)
+        {
+            throw "The tenant must be specified when connecting with an application identity"
+        }
+
+        $Global:appIdentityParams = @{
+            AppId = $AppId
+            AppSecret = $AppSecret
+            CertificateThumbprint = $CertificateThumbprint
+            Tenant = $Tenant
+            ServicePrincipalCredentials = $null
+        }
+
+        if($Global:appIdentityParams.AppSecret)
+        {
+            $secpasswd = ConvertTo-SecureString $Global:appIdentityParams.AppSecret -AsPlainText -Force
+            $spCreds = New-Object System.Management.Automation.PSCredential ($Global:appIdentityParams.AppId, $secpasswd)
+        }
+        
+        # required for the Azure workload, it works by supplying the credentials(appid, appsecret) and setting the -ServicePrincipal switch
+        $Global:appIdentityParams.ServicePrincipalCredentials = $spCreds
     }
 
     switch ($Platform)
@@ -104,11 +152,36 @@ function Get-SPOAdminUrl
     (
         [Parameter()]
         [System.Management.Automation.PSCredential]
-        $CloudCredential
+        $CloudCredential,
+        
+        [Parameter()]
+        [System.String]
+        $AppId,
+        
+        [Parameter()]
+        [System.String]
+        $AppSecret,
+        
+        [Parameter()]
+        [System.String]
+        $CertificateThumbprint,
+        
+        [Parameter()]
+        [System.String]
+        $Tenant
     )
 
     Write-Verbose -Message "Connection to Azure AD is required to automatically determine SharePoint Online admin URL..."
-    Test-MSCloudLogin -Platform AzureAD -CloudCredential $CloudCredential
+
+    if($AppId)
+    {
+        Test-MSCloudLogin -Platform AzureAD -AppId $AppId -AppSecret $AppSecret -CertificateThumbprint $CertificateThumbprint -Tenant $Tenant
+    }
+    else
+    {
+        Test-MSCloudLogin -Platform AzureAD -CloudCredential $CloudCredential
+    }
+
     Write-Verbose -Message "Getting SharePoint Online admin URL..."
     $defaultDomain = Get-AzureADDomain | Where-Object {$_.Name -like "*.onmicrosoft.com" -and $_.IsInitial -eq $true} # We don't use IsDefault here because the default could be a custom domain
 
