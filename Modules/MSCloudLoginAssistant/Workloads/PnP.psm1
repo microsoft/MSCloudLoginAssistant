@@ -41,7 +41,7 @@ function Connect-MSCloudLoginPnP
             }
             else
             {
-                Connect-PnPOnline -Url $Global:SPOConnectionUrl -Tenant $Global:appIdentityParams.Tenant -AppId $Global:appIdentityParams.AppId -AppSecret $Global:appIdentityParams.AppSecret
+                Connect-PnPOnline -Url $Global:SPOConnectionUrl -AppId $Global:appIdentityParams.AppId -AppSecret $Global:appIdentityParams.AppSecret
                 Write-Verbose "Connected to PnP {$($Global:SPOConnectionUrl) using application identity with application secret"            
             }
         }
