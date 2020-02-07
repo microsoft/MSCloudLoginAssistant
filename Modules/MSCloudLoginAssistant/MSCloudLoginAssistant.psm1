@@ -162,7 +162,11 @@ function Get-AzureADDLL
     [OutputType([System.String])]
     param(
     )
-    [array]$AzureADModules = Get-Module -ListAvailable | Where-Object {$_.name -eq "AzureAD"}
+    $manifest = Import-PowerShellDataFile ($SCRIPT:MyInvocation.MyCommand.Path.Replace('.psm1', '.psd1'))
+    $dependencies = $manifest.RequiredModules
+    $AzureADVersion = $dependencies | Where-Object -FilterScript {$_.ModuleName -eq 'AzureAD'}
+    [array]$AzureADModules = Get-Module -ListAvailable | Where-Object {$_.name -eq "AzureAD" -and $_.Version -eq $AzureADVersion.RequiredVersion}
+
     if ($AzureADModules.count -eq 0)
     {
         Throw "Can't find Azure AD DLL. Install the module manually 'Install-Module AzureAD'"
@@ -278,8 +282,8 @@ function Get-AuthHeader
         $authResult = $Global:ADALServicePoint.authContext.AcquireTokenSilentAsync($ResourceURI, $clientId)
         if ($null -eq $authResult.result)
         {
-            Write-Debug "Creating a new Token"
-            $authResult = $Global:ADALServicePoint.authContext.AcquireTokenAsync($ResourceURI, $clientId, $RedirectURI, $Global:ADALServicePoint.platformParam, $Global:ADALServicePoint.userId)
+            $RedirectURI = [System.Uri]::new($RedirectURI)
+            $authResult = $Global:ADALServicePoint.authContext.AcquireTokenAsync($ResourceURI, $clientId, $RedirectURI, $Global:ADALServicePoint.platformParam.PromptBehavior, $Global:ADALServicePoint.userId, "", "")
         }
         $AuthHeader = $authResult.result.CreateAuthorizationHeader()
     }
