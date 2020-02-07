@@ -82,7 +82,7 @@ function Connect-MSCloudLoginPowerPlatformMFA
     param()
     try
     {
-        Add-PowerAppsAccount
+        Test-PowerAppsAccount
         $Global:MSCloudLoginPowerPlatformConnected = $true
     }
     catch
