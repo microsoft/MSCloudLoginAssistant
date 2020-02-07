@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    The Test-MSCloudLogin function is used to assist with logging in to various Microsoft Cloud services, such as Azure, SharePoint Online, and SharePoint PnP.
+    The Test-MSCloudLogin function is used to assist with checking authentication status of and logging in to various Microsoft Cloud services, such as Azure, SharePoint Online, and SharePoint PnP.
 .EXAMPLE
     Test-MSCloudLogin -Platform AzureAD -Verbose
 .EXAMPLE
@@ -8,7 +8,7 @@
 .PARAMETER Platform
     The Platform parameter specifies which cloud service for which we are testing the login state. Possible values are Azure, AzureAD, SharePointOnline, ExchangeOnline, SecurityComplianceCenter, MSOnline, PnP, PowerPlatforms, MicrosoftTeams, and SkypeForBusiness.
 .NOTES
-    Created & maintained by Brian Lalancette (@brianlala), 2019.
+    Created & maintained by Brian Lalancette (@brianlala), 2019-2020.
 .LINK
     https://github.com/Microsoft/MSCloudLoginAssistant
 #>
@@ -39,6 +39,15 @@ function Test-MSCloudLogin
         $UseModernAuth
     )
 
+    if ($VerbosePreference -eq "Continue")
+    {
+        $verboseParameter = @{Verbose = $true}
+    }
+    else
+    {
+        $verboseParameter = @{}
+    }
+
     # If we specified the CloudCredential parameter then set the global o365Credential object to its value
     if ($null -ne $CloudCredential)
     {
@@ -55,43 +64,43 @@ function Test-MSCloudLogin
     {
         'Azure'
         {
-            Connect-MSCloudLoginAzure
+            Connect-MSCloudLoginAzure @verboseParameter
         }
         'AzureAD'
         {
-            Connect-MSCloudLoginAzureAD
+            Connect-MSCloudLoginAzureAD @verboseParameter
         }
         'SharePointOnline'
         {
-            Connect-MSCloudLoginSharePointOnline
+            Connect-MSCloudLoginSharePointOnline @verboseParameter
         }
         'ExchangeOnline'
         {
-            Connect-MSCloudLoginExchangeOnline
+            Connect-MSCloudLoginExchangeOnline @verboseParameter
         }
         'SecurityComplianceCenter'
         {
-            Connect-MSCloudLoginSecurityCompliance
+            Connect-MSCloudLoginSecurityCompliance @verboseParameter
         }
         'MSOnline'
         {
-            Connect-MSCloudLoginMSOnline
+            Connect-MSCloudLoginMSOnline @verboseParameter
         }
         'PnP'
         {
-            Connect-MSCloudLoginPnP -ConnectionUrl $ConnectionUrl
+            Connect-MSCloudLoginPnP -ConnectionUrl $ConnectionUrl @verboseParameter
         }
         'MicrosoftTeams'
         {
-            Connect-MSCloudLoginTeams
+            Connect-MSCloudLoginTeams @verboseParameter
         }
         'SkypeForBusiness'
         {
-            Connect-MSCloudLoginSkypeForBusiness
+            Connect-MSCloudLoginSkypeForBusiness @verboseParameter
         }
         'PowerPlatforms'
         {
-            Connect-MSCloudLoginPowerPlatform
+            Connect-MSCloudLoginPowerPlatform @verboseParameter
         }
     }
 }
@@ -330,7 +339,7 @@ function Get-AccessToken
             $UserPasswordCreds = [Microsoft.IdentityModel.Clients.ActiveDirectory.UserPasswordCredential]::new($Credentials.UserName, $Credentials.Password)
             $context = [Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext]::new($AuthUri, $false, [Microsoft.IdentityModel.Clients.ActiveDirectory.TokenCache]::DefaultShared)
             $authResult = $context.AcquireTokenSilentAsync($TargetUri, $ClientId)
-            
+
             if ($null -eq $authResult.result)
             {
                 $authResult = [Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContextIntegratedAuthExtensions]::AcquireTokenAsync($context, $targetUri, $ClientId, $UserPasswordCreds)
