@@ -9,14 +9,19 @@ function Connect-MSCloudLoginPnP
     $clientid = "9bc3ab49-b65d-410a-85ad-de819febfddc"
     $RedirectURI = "https://oauth.spops.microsoft.com/"
 
-    if ($null -eq $Global:o365Credential)
+    if (!$Global:UseApplicationIdentity -and $null -eq $Global:o365Credential)
     {
        $Global:o365Credential = Get-Credential -Message "Cloud Credential"
     }
 
     if ([string]::IsNullOrEmpty($ConnectionUrl) -and [string]::IsNullOrEmpty($Global:SPOAdminUrl))
-    {
-        $Global:SPOAdminUrl = Get-SPOAdminUrl -CloudCredential $Global:o365Credential
+    {        
+        $Global:SPOAdminUrl = Get-SPOAdminUrl -CloudCredential $Global:o365Credential `
+                    -AppId $Global:appIdentityParams.AppId `
+                    -AppSecret $Global:appIdentityParams.AppSecret `
+                    -CertificateThumbprint $Global:appIdentityParams.CertificateThumbprint `
+                    -Tenant $Global:appIdentityParams.Tenant
+                    
         $Global:SPOConnectionUrl = $Global:SPOAdminUrl
     }
     else
@@ -27,8 +32,25 @@ function Connect-MSCloudLoginPnP
 
     try
     {
-        Connect-PnPOnline -Url $Global:SPOConnectionUrl -Credentials $Global:o365Credential
-        Write-Verbose "Connected to PnP {$($Global:SPOConnectionUrl) using regular authentication"
+        if($Global:UseApplicationIdentity)
+        {
+            if($Global:appIdentityParams.CertificateThumbprint)
+            {
+                Connect-PnPOnline -Url $Global:SPOConnectionUrl -Tenant $Global:appIdentityParams.Tenant -ClientId $Global:appIdentityParams.AppId -Thumbprint $Global:appIdentityParams.CertificateThumbprint
+                Write-Verbose "Connected to PnP {$($Global:SPOConnectionUrl) using application identity with certificate thumbprint"            
+            }
+            else
+            {
+                Connect-PnPOnline -Url $Global:SPOConnectionUrl -AppId $Global:appIdentityParams.AppId -AppSecret $Global:appIdentityParams.AppSecret
+                Write-Verbose "Connected to PnP {$($Global:SPOConnectionUrl) using application identity with application secret"            
+            }
+        }
+        else
+        {
+            Connect-PnPOnline -Url $Global:SPOConnectionUrl -Credentials $Global:o365Credential
+            Write-Verbose "Connected to PnP {$($Global:SPOConnectionUrl) using regular authentication"
+        }
+
         $Global:IsMFAAuth = $false
     }
     catch

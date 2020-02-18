@@ -2,10 +2,18 @@ function Connect-MSCloudLoginPowerPlatform
 {
     [CmdletBinding()]
     param()
+    if($Global:UseApplicationIdentity -and $null -eq $Global:o365Credential -and $null -eq $global:appIdentityParams.OnBehalfOfUserPrincipalName)
+    {
+        throw "The PowerPlatforms Platform does not support connecting with application identity."
+    }
 
     try
     {
-        if ($null -eq $Global:o365Credential)
+        if($Global:UseApplicationIdentity)
+        {
+            Connect-MSCloudLoginPowerPlatformDelegated
+        }
+        elseif ($null -eq $Global:o365Credential)
         {
             Add-PowerAppsAccount -ErrorAction Stop | Out-Null
             $Global:MSCloudLoginPowerPlatformConnected = $true
@@ -82,7 +90,50 @@ function Connect-MSCloudLoginPowerPlatformMFA
     param()
     try
     {
-        Test-PowerAppsAccount
+        Add-PowerAppsAccount
+        $Global:MSCloudLoginPowerPlatformConnected = $true
+    }
+    catch
+    {
+        $Global:MSCloudLoginPowerPlatformConnected = $false
+        throw $_
+    }
+    return
+}
+
+function Connect-MSCloudLoginPowerPlatformDelegated
+{
+    [CmdletBinding()]
+    param()
+    try
+    {
+        $userprincipalNameToUse = ""
+        if($null -eq $Global:o365Credential)
+        {
+            $userprincipalNameToUse = $global:appIdentityParams.OnBehalfOfUserPrincipalName
+        }
+        else
+        {
+            $userprincipalNameToUse = $Global:o365Credential.UserName
+        }
+
+
+        if($global:currentSession.customModuleLoaded)
+        {
+            return;
+        }
+
+        $mod=Get-Module Microsoft.PowerApps.AuthModule -All
+        if($mod)
+        {
+            Remove-Module $mod
+        }
+
+        # importing a module from within a module is not really recommended
+        # but ours is a special case since we want to override the auth module of the power apps module
+        # this is also why we set the -global flag
+        Import-Module "$PSScriptRoot\..\Utilities\DelegatedPowerAppsAuth\Microsoft.PowerApps.AuthModule.psm1" -Force -Global
+        Add-PowerAppsAccount -UserName $userprincipalNameToUse
         $Global:MSCloudLoginPowerPlatformConnected = $true
     }
     catch

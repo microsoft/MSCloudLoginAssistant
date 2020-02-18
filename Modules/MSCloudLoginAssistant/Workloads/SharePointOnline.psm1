@@ -2,9 +2,13 @@ function Connect-MSCloudLoginSharePointOnline
 {
     [CmdletBinding()]
     param()
-
-    try
+    if($Global:UseApplicationIdentity -and $null -eq $Global:o365Credential)
     {
+        throw "The SharePointOnline Platform does not support connecting with application identity."
+    }
+    
+    try
+    {        
         if ($null -ne $Global:o365Credential)
         {
             if ([string]::IsNullOrEmpty($ConnectionUrl))

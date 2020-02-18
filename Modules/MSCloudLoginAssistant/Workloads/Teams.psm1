@@ -3,7 +3,18 @@ function Connect-MSCloudLoginTeams
     [CmdletBinding()]
     param()
 
-    if ($null -ne $Global:o365Credential)
+    if ($Global:UseApplicationIdentity)
+    {    
+        if($Global:appIdentityParams.CertificateThumbprint) 
+        {
+            Connect-MicrosoftTeams -TenantId $Global:appIdentityParams.Tenant -ApplicationId $Global:appIdentityParams.AppId -CertificateThumbprint $Global:appIdentityParams.CertificateThumbprint -ErrorAction Stop | Out-Null                
+        }
+        else
+        {
+            throw "The MicrosoftTeams Platform does not support connecting with application secret"
+        }
+    }
+    elseif ($null -ne $Global:o365Credential)
     {
         if ($Global:o365Credential.UserName.Split('@')[1] -like '*.de')
         {
