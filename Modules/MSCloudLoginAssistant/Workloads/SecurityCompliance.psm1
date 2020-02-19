@@ -2,6 +2,11 @@ function Connect-MSCloudLoginSecurityCompliance
 {
     [CmdletBinding()]
     param()
+    if($Global:UseApplicationIdentity -and $null -eq $Global:o365Credential)
+    {
+        throw "The SecurityComplianceCenter Platform does not support connecting with application identity."
+    }
+    
     if ($null -eq $Global:o365Credential)
     {
        $Global:o365Credential = Get-Credential -Message "Cloud Credential"

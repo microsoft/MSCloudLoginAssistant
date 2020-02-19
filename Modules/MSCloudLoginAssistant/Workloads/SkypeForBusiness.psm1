@@ -2,12 +2,28 @@ function Connect-MSCloudLoginSkypeForBusiness
 {
     [CmdletBinding()]
     param()
-
-    if ($null -eq $Global:o365Credential)
+    if($Global:UseApplicationIdentity -and $null -eq $Global:o365Credential -and $null -eq $global:appIdentityParams.OnBehalfOfUserPrincipalName)
+    {
+        throw "The SkypeForBusiness Platform does not support connecting with application identity."
+    }
+    
+    if (!$Global:UseApplicationIdentity -and $null -eq $Global:o365Credential)
     {
        $Global:o365Credential = Get-Credential -Message "Cloud Credential"
     }
-    if ($Global:o365Credential.UserName.Split('@')[1] -like '*.de')
+    
+    $userprincipalNameToUse = ""    
+    if($null -eq $Global:o365Credential)
+    {
+        $userprincipalNameToUse = $global:appIdentityParams.OnBehalfOfUserPrincipalName
+    }
+    else
+    {        
+        $userprincipalNameToUse = $Global:o365Credential.UserName           
+    }
+
+    $adminDomain = $userprincipalNameToUse.Split('@')[1]
+    if ($userprincipalNameToUse.Split('@')[1] -like '*.de')
     {
         $Global:CloudEnvironment = 'Germany'
         Write-Warning 'Microsoft Teams is not supported in the Germany Cloud'
@@ -20,18 +36,27 @@ function Connect-MSCloudLoginSkypeForBusiness
         {
             Write-Verbose "Creating a new Session to Skype for Business Servers"
             $ErrorActionPreference = "Stop"
-
-            $adminDomain = $Global:o365Credential.UserName.Split('@')[1]
+            
             $targetUri = Get-SkypeForBusinessServiceEndpoint -TargetDomain $adminDomain
-            $appAuthInfo = Get-SkypeForBusinessAccessInfo -PowerShellEndpointUri $targetUri
-
-            $clientId = $appAuthInfo.ClientID
-            $authUri = $appAuthInfo.AuthUrl
+               
             try
             {
-                $AccessToken = Get-AccessToken -TargetUri $targetUri -ClientID $clientId `
-                    -AuthUri $authUri `
-                    -Credentials $Global:o365Credential
+                if($Global:UseApplicationIdentity)
+                {
+                    # we don't call Get-SkypeForBusinessAccessInfo
+                    # in the application identity use case we have our own clientId
+                    # disregarded the $authuri for now since it would mean that the authentication context would not be global any more
+                    $AccessToken = Get-OnBehalfOfAccessToken -TargetUri $targetUri -UserPrincipalName $userprincipalNameToUse
+                }
+                else
+                {
+                    $appAuthInfo = Get-SkypeForBusinessAccessInfo -PowerShellEndpointUri $targetUri
+                    $clientId = $appAuthInfo.ClientID
+                    $authUri = $appAuthInfo.AuthUrl
+                    $AccessToken = Get-AccessToken -TargetUri $targetUri -ClientID $clientId `
+                        -AuthUri $authUri `
+                        -Credentials $Global:o365Credential
+                }
                 $networkCreds = [System.Net.NetworkCredential]::new("", $AccessToken)
                 $secPassword = $networkCreds.SecurePassword
                 $user = "oauth"
@@ -66,7 +91,8 @@ function Connect-MSCloudLoginSkypeForBusiness
     }
     catch
     {
-        if ($_.Exception -like '*Connecting to remote server*')
+        # for application identity we do not want to retry, not sure how it would help since the call would be identical to the one above
+        if ($_.Exception -like '*Connecting to remote server*' -and !$Global:UseApplicationIdentity)
         {
             $adminDomain = $Global:o365Credential.UserName.Split('@')[1]
             $targetUri = Get-SkypeForBusinessServiceEndpoint -TargetDomain $adminDomain

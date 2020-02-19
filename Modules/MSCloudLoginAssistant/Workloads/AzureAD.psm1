@@ -4,7 +4,25 @@ function Connect-MSCloudLoginAzureAD
     param()
     try 
     {
-        Connect-AzureAD -Credential $Global:o365Credential -ErrorAction Stop | Out-Null
+        if ($Global:UseApplicationIdentity)
+        {
+            if($Global:appIdentityParams.CertificateThumbprint) 
+            {
+                Connect-AzureAD -TenantId $Global:appIdentityParams.Tenant -ApplicationId $Global:appIdentityParams.AppId -CertificateThumbprint $Global:appIdentityParams.CertificateThumbprint -ErrorAction Stop | Out-Null            
+                Write-Verbose "Connected to AzureAD using application identity with certificate thumbprint"            
+            }
+            else
+            {                
+                # actually it probably can do so by getting the access token manually, but for now we want it to work with the certificate
+                throw "The AzureAD Platform does not support connecting with application secret"
+            }            
+        }
+        else
+        {
+            Connect-AzureAD -Credential $Global:o365Credential -ErrorAction Stop | Out-Null
+            Write-Verbose "Connected to AzureAD using regular authentication"
+        }
+        
         $Global:IsMFAAuth = $false
         $Global:MSCloudLoginAzureADConnected = $true
     }

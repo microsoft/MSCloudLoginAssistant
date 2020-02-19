@@ -36,17 +36,24 @@ function Test-MSCloudLogin
 
         [Parameter()]
         [Switch]
-        $UseModernAuth
-    )
+        $UseModernAuth,
 
-    if ($VerbosePreference -eq "Continue")
-    {
-        $verboseParameter = @{Verbose = $true}
-    }
-    else
-    {
-        $verboseParameter = @{}
-    }
+        [Parameter()]
+        [System.String]
+        $AppId,
+
+        [Parameter()]
+        [System.String]
+        $AppSecret,
+
+        [Parameter()]
+        [System.String]
+        $CertificateThumbprint,
+
+        [Parameter()]
+        [System.String]
+        $Tenant
+    )
 
     # If we specified the CloudCredential parameter then set the global o365Credential object to its value
     if ($null -ne $CloudCredential)
@@ -60,47 +67,58 @@ function Test-MSCloudLogin
         $Global:UseModernAuth = $UseModernAuth.IsPresent
     }
 
+    Init-ApplicationIdentityCore -AppId $AppId -AppSecret $AppSecret -Tenant $Tenant -CertificateThumbprint $CertificateThumbprint
+      
+    if($Global:appIdentityParams.AppSecret -and !$Global:appIdentityParams.ServicePrincipalCredentials)
+    {
+        $secpasswd = ConvertTo-SecureString $Global:appIdentityParams.AppSecret -AsPlainText -Force
+        $spCreds = New-Object System.Management.Automation.PSCredential ($Global:appIdentityParams.AppId, $secpasswd)
+
+        # required for the Azure workload, it works by supplying the credentials(appid, appsecret) and setting the -ServicePrincipal switch
+        $Global:appIdentityParams.ServicePrincipalCredentials = $spCreds
+    }
+
     switch ($Platform)
     {
         'Azure'
         {
-            Connect-MSCloudLoginAzure @verboseParameter
+            Connect-MSCloudLoginAzure
         }
         'AzureAD'
         {
-            Connect-MSCloudLoginAzureAD @verboseParameter
+            Connect-MSCloudLoginAzureAD
         }
         'SharePointOnline'
         {
-            Connect-MSCloudLoginSharePointOnline @verboseParameter
+            Connect-MSCloudLoginSharePointOnline
         }
         'ExchangeOnline'
         {
-            Connect-MSCloudLoginExchangeOnline @verboseParameter
+            Connect-MSCloudLoginExchangeOnline
         }
         'SecurityComplianceCenter'
         {
-            Connect-MSCloudLoginSecurityCompliance @verboseParameter
+            Connect-MSCloudLoginSecurityCompliance
         }
         'MSOnline'
         {
-            Connect-MSCloudLoginMSOnline @verboseParameter
+            Connect-MSCloudLoginMSOnline
         }
         'PnP'
         {
-            Connect-MSCloudLoginPnP -ConnectionUrl $ConnectionUrl @verboseParameter
+            Connect-MSCloudLoginPnP -ConnectionUrl $ConnectionUrl
         }
         'MicrosoftTeams'
         {
-            Connect-MSCloudLoginTeams @verboseParameter
+            Connect-MSCloudLoginTeams
         }
         'SkypeForBusiness'
         {
-            Connect-MSCloudLoginSkypeForBusiness @verboseParameter
+            Connect-MSCloudLoginSkypeForBusiness
         }
         'PowerPlatforms'
         {
-            Connect-MSCloudLoginPowerPlatform @verboseParameter
+            Connect-MSCloudLoginPowerPlatform
         }
     }
 }
@@ -113,11 +131,36 @@ function Get-SPOAdminUrl
     (
         [Parameter()]
         [System.Management.Automation.PSCredential]
-        $CloudCredential
+        $CloudCredential,
+        
+        [Parameter()]
+        [System.String]
+        $AppId,
+        
+        [Parameter()]
+        [System.String]
+        $AppSecret,
+        
+        [Parameter()]
+        [System.String]
+        $CertificateThumbprint,
+        
+        [Parameter()]
+        [System.String]
+        $Tenant
     )
 
     Write-Verbose -Message "Connection to Azure AD is required to automatically determine SharePoint Online admin URL..."
-    Test-MSCloudLogin -Platform AzureAD -CloudCredential $CloudCredential
+
+    if($AppId)
+    {
+        Test-MSCloudLogin -Platform AzureAD -AppId $AppId -AppSecret $AppSecret -CertificateThumbprint $CertificateThumbprint -Tenant $Tenant
+    }
+    else
+    {
+        Test-MSCloudLogin -Platform AzureAD -CloudCredential $CloudCredential
+    }
+
     Write-Verbose -Message "Getting SharePoint Online admin URL..."
     $defaultDomain = Get-AzureADDomain | Where-Object {$_.Name -like "*.onmicrosoft.com" -and $_.IsInitial -eq $true} # We don't use IsDefault here because the default could be a custom domain
 
@@ -156,29 +199,6 @@ function Get-SPOAdminUrl
     }
 }
 
-function Get-AzureADDLL
-{
-    [CmdletBinding()]
-    [OutputType([System.String])]
-    param(
-    )
-    $manifest = Import-PowerShellDataFile ($SCRIPT:MyInvocation.MyCommand.Path.Replace('.psm1', '.psd1'))
-    $dependencies = $manifest.RequiredModules
-    $AzureADVersion = $dependencies | Where-Object -FilterScript {$_.ModuleName -eq 'AzureAD'}
-    [array]$AzureADModules = Get-Module -ListAvailable | Where-Object {$_.name -eq "AzureAD" -and $_.Version -eq $AzureADVersion.RequiredVersion}
-
-    if ($AzureADModules.count -eq 0)
-    {
-        Throw "Can't find Azure AD DLL. Install the module manually 'Install-Module AzureAD'"
-    }
-    else
-    {
-        $AzureDLL = Join-Path (($AzureADModules | Sort-Object version -Descending | Select-Object -first 1).Path | split-Path) Microsoft.IdentityModel.Clients.ActiveDirectory.dll
-        return $AzureDLL
-    }
-
-}
-
 function Get-TenantLoginEndPoint
 {
     [CmdletBinding()]
@@ -208,6 +228,145 @@ function Get-TenantLoginEndPoint
     return $TenantInfo
 }
 
+function Init-ApplicationIdentity
+{
+    [CmdletBinding()]
+    param
+    (       
+        [Parameter()]
+        [System.String]
+        $AppId,
+
+        [Parameter()]
+        [System.String]
+        $AppSecret,
+
+        [Parameter()]
+        [System.String]
+        $CertificateThumbprint,
+
+        [Parameter()]
+        [System.String]
+        $Tenant,
+
+        [Parameter()]
+        [System.String]
+        $TokenCacheLocation,
+
+        [Parameter()]
+        [System.String]
+        $OnBehalfOfUserPrincipalName
+
+    )
+
+    Init-ApplicationIdentityCore -Tenant $Tenant `
+     -AppId $AppId `
+     -AppSecret $AppSecret `
+     -CertificateThumbprint $CertificateThumbprint `
+     -TokenCacheLocation $TokenCacheLocation `
+     -OnBehalfOfUserPrincipalName $OnBehalfOfUserPrincipalName `
+     -Force
+}
+
+function Init-ApplicationIdentityCore 
+{
+    [CmdletBinding()]
+    param
+    (       
+        [Parameter()]
+        [System.String]
+        $AppId,
+
+        [Parameter()]
+        [System.String]
+        $AppSecret,
+
+        [Parameter()]
+        [System.String]
+        $CertificateThumbprint,
+
+        [Parameter()]
+        [System.String]
+        $Tenant,
+
+        [Parameter()]
+        [System.String]
+        $TokenCacheLocation,
+
+        [Parameter()]
+        [Switch]
+        $Force,
+
+        [Parameter()]
+        [System.String]
+        $OnBehalfOfUserPrincipalName
+    )
+    if ($null -eq $Global:UseApplicationIdentity -or $Force)
+    {
+        $Global:UseApplicationIdentity = $null -ne $Global:appIdentityParams -or ![string]::IsNullOrEmpty($AppId) -or ![string]::IsNullOrEmpty($AppSecret) -or ![string]::IsNullOrEmpty($CertificateThumbprint)
+    }    
+
+    if($Global:UseApplicationIdentity -and !$Global:appIdentityParams -or $Force) 
+    {            
+        if(!$AppId -or (!$AppSecret -and !$CertificateThumbprint)) 
+        {
+            throw "When connecting with an application identity the ApplicationId and the AppSecret or CertificateThumbprint parameters must be provided"
+        }
+
+        if(-not $Tenant)
+        {
+            throw "The tenant must be specified when connecting with an application identity"
+        }
+
+        $Global:appIdentityParams = @{
+            AppId = $AppId
+            AppSecret = $AppSecret
+            CertificateThumbprint = $CertificateThumbprint
+            Tenant = $Tenant
+            OnBehalfOfUserPrincipalName = $OnBehalfOfUserPrincipalName
+            TokenCacheLocation = $TokenCacheLocation           
+        }     
+    }
+
+
+    if ($null -eq $Global:ADALAppServicePoint -or $Force)
+    {        
+        Import-Module AzureAD        
+        $Global:ADALAppServicePoint = New-ADALServiceInfo -TenantName $Tenant -TokenCacheLocation $TokenCacheLocation
+    }
+}
+
+function Grant-OnBehalfConsent
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory = $false)]
+        [System.String]
+        $UserPrincipalName
+    )
+
+    if ($null -eq $Global:ADALAppServicePoint)
+    {
+        throw "Please use Init-ApplicationIdentity before using this command"
+    }
+
+    $userIdentifier = [Microsoft.IdentityModel.Clients.ActiveDirectory.UserIdentifier]::AnyUser
+    if($UserPrincipalName)
+    {
+        $userIdentifier = New-Object "Microsoft.IdentityModel.Clients.ActiveDirectory.UserIdentifier" -ArgumentList $UserPrincipalName, "OptionalDisplayableId"
+    }
+    elseif($Global:appIdentityParams.OnBehalfOfUserPrincipalName) 
+    {
+        $userIdentifier = New-Object "Microsoft.IdentityModel.Clients.ActiveDirectory.UserIdentifier" -ArgumentList $Global:appIdentityParams.OnBehalfOfUserPrincipalName, "OptionalDisplayableId"
+    }
+    $PromptBehavior = [Microsoft.IdentityModel.Clients.ActiveDirectory.PromptBehavior]::Always
+    # i believe we need to use always to prompt for consent
+    $platformParams = New-Object "Microsoft.IdentityModel.Clients.ActiveDirectory.PlatformParameters" -ArgumentList $PromptBehavior
+    $authRes = $Global:ADALAppServicePoint.authContext.AcquireTokenAsync($Global:appIdentityParams.Appid, $Global:appIdentityParams.AppId, [Uri]::new("urn:ietf:wg:oauth:2.0:oob"), $platformParams, $userIdentifier)
+
+    Write-Host $authRes.Result.AccessToken
+}
+
 function New-ADALServiceInfo
 {
     [CmdletBinding()]
@@ -216,9 +375,13 @@ function New-ADALServiceInfo
         [System.String]
         $TenantName,
 
-        [Parameter(Mandatory = $True)]
+        [Parameter(Mandatory = $false)]
         [System.String]
         $UserPrincipalName,
+
+        [Parameter(Mandatory = $false)]
+        [System.String]
+        $TokenCacheLocation,
 
         [Parameter(Mandatory = $false)]
         [System.String]
@@ -231,9 +394,10 @@ function New-ADALServiceInfo
         Throw "Can't find Azure AD DLL"
         Exit
     }
-    else
+    
+    if (-not ([System.Management.Automation.PSTypeName]'Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext').Type)
     {
-        $tMod = [System.Reflection.Assembly]::LoadFrom($AzureADDLL)
+       Add-Type -Path $AzureADDLL | Out-Null        
     }
 
     $TenantInfo = Get-TenantLoginEndPoint -TenantName $TenantName
@@ -248,11 +412,23 @@ function New-ADALServiceInfo
     }
     $PromptBehavior = [Microsoft.IdentityModel.Clients.ActiveDirectory.PromptBehavior]::Auto
     $Service = @{}
-    $Service["authContext"] = [Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext]::new($authority, $false)
+    $tokenCacheInstance = $null
+    if($TokenCacheLocation)
+    {
+       $absPath = [System.IO.Path]::GetFullPath( [System.IO.Path]::Combine($PSScriptRoot, $TokenCacheLocation))
+       $tokenCacheInstance = Get-PersistedTokenCacheInstance -FilePath $absPath
+    }
+    $Service["authContext"] = [Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext]::new($authority, $false, $tokenCacheInstance)
     $Service["platformParam"] = New-Object "Microsoft.IdentityModel.Clients.ActiveDirectory.PlatformParameters" -ArgumentList $PromptBehavior
-    $Service["userId"] = New-Object "Microsoft.IdentityModel.Clients.ActiveDirectory.UserIdentifier" -ArgumentList $UserPrincipalName, "OptionalDisplayableId"
+
+    if($UserPrincipalName)
+    {
+        $Service["userId"] = New-Object "Microsoft.IdentityModel.Clients.ActiveDirectory.UserIdentifier" -ArgumentList $UserPrincipalName, "OptionalDisplayableId"
+    }
     return $Service
 }
+
+
 
 function Get-AuthHeader
 {
@@ -283,7 +459,7 @@ function Get-AuthHeader
         if ($null -eq $authResult.result)
         {
             $RedirectURI = [System.Uri]::new($RedirectURI)
-            $authResult = $Global:ADALServicePoint.authContext.AcquireTokenAsync($ResourceURI, $clientId, $RedirectURI, $Global:ADALServicePoint.platformParam.PromptBehavior, $Global:ADALServicePoint.userId, "", "")
+            $authResult = $Global:ADALServicePoint.authContext.AcquireTokenAsync($ResourceURI, $clientId, $RedirectURI, $Global:ADALServicePoint.platformParam, $Global:ADALServicePoint.userId)
         }
         $AuthHeader = $authResult.result.CreateAuthorizationHeader()
     }
@@ -292,6 +468,86 @@ function Get-AuthHeader
         Throw "Can't create Authorization header: $_"
     }
     Return $AuthHeader
+}
+
+function Get-OnBehalfOfAccessToken
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory = $True)]
+        $TargetUri,
+
+        [Parameter(Mandatory = $False)]
+        $UserPrincipalName
+    )
+
+    $authResult = Get-OnBehalfOfAuthResult -TargetUri $TargetUri -UserPrincipalName $UserPrincipalName
+    return $authResult.AccessToken
+}
+
+function Get-OnBehalfOfAuthResult
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory = $True)]
+        $TargetUri,
+
+        [Parameter(Mandatory = $False)]
+        $UserPrincipalName
+    )
+
+    if ($null -eq $Global:ADALAppServicePoint)
+    {
+        throw "Please use Init-ApplicationIdentity before using this command"
+    }
+
+    $AzureADDLL = Get-AzureADDLL
+    if ([string]::IsNullOrEmpty($AzureADDLL))
+    {
+        throw "Can't find Azure AD DLL"
+    }
+   
+    if (-not ([System.Management.Automation.PSTypeName]'Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext').Type)
+    {
+        Add-Type -Path $AzureADDLL | Out-Null
+    }
+
+    if(!$Global:appIdentityParams.CertificateThumbprint) 
+    {
+        throw "Only certificate auth currently implemented"
+    }
+    $thumbprint = $Global:appIdentityParams.CertificateThumbprint
+
+    $cert = Get-ChildItem -path "Cert:\*$thumbprint" -Recurse | Where-Object { $_.HasPrivateKey }| Select-Object -First 1
+  
+    if($UserPrincipalName)
+    {
+        $userIdentifier = New-Object "Microsoft.IdentityModel.Clients.ActiveDirectory.UserIdentifier" -ArgumentList $UserPrincipalName, "OptionalDisplayableId"
+    }
+    elseif($Global:appIdentityParams.OnBehalfOfUserPrincipalName) 
+    {
+        $userIdentifier = New-Object "Microsoft.IdentityModel.Clients.ActiveDirectory.UserIdentifier" -ArgumentList $Global:appIdentityParams.OnBehalfOfUserPrincipalName, "OptionalDisplayableId"
+    }
+    else
+    {
+        throw "Cannot retrieve access token on behalf of no user"
+    }
+    $certAssertion = [Microsoft.IdentityModel.Clients.ActiveDirectory.ClientAssertionCertificate]::new($Global:appIdentityParams.AppId, $cert)
+    $authResultTask = $Global:ADALAppServicePoint.authContext.AcquireTokenSilentAsync($TargetUri.ToString(), $certAssertion, $userIdentifier)
+
+    # will force an exception to be thrown Result unlike C# will not throw an exception
+    try
+    {
+        $authResultTask.Wait()
+    }
+    catch
+    {
+        Write-Error $_.Exception.InnerException.ToString()
+        $message = "Could not get access token for user " + $Global:appIdentityParams.OnBehalfOfUserPrincipalName
+        throw $message
+    }
+
+    return $authResultTask.Result
 }
 
 function Get-AccessToken
@@ -338,12 +594,16 @@ function Get-AccessToken
             {
                 throw "Can't find Azure AD DLL"
             }
-            [System.Reflection.Assembly]::LoadFrom($AzureADDLL) | Out-Null
-
+           
+            if (-not ([System.Management.Automation.PSTypeName]'Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext').Type)
+            {
+               Add-Type -Path $AzureADDLL | Out-Null
+            }
+            
             $UserPasswordCreds = [Microsoft.IdentityModel.Clients.ActiveDirectory.UserPasswordCredential]::new($Credentials.UserName, $Credentials.Password)
             $context = [Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext]::new($AuthUri, $false, [Microsoft.IdentityModel.Clients.ActiveDirectory.TokenCache]::DefaultShared)
             $authResult = $context.AcquireTokenSilentAsync($TargetUri, $ClientId)
-
+            
             if ($null -eq $authResult.result)
             {
                 $authResult = [Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContextIntegratedAuthExtensions]::AcquireTokenAsync($context, $targetUri, $ClientId, $UserPasswordCreds)
