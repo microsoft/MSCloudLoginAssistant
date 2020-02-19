@@ -12,7 +12,7 @@
     RootModule = 'MSCloudLoginAssistant.psm1'
 
     # Version number of this module.
-    ModuleVersion = '1.0.0'
+    ModuleVersion = '1.0.2'
 
     # Supported PSEditions
     # CompatiblePSEditions = @()
@@ -51,7 +51,10 @@
     # ProcessorArchitecture = ''
 
     # Modules that must be imported into the global environment prior to importing this module
-     # RequiredModules = @()
+    RequiredModules = @(@{
+        ModuleName      = "AzureAD"
+        RequiredVersion = "2.0.2.4"	
+    })
 
     # Assemblies that must be loaded prior to importing this module    
     # RequiredAssemblies = @()
