@@ -15,7 +15,7 @@ function Connect-MSCloudLoginPnP
     }
 
     if ([string]::IsNullOrEmpty($Global:SPOAdminUrl))
-    {        
+    {
         $Global:SPOAdminUrl = Get-SPOAdminUrl -CloudCredential $Global:o365Credential `
                     -AppId $Global:appIdentityParams.AppId `
                     -AppSecret $Global:appIdentityParams.AppSecret `
@@ -23,7 +23,7 @@ function Connect-MSCloudLoginPnP
                     -Tenant $Global:appIdentityParams.Tenant
     }
 
-    if([string]::IsNullOrEmpty($SPOConnectionUrl))
+    if([string]::IsNullOrEmpty($ConnectionUrl))
     {
         $Global:SPOConnectionUrl = $Global:SPOAdminUrl
     }
@@ -40,12 +40,12 @@ function Connect-MSCloudLoginPnP
             if($Global:appIdentityParams.CertificateThumbprint)
             {
                 Connect-PnPOnline -Url $Global:SPOConnectionUrl -Tenant $Global:appIdentityParams.Tenant -ClientId $Global:appIdentityParams.AppId -Thumbprint $Global:appIdentityParams.CertificateThumbprint
-                Write-Verbose "Connected to PnP {$($Global:SPOConnectionUrl) using application identity with certificate thumbprint"            
+                Write-Verbose "Connected to PnP {$($Global:SPOConnectionUrl) using application identity with certificate thumbprint"
             }
             else
             {
                 Connect-PnPOnline -Url $Global:SPOConnectionUrl -AppId $Global:appIdentityParams.AppId -AppSecret $Global:appIdentityParams.AppSecret
-                Write-Verbose "Connected to PnP {$($Global:SPOConnectionUrl) using application identity with application secret"            
+                Write-Verbose "Connected to PnP {$($Global:SPOConnectionUrl) using application identity with application secret"
             }
         }
         else
@@ -81,7 +81,7 @@ function Connect-MSCloudLoginPnP
         {
             # This error means that the account was trying to connect using MFA.
             try
-            {            
+            {
                 $Global:SPOAdminUrl = Get-SPOAdminUrl -CloudCredential $Global:o365Credential
                 $AuthHeader = Get-AuthHeader -UserPrincipalName $Global:o365Credential.UserName `
                     -ResourceURI $Global:SPOAdminUrl -clientID $clientID -RedirectURI $RedirectURI
