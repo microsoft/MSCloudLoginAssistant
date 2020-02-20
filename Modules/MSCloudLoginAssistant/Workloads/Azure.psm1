@@ -25,11 +25,13 @@ function Connect-MSCloudLoginAzure
         {
             Connect-AzAccount -ErrorAction Stop | Out-Null
         }
-        
-        $Global:MSCloudLoginAzureConnected = $True
     }
     catch 
     {
+        if ($Global:UseApplicationIdentity)
+        {            
+            throw $_
+        }
         if ($_.Exception -like '*unknown_user_type: Unknown User Type*')
         {
             if ($Global:o365Credential.UserName.Split('@')[1] -like '*.de')
@@ -44,8 +46,7 @@ function Connect-MSCloudLoginAzure
             }
             try
             {
-                Connect-AzAccount -Credential $Global:o365Credential -Environment $EnvironmentName -ErrorAction Stop | Out-Null
-                $Global:MSCloudLoginAzureConnected = $True
+                Connect-AzAccount -Credential $Global:o365Credential -Environment $EnvironmentName -ErrorAction Stop | Out-Null                
                 $Global:IsMFAAuth = $false
             }
             catch
@@ -60,8 +61,7 @@ function Connect-MSCloudLoginAzure
                     Connect-MSCloudLoginAzureMFA -EnvironmentName 'GCCHigh'
                 }
                 else
-                {
-                    $Global:MSCloudLoginAzureConnected = $False
+                {                    
                     throw $_
                 }
             }
@@ -73,8 +73,7 @@ function Connect-MSCloudLoginAzure
                 Connect-MSCloudLoginAzureMFA -EnvironmentName 'AzureCloud'
             }
             else
-            {
-                $Global:MSCloudLoginAzureConnected = $false
+            {                
                 throw $_
             }
         }
@@ -127,12 +126,10 @@ function Connect-MSCloudLoginAzureMFA
             -ResourceURI $ResourceURI -clientID $clientID -RedirectURI $RedirectURI
         $AccessToken = $AuthHeader.split(" ")[1]
         Connect-AzAccount -AccountId $Global:o365Credential.UserName -Environment $EnvironmentName -AccessToken $AccessToken -ErrorAction Stop | Out-Null
-        $Global:IsMFAAuth = $true
-        $Global:MSCloudLoginAzureConnected = $True
+        $Global:IsMFAAuth = $true        
     }
     catch
-    {
-        $Global:MSCloudLoginAzureConnected = $False
+    {        
         throw $_
     }
     return

@@ -32,7 +32,6 @@ function Connect-MSCloudLoginTeams
         try 
         {
             Connect-MicrosoftTeams -Credential $Global:o365Credential -ErrorAction Stop | Out-Null
-            $Global:MSCloudLoginTeamsConnected = $true
         }
         catch
         {
@@ -43,19 +42,16 @@ function Connect-MSCloudLoginTeams
                 try
                 {
                     Connect-MicrosoftTeams -TeamsEnvironmentName 'TeamsGCCH' -Credential $Global:o365Credential -ErrorAction Stop | Out-Null
-                    $Global:MSCloudLoginTeamsConnected = $true
                 }
                 catch
                 {
                     try
                     {
                         Connect-MicrosoftTeams -TeamsEnvironmentName 'TeamsDOD' -Credential $Global:o365Credential -ErrorAction Stop | Out-Null
-                        $Global:MSCloudLoginTeamsConnected = $true
                         $Global:CloudEnvironment = 'DoD'
                     }
                     catch
                     {
-                        $Global:MSCloudLoginTeamsConnected = $false
                         throw $_
                     }
                 }
@@ -66,7 +62,6 @@ function Connect-MSCloudLoginTeams
             }
             else
             {
-                $Global:MSCloudLoginTeamsConnected = $false
                 throw $_
             }
         }
@@ -76,11 +71,9 @@ function Connect-MSCloudLoginTeams
         try 
         {
             Connect-MicrosoftTeams -ErrorAction Stop | Out-Null
-            $Global:MSCloudLoginTeamsConnected = $true
         }
         catch
         {
-            $Global:MSCloudLoginTeamsConnected = $false
             throw $_
         }
     }
@@ -111,11 +104,9 @@ function Connect-MSCloudLoginTeamsMFA
             Connect-MicrosoftTeams -AccountId $Global:o365Credential.UserName  -ErrorAction Stop | Out-Null
         }
         $Global:IsMFAAuth = $true
-        $Global:MSCloudLoginTeamsConnected = $True
     }
     catch
     {
-        $Global:MSCloudLoginTeamsConnected = $false
         throw $_
     }
 }

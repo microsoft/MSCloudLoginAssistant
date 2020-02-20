@@ -16,7 +16,6 @@ function Connect-MSCloudLoginPowerPlatform
         elseif ($null -eq $Global:o365Credential)
         {
             Add-PowerAppsAccount -ErrorAction Stop | Out-Null
-            $Global:MSCloudLoginPowerPlatformConnected = $true
         }
         else
         {
@@ -29,11 +28,14 @@ function Connect-MSCloudLoginPowerPlatform
             Add-PowerAppsAccount -UserName $Global:o365credential.UserName `
                 -Password $Global:o365Credential.Password `
                 -ErrorAction Stop | Out-Null
-            $Global:MSCloudLoginPowerPlatformConnected = $true
         }
     }
     catch
     {
+        if($Global:UseApplicationIdentity)
+        {
+            throw $_
+        }
         if ($_.Exception -like '*unknown_user_type: Unknown User Type*')
         {
             try
@@ -42,7 +44,6 @@ function Connect-MSCloudLoginPowerPlatform
                     -Password $Global:o365Credential.Password `
                     -EndPoint 'usgov' `
                     -ErrorAction Stop | Out-Null
-                $Global:MSCloudLoginPowerPlatformConnected = $true
             }
             catch
             {
@@ -52,7 +53,6 @@ function Connect-MSCloudLoginPowerPlatform
                         -Password $Global:o365Credential.Password `
                         -EndPoint 'usgovhigh' `
                         -ErrorAction Stop | Out-Null
-                    $Global:MSCloudLoginPowerPlatformConnected = $true
                 }
                 catch
                 {
@@ -62,7 +62,6 @@ function Connect-MSCloudLoginPowerPlatform
                             -Password $Global:o365Credential.Password `
                             -EndPoint 'preview' `
                             -ErrorAction Stop | Out-Null
-                        $Global:MSCloudLoginPowerPlatformConnected = $true
                     }
                     catch
                     {
@@ -77,7 +76,6 @@ function Connect-MSCloudLoginPowerPlatform
         }
         else
         {
-            $Global:MSCloudLoginPowerPlatformConnected = $false
             throw $_
         }
     }
@@ -91,11 +89,9 @@ function Connect-MSCloudLoginPowerPlatformMFA
     try
     {
         Add-PowerAppsAccount
-        $Global:MSCloudLoginPowerPlatformConnected = $true
     }
     catch
     {
-        $Global:MSCloudLoginPowerPlatformConnected = $false
         throw $_
     }
     return
@@ -134,11 +130,9 @@ function Connect-MSCloudLoginPowerPlatformDelegated
         # this is also why we set the -global flag
         Import-Module "$PSScriptRoot\..\Utilities\DelegatedPowerAppsAuth\Microsoft.PowerApps.AuthModule.psm1" -Force -Global
         Add-PowerAppsAccount -UserName $userprincipalNameToUse
-        $Global:MSCloudLoginPowerPlatformConnected = $true
     }
     catch
     {
-        $Global:MSCloudLoginPowerPlatformConnected = $false
         throw $_
     }
     return

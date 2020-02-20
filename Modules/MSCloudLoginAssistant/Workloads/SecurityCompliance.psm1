@@ -114,6 +114,14 @@ function Connect-MSCloudLoginSecurityCompliance
             }
             else
             {
+                # SC cannot use our own app identity or delegate so
+                # we only allow app passwords for Security & compliance
+                # if the connection fails we do not want to fallback to Modern authentication since
+                # the script is very likely to be executing within a non interactive environment
+                if($Global:UseApplicationIdentity)
+                {
+                    throw $_
+                }
                 try
                 {
                     $clientid = "a0c73c16-a7e3-4564-9a95-2bdf47383716";
