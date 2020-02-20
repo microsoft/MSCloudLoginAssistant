@@ -19,24 +19,27 @@ function Connect-MSCloudLoginSharePointOnline
             {
                 $Global:spoAdminUrl = $ConnectionUrl
             }
-            if ($Global:IsMFAAuth)
+            
+            if (!$Global:UseApplicationIdentity -and $Global:IsMFAAuth)
             {
                 Connect-MSCloudLoginSharePointOnlineMFA
                 return
             }
             Connect-SPOService -Credential $Global:o365Credential -Url $Global:spoAdminUrl
-            $Global:MSCloudLoginSharePointOnlineConnected = $true
             $Global:IsMFAAuth = $false
         }
         else
         {
             $Global:spoAdminUrl = Get-SPOAdminUrl
             Connect-SPOService -Url $Global:spoAdminUrl
-            $Global:MSCloudLoginSharePointOnlineConnected = $true
         }
     }
     catch
     {
+        if ($Global:UseApplicationIdentity)
+        {
+            throw $_
+        }
         if ($_.Exception -like '*The sign-in name or password does not match one in the Microsoft account system*')
         {
             Connect-MSCloudLoginSharePointOnlineMFA
@@ -44,7 +47,6 @@ function Connect-MSCloudLoginSharePointOnline
         }
         else
         {
-            $Global:MSCloudLoginSharePointOnlineConnected = $false
             throw $_
         }
     }
@@ -69,12 +71,10 @@ function Connect-MSCloudLoginSharePointOnlineMFA
             $EnvironmentName = 'ITAR'
         }
         Connect-SPOService -Url $Global:spoAdminUrl -Region $EnvironmentName
-        $Global:MSCloudLoginSharePointOnlineConnected = $true
         $Global:IsMFAAuth = $true
     }
     catch
     {
-        $Global:MSCloudLoginSharePointOnlineConnected = $false
         throw $_
     }
     return

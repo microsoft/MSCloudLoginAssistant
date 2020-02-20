@@ -89,6 +89,14 @@ function Connect-MSCloudLoginExchangeOnline
                 }
                 catch
                 {
+                    # Exchange Online cannot use our own app identity or delegate so
+                    # we only allow app passwords for Security & compliance
+                    # if the connection fails we do not want to fallback to Modern authentication since
+                    # the script is very likely to be executing within a non interactive environment
+                    if($Global:UseApplicationIdentity)
+                    {
+                        throw $_
+                    }
                     try
                     {
                         $AuthHeader = Get-AuthHeader -UserPrincipalName $Global:o365Credential.UserName -RessourceURI $ResourceURI -clientID $clientID -RedirectURI $RedirectURI

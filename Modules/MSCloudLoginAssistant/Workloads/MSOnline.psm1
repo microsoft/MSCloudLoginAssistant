@@ -26,8 +26,7 @@ function Connect-MSCloudLoginMSOnline
                 $EnvironmentName = 'AzureGermanyCloud'
             }
 
-            Connect-MsolService -Credential $Global:o365Credential -AzureEnvironment $EnvironmentName -ErrorAction Stop | Out-Null
-            $Global:MSCloudLoginMSOnlineConnected = $true
+            Connect-MsolService -Credential $Global:o365Credential -AzureEnvironment $EnvironmentName -ErrorAction Stop | Out-Null            
             $Global:IsMFAAuth = $false
         }
         catch
@@ -36,19 +35,16 @@ function Connect-MSCloudLoginMSOnline
             {
                 try
                 {
-                    Connect-MsolService -Credential $Global:o365Credential -AzureEnvironment 'AzureUSGovernmentCloud' -ErrorAction Stop | Out-Null
-                    $Global:MSCloudLoginMSOnlineConnected = $true
+                    Connect-MsolService -Credential $Global:o365Credential -AzureEnvironment 'AzureUSGovernmentCloud' -ErrorAction Stop | Out-Null                    
                     $Global:IsMFAAuth = $false
                 }
                 catch
-                {
-                    $Global:MSCloudLoginMSOnlineConnected = $false
+                {                    
                     throw $_
                 }
             }
             else
             {
-                $Global:MSCloudLoginMSOnlineConnected = $false
                 throw $_
             }
         }
@@ -58,11 +54,9 @@ function Connect-MSCloudLoginMSOnline
         try
         {
             Connect-MsolService | Out-Null
-            $Global:MSCloudLoginMSOnlineConnected = $true
         }
         catch
         {
-            $Global:MSCloudLoginMSOnlineConnected = $false
             throw $_
         }
     }
@@ -83,12 +77,10 @@ function Connect-MSCloudLoginMSOnlineMFA
             -ResourceURI $ResourceURI -clientID $clientID -RedirectURI $RedirectURI
         $AccessToken = $AuthHeader.split(" ")[1]
         Connect-MsolService -AdGraphAccessToken $AccessToken
-        $Global:MSCloudLoginMSOnlineConnected = $true
         $Global:IsMFAAuth = $true
     }
     catch
     {
-        $Global:MSCloudLoginMSOnlineConnected = $false
         throw $_
     }
 }

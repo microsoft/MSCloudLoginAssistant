@@ -24,17 +24,19 @@ function Connect-MSCloudLoginAzureAD
         }
         
         $Global:IsMFAAuth = $false
-        $Global:MSCloudLoginAzureADConnected = $true
     }
     catch
     {
+        if ($Global:UseApplicationIdentity)
+        {
+            throw $_
+        }        
         if ($_.Exception -like '*unknown_user_type: Unknown User Type*')
         {
             try
             {
                 Connect-AzureAD -Credential $Global:o365Credential -AzureEnvironmentName AzureGermanyCloud -ErrorAction Stop| Out-Null
-                $Global:IsMFAAuth = $false
-                $Global:MSCloudLoginAzureADConnected = $true
+                $Global:IsMFAAuth = $false                
                 $Global:CloudEnvironment = 'Germany'
             }
             catch
@@ -49,8 +51,7 @@ function Connect-MSCloudLoginAzureAD
                     Connect-MSCloudLoginAzureADMFA
                 }
                 else
-                {
-                    $Global:MSCloudLoginAzureADConnected = $false
+                {                    
                     throw $_
                 }
             }
@@ -60,8 +61,7 @@ function Connect-MSCloudLoginAzureAD
             Connect-MSCloudLoginAzureADMFA
         }
         else
-        {
-            $Global:MSCloudLoginAzureADConnected = $false
+        {            
             throw $_
         }
     }
@@ -88,13 +88,11 @@ function Connect-MSCloudLoginAzureADMFA
                 $EnvironmentName = 'AzureCloud'
             }
             Connect-AzureAD -AccountId $Global:o365Credential.UserName -AzureEnvironmentName $EnvironmentName -ErrorAction Stop | Out-Null
-            $Global:IsMFAAuth = $true
-            $Global:MSCloudLoginAzureADConnected = $true
+            $Global:IsMFAAuth = $true            
         }
         else
         {
-            Connect-AzureAD -ErrorAction Stop | Out-Null
-            $Global:MSCloudLoginAzureADConnected = $true
+            Connect-AzureAD -ErrorAction Stop | Out-Null            
         }
     }
     catch
@@ -112,7 +110,6 @@ function Connect-MSCloudLoginAzureADMFA
         }
         catch
         {
-            $Global:MSCloudLoginAzureADConnected = $false
             throw $_
         }
     }

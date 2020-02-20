@@ -14,7 +14,7 @@ function Connect-MSCloudLoginPnP
        $Global:o365Credential = Get-Credential -Message "Cloud Credential"
     }
 
-    if ([string]::IsNullOrEmpty($ConnectionUrl) -and [string]::IsNullOrEmpty($Global:SPOAdminUrl))
+    if ([string]::IsNullOrEmpty($Global:SPOAdminUrl))
     {        
         $Global:SPOAdminUrl = Get-SPOAdminUrl -CloudCredential $Global:o365Credential `
                     -AppId $Global:appIdentityParams.AppId `
@@ -22,6 +22,11 @@ function Connect-MSCloudLoginPnP
                     -CertificateThumbprint $Global:appIdentityParams.CertificateThumbprint `
                     -Tenant $Global:appIdentityParams.Tenant
                     
+        
+    }
+
+    if([string]::IsNullOrEmpty($SPOConnectionUrl))
+    {
         $Global:SPOConnectionUrl = $Global:SPOAdminUrl
     }
     else
@@ -55,6 +60,10 @@ function Connect-MSCloudLoginPnP
     }
     catch
     {
+        if($Global:UseApplicationIdentity)
+        {
+            throw $_
+        }
         if ($_.Exception -like '*Microsoft.SharePoint.Client.ServerUnauthorizedAccessException*' -or `
             $_.Exception -like '*The remote server returned an error: (401) Unauthorized.*')
         {
@@ -81,11 +90,9 @@ function Connect-MSCloudLoginPnP
                 $AccessToken = $AuthHeader.split(" ")[1]
                 Connect-PnPOnline -Url $Global:SPOConnectionUrl -UseWebLogin
                 $Global:IsMFAAuth = $true
-                $Global:MSCloudLoginAzurePnPConnected = $true
             }
             catch
             {
-                $Global:MSCloudLoginAzurePnPConnected = $false
                 throw $_
             }
         }

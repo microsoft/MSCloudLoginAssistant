@@ -78,48 +78,59 @@ function Test-MSCloudLogin
         $Global:appIdentityParams.ServicePrincipalCredentials = $spCreds
     }
 
-    switch ($Platform)
+    try
     {
-        'Azure'
+        switch ($Platform)
         {
-            Connect-MSCloudLoginAzure
+            'Azure'
+            {
+                Connect-MSCloudLoginAzure
+            }
+            'AzureAD'
+            {
+                Connect-MSCloudLoginAzureAD
+            }
+            'SharePointOnline'
+            {
+                Connect-MSCloudLoginSharePointOnline
+            }
+            'ExchangeOnline'
+            {
+                Connect-MSCloudLoginExchangeOnline
+            }
+            'SecurityComplianceCenter'
+            {
+                Connect-MSCloudLoginSecurityCompliance
+            }
+            'MSOnline'
+            {
+                Connect-MSCloudLoginMSOnline
+            }
+            'PnP'
+            {
+                Connect-MSCloudLoginPnP -ConnectionUrl $ConnectionUrl
+            }
+            'MicrosoftTeams'
+            {
+                Connect-MSCloudLoginTeams
+            }
+            'SkypeForBusiness'
+            {
+                Connect-MSCloudLoginSkypeForBusiness
+            }
+            'PowerPlatforms'
+            {
+                Connect-MSCloudLoginPowerPlatform
+            }
         }
-        'AzureAD'
-        {
-            Connect-MSCloudLoginAzureAD
-        }
-        'SharePointOnline'
-        {
-            Connect-MSCloudLoginSharePointOnline
-        }
-        'ExchangeOnline'
-        {
-            Connect-MSCloudLoginExchangeOnline
-        }
-        'SecurityComplianceCenter'
-        {
-            Connect-MSCloudLoginSecurityCompliance
-        }
-        'MSOnline'
-        {
-            Connect-MSCloudLoginMSOnline
-        }
-        'PnP'
-        {
-            Connect-MSCloudLoginPnP -ConnectionUrl $ConnectionUrl
-        }
-        'MicrosoftTeams'
-        {
-            Connect-MSCloudLoginTeams
-        }
-        'SkypeForBusiness'
-        {
-            Connect-MSCloudLoginSkypeForBusiness
-        }
-        'PowerPlatforms'
-        {
-            Connect-MSCloudLoginPowerPlatform
-        }
+        Set-Variable -Scope Global "MSCloudLogin${Platform}Connected" -Value $True
+        Set-Variable -Scope Global "MSCloudLogin${Platform}ConnectionFaulted" -Value $False
+    }
+    catch
+    {        
+        Set-Variable -Scope Global "MSCloudLogin${Platform}Connected" -Value $False
+        Set-Variable -Scope Global "MSCloudLogin${Platform}ConnectionFaulted" -Value $True        
+        throw $_
     }
 }
 
@@ -541,10 +552,10 @@ function Get-OnBehalfOfAuthResult
         $authResultTask.Wait()
     }
     catch
-    {
-        Write-Error $_.Exception.InnerException.ToString()
-        $message = "Could not get access token for user " + $Global:appIdentityParams.OnBehalfOfUserPrincipalName
-        throw $message
+    {        
+        $message = "Could not get access token for user " + $UserPrincipalName
+        Write-Verbose $message
+        throw  $_       
     }
 
     return $authResultTask.Result
