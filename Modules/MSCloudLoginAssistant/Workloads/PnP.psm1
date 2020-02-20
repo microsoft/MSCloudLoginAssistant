@@ -21,8 +21,6 @@ function Connect-MSCloudLoginPnP
                     -AppSecret $Global:appIdentityParams.AppSecret `
                     -CertificateThumbprint $Global:appIdentityParams.CertificateThumbprint `
                     -Tenant $Global:appIdentityParams.Tenant
-                    
-        
     }
 
     if([string]::IsNullOrEmpty($SPOConnectionUrl))

@@ -552,10 +552,10 @@ function Get-OnBehalfOfAuthResult
         $authResultTask.Wait()
     }
     catch
-    {        
+    {
         $message = "Could not get access token for user " + $UserPrincipalName
         Write-Verbose $message
-        throw  $_       
+        throw  $_
     }
 
     return $authResultTask.Result
