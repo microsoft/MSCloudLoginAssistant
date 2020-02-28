@@ -36,23 +36,7 @@ function Test-MSCloudLogin
 
         [Parameter()]
         [Switch]
-        $UseModernAuth,
-
-        [Parameter()]
-        [System.String]
-        $AppId,
-
-        [Parameter()]
-        [System.String]
-        $AppSecret,
-
-        [Parameter()]
-        [System.String]
-        $CertificateThumbprint,
-
-        [Parameter()]
-        [System.String]
-        $Tenant
+        $UseModernAuth       
     )
 
     # If we specified the CloudCredential parameter then set the global o365Credential object to its value
@@ -65,9 +49,7 @@ function Test-MSCloudLogin
     if ($null -eq $Global:UseModernAuth)
     {
         $Global:UseModernAuth = $UseModernAuth.IsPresent
-    }
-
-    Init-ApplicationIdentityCore -AppId $AppId -AppSecret $AppSecret -Tenant $Tenant -CertificateThumbprint $CertificateThumbprint
+    }    
       
     if($Global:appIdentityParams.AppSecret -and !$Global:appIdentityParams.ServicePrincipalCredentials)
     {
@@ -142,35 +124,13 @@ function Get-SPOAdminUrl
     (
         [Parameter()]
         [System.Management.Automation.PSCredential]
-        $CloudCredential,
-        
-        [Parameter()]
-        [System.String]
-        $AppId,
-        
-        [Parameter()]
-        [System.String]
-        $AppSecret,
-        
-        [Parameter()]
-        [System.String]
-        $CertificateThumbprint,
-        
-        [Parameter()]
-        [System.String]
-        $Tenant
+        $CloudCredential
     )
 
     Write-Verbose -Message "Connection to Azure AD is required to automatically determine SharePoint Online admin URL..."
 
-    if($AppId)
-    {
-        Test-MSCloudLogin -Platform AzureAD -AppId $AppId -AppSecret $AppSecret -CertificateThumbprint $CertificateThumbprint -Tenant $Tenant
-    }
-    else
-    {
-        Test-MSCloudLogin -Platform AzureAD -CloudCredential $CloudCredential
-    }
+    Test-MSCloudLogin -Platform AzureAD -CloudCredential $CloudCredential
+
 
     Write-Verbose -Message "Getting SharePoint Online admin URL..."
     $defaultDomain = Get-AzureADDomain | Where-Object {$_.Name -like "*.onmicrosoft.com" -and $_.IsInitial -eq $true} # We don't use IsDefault here because the default could be a custom domain
@@ -265,6 +225,15 @@ function Init-ApplicationIdentity
         $TokenCacheLocation,
 
         [Parameter()]
+        [System.Byte[]]
+        $TokenCacheEntropy,
+
+        [Parameter()]
+        [ValidateSet("CurrentUser", "LocalMachine")]
+        [System.String]
+        $TokenCacheDataProtectionScope,
+
+        [Parameter()]
         [System.String]
         $OnBehalfOfUserPrincipalName
 
@@ -275,6 +244,8 @@ function Init-ApplicationIdentity
      -AppSecret $AppSecret `
      -CertificateThumbprint $CertificateThumbprint `
      -TokenCacheLocation $TokenCacheLocation `
+     -TokenCacheEntropy $TokenCacheEntropy `
+     -TokenCacheDataProtectionScope  $TokenCacheDataProtectionScope `
      -OnBehalfOfUserPrincipalName $OnBehalfOfUserPrincipalName `
      -Force
 }
@@ -303,6 +274,15 @@ function Init-ApplicationIdentityCore
         [Parameter()]
         [System.String]
         $TokenCacheLocation,
+
+        [Parameter()]
+        [System.Byte[]]
+        $TokenCacheEntropy,
+
+        [Parameter()]
+        [ValidateSet("CurrentUser", "LocalMachine")]
+        [System.String]
+        $TokenCacheDataProtectionScope,
 
         [Parameter()]
         [Switch]
@@ -335,7 +315,8 @@ function Init-ApplicationIdentityCore
             CertificateThumbprint = $CertificateThumbprint
             Tenant = $Tenant
             OnBehalfOfUserPrincipalName = $OnBehalfOfUserPrincipalName
-            TokenCacheLocation = $TokenCacheLocation           
+            TokenCacheLocation = $TokenCacheLocation
+            TokenCacheEntropy = $TokenCacheEntropy           
         }     
     }
 
@@ -343,7 +324,7 @@ function Init-ApplicationIdentityCore
     if ($null -eq $Global:ADALAppServicePoint -or $Force)
     {        
         Import-Module AzureAD        
-        $Global:ADALAppServicePoint = New-ADALServiceInfo -TenantName $Tenant -TokenCacheLocation $TokenCacheLocation
+        $Global:ADALAppServicePoint = New-ADALServiceInfo -TenantName $Tenant -TokenCacheEntropy $TokenCacheEntropy -TokenCacheLocation $TokenCacheLocation -TokenCacheDataProtectionScope $TokenCacheDataProtectionScope
     }
 }
 
@@ -395,6 +376,15 @@ function New-ADALServiceInfo
         $TokenCacheLocation,
 
         [Parameter(Mandatory = $false)]
+        [System.Byte[]]
+        $TokenCacheEntropy,
+
+        [Parameter()]
+        [ValidateSet("", "CurrentUser", "LocalMachine")]
+        [System.String]
+        $TokenCacheDataProtectionScope,
+
+        [Parameter(Mandatory = $false)]
         [System.String]
         [ValidateSet('MicrosoftOnline','EvoSTS')]
         $LoginSource = "EvoSTS"
@@ -427,7 +417,7 @@ function New-ADALServiceInfo
     if($TokenCacheLocation)
     {
        $absPath = [System.IO.Path]::GetFullPath( [System.IO.Path]::Combine($PSScriptRoot, $TokenCacheLocation))
-       $tokenCacheInstance = Get-PersistedTokenCacheInstance -FilePath $absPath
+       $tokenCacheInstance = Get-PersistedTokenCacheInstance -FilePath $absPath -TokenCacheEntropy $TokenCacheEntropy -TokenCacheDataProtectionScope $TokenCacheDataProtectionScope
     }
     $Service["authContext"] = [Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext]::new($authority, $false, $tokenCacheInstance)
     $Service["platformParam"] = New-Object "Microsoft.IdentityModel.Clients.ActiveDirectory.PlatformParameters" -ArgumentList $PromptBehavior

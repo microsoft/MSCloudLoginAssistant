@@ -22,6 +22,7 @@ function Get-AzureADDLL
 # since this is pure C# it should work
 # an alternate version would be to load a precompiled dll, but chose to go with this current option because of simplicity of the class
 $charpCode="
+using System;
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using System.IO;
 using System.Security.Cryptography;
@@ -32,15 +33,19 @@ namespace ADAL
     {
         public string CacheFilePath { get; private set; }
         private static readonly object FileLock = new object();
-        
-        public FilePersistedTokenCache(string filePath)
+        private readonly byte[] _additionalEntropy;
+        private DataProtectionScope _dataProtectionScope;
+
+        public FilePersistedTokenCache(string filePath, bool isPerUser, byte[] additionalEntropy)
         {
+            _additionalEntropy = additionalEntropy;
+            _dataProtectionScope = isPerUser ? DataProtectionScope.CurrentUser : DataProtectionScope.LocalMachine;
             CacheFilePath = filePath;
             this.AfterAccess = AfterAccessNotification;
             this.BeforeAccess = BeforeAccessNotification;
             lock (FileLock)
             {
-                this.Deserialize(ReadFromFileIfExists(CacheFilePath));
+                readFromFile();
             }
         }
         
@@ -54,7 +59,7 @@ namespace ADAL
         {
             lock (FileLock)
             {
-                this.Deserialize(ReadFromFileIfExists(CacheFilePath));
+                readFromFile();
             }
         }
         
@@ -66,32 +71,49 @@ namespace ADAL
                 lock (FileLock)
                 {
                     // reflect changes in the persistent store
-                    WriteToFileIfNotNull(CacheFilePath, this.Serialize());
+                    writeToFile();
                     // once the write operation took place, restore the HasStateChanged bit to false
                     this.HasStateChanged = false;
                 }
             }
         }
 
-        private byte[] ReadFromFileIfExists(string path)
+        private void readFromFile()
         {
-            byte[] protectedBytes = (!string.IsNullOrEmpty(path) && File.Exists(path)) 
-                ? File.ReadAllBytes(path) : null;
-            byte[] unprotectedBytes = (protectedBytes != null) 
-                ? ProtectedData.Unprotect(protectedBytes, null, DataProtectionScope.CurrentUser) : null;
-            return unprotectedBytes;
+            try
+            {
+                byte[] protectedBytes = (!string.IsNullOrEmpty(CacheFilePath) && File.Exists(CacheFilePath))
+                    ? File.ReadAllBytes(CacheFilePath)
+                    : null;
+                byte[] unprotectedBytes = (protectedBytes != null)
+                    ? ProtectedData.Unprotect(protectedBytes, _additionalEntropy, _dataProtectionScope)
+                    : null;
+                this.Deserialize(unprotectedBytes);
+            }
+            catch (Exception ex)
+            {
+                // no logging unfortunately
+            }
         }
 
-        private static void WriteToFileIfNotNull(string path, byte[] blob)
+        private void writeToFile()
         {
-            if (blob != null)
+            try
             {
-                byte[] protectedBytes = ProtectedData.Protect(blob, null, DataProtectionScope.CurrentUser);
-                File.WriteAllBytes(path, protectedBytes);
+                var blob = this.Serialize();
+                if (blob != null)
+                {
+                    byte[] protectedBytes = ProtectedData.Protect(blob, _additionalEntropy, _dataProtectionScope);
+                    File.WriteAllBytes(CacheFilePath, protectedBytes);
+                }
+                else
+                {
+                    File.Delete(CacheFilePath);
+                }
             }
-            else
+            catch (Exception ex)
             {
-                File.Delete(path);
+                // no logging unfortunately             
             }
         }
     }
@@ -102,12 +124,20 @@ function Get-PersistedTokenCacheInstance
 {
     Param(
         [Parameter(Mandatory = $True)]        
-        $FilePath
+        $FilePath,
+
+        [Parameter(Mandatory = $false)]
+        [System.Byte[]]
+        $TokenCacheEntropy,
+
+        [Parameter()]
+        [ValidateSet("CurrentUser", "LocalMachine")]
+        [System.String]
+        $TokenCacheDataProtectionScope
     )
 
     if (!([System.Management.Automation.PSTypeName]'ADAL.FilePersistedTokenCache').Type)   
-    {
-     
+    {     
         try
         {
             # there are some very nasty problems with the fact that there are multiple versions of ADAL dll being used            
@@ -176,5 +206,6 @@ function Get-PersistedTokenCacheInstance
         }        
     }
          
-    return New-Object "ADAL.FilePersistedTokenCache" -ArgumentList $FilePath 
+    $isPerUserDataProtection = $TokenCacheDataProtectionScope -ne "LocalMachine"
+    return New-Object "ADAL.FilePersistedTokenCache" -ArgumentList $FilePath, $isPerUserDataProtection, $TokenCacheEntropy
 }

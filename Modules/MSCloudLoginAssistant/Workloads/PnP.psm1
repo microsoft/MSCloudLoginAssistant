@@ -16,11 +16,7 @@ function Connect-MSCloudLoginPnP
 
     if ([string]::IsNullOrEmpty($Global:SPOAdminUrl))
     {
-        $Global:SPOAdminUrl = Get-SPOAdminUrl -CloudCredential $Global:o365Credential `
-                    -AppId $Global:appIdentityParams.AppId `
-                    -AppSecret $Global:appIdentityParams.AppSecret `
-                    -CertificateThumbprint $Global:appIdentityParams.CertificateThumbprint `
-                    -Tenant $Global:appIdentityParams.Tenant
+        $Global:SPOAdminUrl = Get-SPOAdminUrl -CloudCredential $Global:o365Credential
     }
 
     if([string]::IsNullOrEmpty($ConnectionUrl))
