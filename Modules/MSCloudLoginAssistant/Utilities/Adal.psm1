@@ -207,5 +207,5 @@ function Get-PersistedTokenCacheInstance
     }
          
     $isPerUserDataProtection = $TokenCacheDataProtectionScope -ne "LocalMachine"
-    return New-Object "ADAL.FilePersistedTokenCache" -ArgumentList $FilePath, $TokenCacheEntropy, $isPerUserDataProtection
+    return New-Object "ADAL.FilePersistedTokenCache" -ArgumentList $FilePath, $isPerUserDataProtection, $TokenCacheEntropy
 }
