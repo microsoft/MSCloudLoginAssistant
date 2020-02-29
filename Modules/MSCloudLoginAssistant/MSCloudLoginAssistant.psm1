@@ -316,7 +316,8 @@ function Init-ApplicationIdentityCore
             Tenant = $Tenant
             OnBehalfOfUserPrincipalName = $OnBehalfOfUserPrincipalName
             TokenCacheLocation = $TokenCacheLocation
-            TokenCacheEntropy = $TokenCacheEntropy           
+            TokenCacheEntropy = $TokenCacheEntropy  
+            TokenCacheDataProtectionScope = $TokenCacheDataProtectionScope         
         }     
     }
 
