@@ -14,9 +14,16 @@ function Connect-MSCloudLoginPnP
        $Global:o365Credential = Get-Credential -Message "Cloud Credential"
     }
 
-    if ([string]::IsNullOrEmpty($ConnectionUrl) -and [string]::IsNullOrEmpty($Global:SPOAdminUrl))
+    if ([string]::IsNullOrEmpty($ConnectionUrl))
     {
-        $Global:SPOAdminUrl = Get-SPOAdminUrl -CloudCredential $Global:o365Credential
+        if (-not [string]::IsNullOrEmpty($Global:SPOAdminUrl))
+        {
+            $Global:SPOConnectionUrl = $Global:SPOAdminUrl
+        }
+        else
+        {
+            $Global:SPOAdminUrl = Get-SPOAdminUrl -CloudCredential $Global:o365Credential
+        }
         $Global:SPOConnectionUrl = $Global:SPOAdminUrl
     }
     else
