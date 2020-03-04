@@ -51,7 +51,7 @@ function Connect-MSCloudLoginTeams
             }
             elseif ($_.Exception -like '*AADSTS50076*')
             {
-                Connect-MSCloudLoginTeamsMFA
+                Connect-MSCloudLoginTeamsMFA -EnvironmentName $Global:CloudEnvironment
             }
             else
             {
@@ -80,7 +80,7 @@ function Connect-MSCloudLoginTeamsMFA
 {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory = $true)]
+        [Parameter()]
         [System.String]
         $EnvironmentName
     )
