@@ -138,9 +138,9 @@ function Get-SPOAdminUrl
         $response = Invoke-WebRequest -Uri "https://graph.microsoft.com/v1.0/$tenantId/sites/root?`$select=sitecollection" -Headers $headers -Method Get -UseBasicParsing -UserAgent "SysKitTrace"
         $json = ConvertFrom-Json $response.Content
         $hostname = $json.siteCollection.hostname
-        $spTenantNameLength = $hostname.IndexOf(".sharepoint")
+        $spTenantNameLength = $hostname.IndexOf(".sharepoint", [System.StringComparison]::OrdinalIgnoreCase)
         $spTenantName = $hostname.Substring(0, $spTenantNameLength)
-        return "https://$spTenantName-admin" + $hostname.Substring($hostname.IndexOf(".sharepoint"))
+        return "https://$spTenantName-admin" + $hostname.Substring($hostname.IndexOf(".sharepoint", [System.StringComparison]::OrdinalIgnoreCase))
     }
 
     Write-Verbose -Message "Connection to Azure AD is required to automatically determine SharePoint Online admin URL..."
