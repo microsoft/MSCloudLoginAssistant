@@ -127,11 +127,26 @@ function Get-SPOAdminUrl
         $CloudCredential
     )
 
-    Write-Verbose -Message "Connection to Azure AD is required to automatically determine SharePoint Online admin URL..."
+    if($Global:UseApplicationIdentity)
+    {
+        Write-Verbose -Message "Retrieving SharePoint Online Admin url with MS graph api..."
+        #unfortunately, application permissions are not working so we will use our fallback delegated user
+        $accessToken = Get-OnBehalfOfAccessToken -TargetUri "https://graph.microsoft.com"
+        [Hashtable] $headers = @{}  
+        $Headers["Authorization"] = "Bearer $accessToken";
+        $tenantId = $Global:appIdentityParams.Tenant
+        $response = Invoke-WebRequest -Uri "https://graph.microsoft.com/v1.0/$tenantId/sites/root?`$select=sitecollection" -Headers $headers -Method Get -UseBasicParsing -UserAgent "SysKitTrace"
+        $json = ConvertFrom-Json $response.Content
+        $hostname = $json.siteCollection.hostname
+        $spTenantNameLength = $hostname.IndexOf(".sharepoint", [System.StringComparison]::OrdinalIgnoreCase)
+        $spTenantName = $hostname.Substring(0, $spTenantNameLength)
+        return "https://$spTenantName-admin" + $hostname.Substring($hostname.IndexOf(".sharepoint", [System.StringComparison]::OrdinalIgnoreCase))
+    }
 
+    Write-Verbose -Message "Connection to Azure AD is required to automatically determine SharePoint Online admin URL..."
     Test-MSCloudLogin -Platform AzureAD -CloudCredential $CloudCredential
 
-
+    
     Write-Verbose -Message "Getting SharePoint Online admin URL..."
     $defaultDomain = Get-AzureADDomain | Where-Object {$_.Name -like "*.onmicrosoft.com" -and $_.IsInitial -eq $true} # We don't use IsDefault here because the default could be a custom domain
 
@@ -536,6 +551,67 @@ function Get-OnBehalfOfAuthResult
     }
     $certAssertion = [Microsoft.IdentityModel.Clients.ActiveDirectory.ClientAssertionCertificate]::new($Global:appIdentityParams.AppId, $cert)
     $authResultTask = $Global:ADALAppServicePoint.authContext.AcquireTokenSilentAsync($TargetUri.ToString(), $certAssertion, $userIdentifier)
+
+    # will force an exception to be thrown Result unlike C# will not throw an exception
+    try
+    {
+        $authResultTask.Wait()
+    }
+    catch
+    {
+        $message = "Could not get access token for user " + $UserPrincipalName
+        Write-Verbose $message
+        throw  $_
+    }
+
+    return $authResultTask.Result
+}
+
+function Get-AppIdentityAccessToken
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory = $True)]
+        $TargetUri
+    )
+
+    $authResult = Get-AppIdentityAuthResult -TargetUri $TargetUri
+    return $authResult.AccessToken
+}
+
+function Get-AppIdentityAuthResult
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory = $True)]
+        $TargetUri
+    )
+
+    if ($null -eq $Global:ADALAppServicePoint)
+    {
+        throw "Please use Init-ApplicationIdentity before using this command"
+    }
+
+    $AzureADDLL = Get-AzureADDLL
+    if ([string]::IsNullOrEmpty($AzureADDLL))
+    {
+        throw "Can't find Azure AD DLL"
+    }
+   
+    if (-not ([System.Management.Automation.PSTypeName]'Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext').Type)
+    {
+        Add-Type -Path $AzureADDLL | Out-Null
+    }
+
+    if(!$Global:appIdentityParams.CertificateThumbprint) 
+    {
+        throw "Only certificate auth currently implemented"
+    }
+    $thumbprint = $Global:appIdentityParams.CertificateThumbprint
+
+    $cert = Get-ChildItem -path "Cert:\*$thumbprint" -Recurse | Where-Object { $_.HasPrivateKey }| Select-Object -First 1      
+    $certAssertion = [Microsoft.IdentityModel.Clients.ActiveDirectory.ClientAssertionCertificate]::new($Global:appIdentityParams.AppId, $cert)
+    $authResultTask = $Global:ADALAppServicePoint.authContext.AcquireTokenAsync($TargetUri.ToString(), $certAssertion)
 
     # will force an exception to be thrown Result unlike C# will not throw an exception
     try
