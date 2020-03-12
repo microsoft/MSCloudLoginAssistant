@@ -729,7 +729,6 @@ function Get-SkypeForBusinessServiceEndpoint
         $xml = Get-RTCXml -Url $liveIdUrl
     }
 
-
     $root = $xml.AutodiscoverResponse.Root
 
     $domain = $root.Link | Where-Object -FilterScript {$_.Token -eq 'domain'}
