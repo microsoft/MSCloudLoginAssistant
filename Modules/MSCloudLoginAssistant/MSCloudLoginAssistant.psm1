@@ -774,8 +774,8 @@ function Get-RTCXml
     )
 
     $request = [System.Net.WebRequest]::Create($Url);
-    $request.set_Accept("application/vnd.microsoft.rtc.autodiscover+xml;v=1");    
-    $response = $request.GetResponse()    
+    $request.set_Accept("application/vnd.microsoft.rtc.autodiscover+xml;v=1");
+    $response = $request.GetResponse()
     $arg = [System.IO.StreamReader]::new($response.GetResponseStream()).ReadToEnd();
     $xml = [Xml]$arg
     return $xml
