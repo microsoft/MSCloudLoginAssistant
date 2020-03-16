@@ -14,14 +14,9 @@ function Connect-MSCloudLoginPnP
        $Global:o365Credential = Get-Credential -Message "Cloud Credential"
     }
 
-    if ([string]::IsNullOrEmpty($Global:SPOAdminUrl))
-    {
-        $Global:SPOAdminUrl = Get-SPOAdminUrl -CloudCredential $Global:o365Credential
-    }
-
     if([string]::IsNullOrEmpty($ConnectionUrl))
     {
-        $Global:SPOConnectionUrl = $Global:SPOAdminUrl
+        $Global:SPOConnectionUrl =  Get-SPOAdminUrl -CloudCredential $Global:o365Credential
     }
     else
     {
@@ -78,9 +73,9 @@ function Connect-MSCloudLoginPnP
             # This error means that the account was trying to connect using MFA.
             try
             {
-                $Global:SPOAdminUrl = Get-SPOAdminUrl -CloudCredential $Global:o365Credential
+                $adminUrl = Get-SPOAdminUrl -CloudCredential $Global:o365Credential
                 $AuthHeader = Get-AuthHeader -UserPrincipalName $Global:o365Credential.UserName `
-                    -ResourceURI $Global:SPOAdminUrl -clientID $clientID -RedirectURI $RedirectURI
+                    -ResourceURI $adminUrl -clientID $clientID -RedirectURI $RedirectURI
                 $AccessToken = $AuthHeader.split(" ")[1]
                 Connect-PnPOnline -Url $Global:SPOConnectionUrl -UseWebLogin
                 $Global:IsMFAAuth = $true

@@ -127,6 +127,12 @@ function Get-SPOAdminUrl
         $CloudCredential
     )
 
+    if (![string]::IsNullOrEmpty($Global:SPOAdminUrl))
+    {
+        return $Global:SPOAdminUrl
+    }
+
+
     if($Global:UseApplicationIdentity)
     {
         Write-Verbose -Message "Retrieving SharePoint Online Admin url with MS graph api..."
@@ -140,49 +146,52 @@ function Get-SPOAdminUrl
         $hostname = $json.siteCollection.hostname
         $spTenantNameLength = $hostname.IndexOf(".sharepoint", [System.StringComparison]::OrdinalIgnoreCase)
         $spTenantName = $hostname.Substring(0, $spTenantNameLength)
-        return "https://$spTenantName-admin" + $hostname.Substring($hostname.IndexOf(".sharepoint", [System.StringComparison]::OrdinalIgnoreCase))
+        $Global:SPOAdminUrl = "https://$spTenantName-admin" + $hostname.Substring($hostname.IndexOf(".sharepoint", [System.StringComparison]::OrdinalIgnoreCase))
     }
-
-    Write-Verbose -Message "Connection to Azure AD is required to automatically determine SharePoint Online admin URL..."
-    Test-MSCloudLogin -Platform AzureAD -CloudCredential $CloudCredential
-
-    
-    Write-Verbose -Message "Getting SharePoint Online admin URL..."
-    $defaultDomain = Get-AzureADDomain | Where-Object {$_.Name -like "*.onmicrosoft.com" -and $_.IsInitial -eq $true} # We don't use IsDefault here because the default could be a custom domain
-
-    if ($null -eq $defaultDomain)
+    else 
     {
-        $defaultDomain = Get-AzureADDomain | Where-Object {$_.Name -like "*.onmicrosoft.de" -and $_.IsInitial -eq $true}
-        $domain = '.onmicrosoft.de'
-        $tenantName = $defaultDomain[0].Name.Replace($domain, '')
-        if ($Global:CloudEnvironment -eq 'Germany')
+        Write-Verbose -Message "Connection to Azure AD is required to automatically determine SharePoint Online admin URL..."
+        Test-MSCloudLogin -Platform AzureAD -CloudCredential $CloudCredential
+
+        
+        Write-Verbose -Message "Getting SharePoint Online admin URL..."
+        $defaultDomain = Get-AzureADDomain | Where-Object {$_.Name -like "*.onmicrosoft.com" -and $_.IsInitial -eq $true} # We don't use IsDefault here because the default could be a custom domain
+
+        if ($null -eq $defaultDomain)
         {
-            $spoAdminUrl = "https://$tenantName-admin.sharepoint.de"
+            $defaultDomain = Get-AzureADDomain | Where-Object {$_.Name -like "*.onmicrosoft.de" -and $_.IsInitial -eq $true}
+            $domain = '.onmicrosoft.de'
+            $tenantName = $defaultDomain[0].Name.Replace($domain, '')
+            if ($Global:CloudEnvironment -eq 'Germany')
+            {
+                $spoAdminUrl = "https://$tenantName-admin.sharepoint.de"
+            }
+            elseif ($Global:CloudEnvironment -eq 'GCCHigh')
+            {
+                $spoAdminUrl = "https://$tenantName-admin.sharepoint.us"
+            }
+            Write-Verbose -Message "SharePoint Online admin URL is $spoAdminUrl"
+            $Global:SPOAdminUrl = $spoAdminUrl
         }
-        elseif ($Global:CloudEnvironment -eq 'GCCHigh')
+        else
         {
-            $spoAdminUrl = "https://$tenantName-admin.sharepoint.us"
+            $domain = '.onmicrosoft.com'
+            $tenantName = $defaultDomain[0].Name.Replace($domain, '')
+            $extension = 'sharepoint.com'
+            if ($Global:CloudEnvironment -eq 'Germany')
+            {
+                $extension = 'sharepoint.de'
+            }
+            elseif ($Global:CloudEnvironment -eq 'GCCHigh')
+            {
+                $extension = 'sharepoint.us'
+            }
+            $spoAdminUrl = "https://$tenantName-admin.$extension"
+            Write-Verbose -Message "SharePoint Online admin URL is $spoAdminUrl"
+            $Global:SPOAdminUrl = $spoAdminUrl
         }
-        Write-Verbose -Message "SharePoint Online admin URL is $spoAdminUrl"
-        return $spoAdminUrl
     }
-    else
-    {
-        $domain = '.onmicrosoft.com'
-        $tenantName = $defaultDomain[0].Name.Replace($domain, '')
-        $extension = 'sharepoint.com'
-        if ($Global:CloudEnvironment -eq 'Germany')
-        {
-            $extension = 'sharepoint.de'
-        }
-        elseif ($Global:CloudEnvironment -eq 'GCCHigh')
-        {
-            $extension = 'sharepoint.us'
-        }
-        $spoAdminUrl = "https://$tenantName-admin.$extension"
-        Write-Verbose -Message "SharePoint Online admin URL is $spoAdminUrl"
-        return $spoAdminUrl
-    }
+    return $Global:SPOAdminUrl
 }
 
 function Get-TenantLoginEndPoint

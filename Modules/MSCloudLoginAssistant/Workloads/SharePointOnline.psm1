@@ -8,7 +8,8 @@ function Connect-MSCloudLoginSharePointOnline
     }
     
     try
-    {        
+    {     
+        throw "The SharePointOnline Platform is no longer supported , please use PnP"
         if ($null -ne $Global:o365Credential)
         {
             if ([string]::IsNullOrEmpty($ConnectionUrl))
