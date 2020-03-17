@@ -727,6 +727,17 @@ function Get-SkypeForBusinessServiceEndpoint
     $liveIdUrl = $overrideDiscoveryUri.ToString() + "?Domain=" + $TargetDomain
 
     $xml = Get-RTCXml -Url $liveIdUrl
+    if(!$xml)
+    {
+        Write-Verbose "Did not find anything @ $overrideDiscoveryUri, will try with initial domain"
+        Test-MSCloudLogin -Platform AzureAD
+        $initialDomain = (Get-AzureADDomain | Where-Object -FilterScript { $_.IsInitial}).Name
+        $overrideDiscoveryUri = "http://lyncdiscover." + $initialDomain;
+        $desiredLink = "External/RemotePowerShell";
+        $liveIdUrl = $overrideDiscoveryUri.ToString() + "?Domain=" + $initialDomain
+        $xml = Get-RTCXml -Url $liveIdUrl
+    }
+
     $root = $xml.AutodiscoverResponse.Root
 
     $domain = $root.Link | Where-Object -FilterScript {$_.Token -eq 'domain'}
