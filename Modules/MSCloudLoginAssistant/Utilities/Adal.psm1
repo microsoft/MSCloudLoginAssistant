@@ -5,6 +5,10 @@ function Get-AzureADDLL
     [OutputType([System.String])]
     param(
     )
+    if($Global:MSCloudLoginAzureAdDll)
+    {
+        return $Global:MSCloudLoginAzureAdDll
+    }    
     [array]$AzureADModules = Get-Module -ListAvailable | Where-Object {$_.name -eq "AzureAD"}
     if ($AzureADModules.count -eq 0)
     {
@@ -12,8 +16,8 @@ function Get-AzureADDLL
     }
     else
     {
-        $AzureDLL = Join-Path (($AzureADModules | Sort-Object version -Descending | Select-Object -first 1).Path | split-Path) Microsoft.IdentityModel.Clients.ActiveDirectory.dll
-        return $AzureDLL
+        $Global:MSCloudLoginAzureAdDll = Join-Path (($AzureADModules | Sort-Object version -Descending | Select-Object -first 1).Path | split-Path) Microsoft.IdentityModel.Clients.ActiveDirectory.dll
+        return $Global:MSCloudLoginAzureAdDll
     }
 }
 
