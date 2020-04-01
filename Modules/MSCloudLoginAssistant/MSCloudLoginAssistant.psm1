@@ -19,7 +19,7 @@ function Test-MSCloudLogin
     param
     (
         [Parameter(Mandatory=$true)]
-        [ValidateSet("Azure","AzureAD","AzureADPreview","SharePointOnline","ExchangeOnline", `
+        [ValidateSet("Azure","AzureAD","SharePointOnline","ExchangeOnline", `
                      "SecurityComplianceCenter","MSOnline","PnP","PowerPlatforms", `
                      "MicrosoftTeams","SkypeForBusiness")]
         [System.String]
@@ -67,10 +67,6 @@ function Test-MSCloudLogin
             Connect-MSCloudLoginAzure @verboseParameter
         }
         'AzureAD'
-        {
-            Connect-MSCloudLoginAzureAD @verboseParameter
-        }
-        'AzureADPreview'
         {
             Connect-MSCloudLoginAzureAD @verboseParameter
         }
@@ -168,12 +164,12 @@ function Get-AzureADDLL
     )
     $manifest = Import-PowerShellDataFile ($SCRIPT:MyInvocation.MyCommand.Path.Replace('.psm1', '.psd1'))
     $dependencies = $manifest.RequiredModules
-    $AzureADVersion = $dependencies | Where-Object -FilterScript {$_.ModuleName -eq 'AzureAD'}
-    [array]$AzureADModules = Get-Module -ListAvailable | Where-Object {$_.name -eq "AzureAD" -and $_.Version -eq $AzureADVersion.RequiredVersion}
+    $AzureADVersion = $dependencies | Where-Object -FilterScript {$_.ModuleName -eq 'AzureADPreview'}
+    [array]$AzureADModules = Get-Module -ListAvailable | Where-Object {$_.name -eq "AzureADPreview" -and $_.Version -eq $AzureADVersion.RequiredVersion}
 
     if ($AzureADModules.count -eq 0)
     {
-        Throw "Can't find Azure AD DLL. Install the module manually 'Install-Module AzureAD'"
+        Throw "Can't find Azure AD DLL. Install the module manually 'Install-Module AzureADPreview'"
     }
     else
     {
