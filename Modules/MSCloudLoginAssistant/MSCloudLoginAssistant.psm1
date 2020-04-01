@@ -19,7 +19,7 @@ function Test-MSCloudLogin
     param
     (
         [Parameter(Mandatory=$true)]
-        [ValidateSet("Azure","AzureAD","SharePointOnline","ExchangeOnline", `
+        [ValidateSet("Azure","AzureAD","AzureADPreview","SharePointOnline","ExchangeOnline", `
                      "SecurityComplianceCenter","MSOnline","PnP","PowerPlatforms", `
                      "MicrosoftTeams","SkypeForBusiness")]
         [System.String]
@@ -67,6 +67,10 @@ function Test-MSCloudLogin
             Connect-MSCloudLoginAzure @verboseParameter
         }
         'AzureAD'
+        {
+            Connect-MSCloudLoginAzureAD @verboseParameter
+        }
+        'AzureADPreview'
         {
             Connect-MSCloudLoginAzureAD @verboseParameter
         }

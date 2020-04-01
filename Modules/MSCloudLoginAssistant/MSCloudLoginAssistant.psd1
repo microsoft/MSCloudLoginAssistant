@@ -54,6 +54,10 @@
     RequiredModules = @(@{
         ModuleName      = "AzureAD"
         RequiredVersion = "2.0.2.4"
+    },
+    @{
+        ModuleName      = "AzureADPreview"
+        RequiredVersion = "2.0.2.89"
     })
 
     # Assemblies that must be loaded prior to importing this module
