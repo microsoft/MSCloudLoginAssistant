@@ -315,54 +315,24 @@ function Get-AccessToken
     try
     {
         Write-Verbose "There was no existing Access Token for $ClientId. Requesting a new one from $TargetUri"
-
-        $jobName = "AcquireTokenAsync" + (New-Guid).ToString()
-        Start-Job -Name $jobName -ScriptBlock {
-            Param(
-                [Parameter(Mandatory = $True)]
-                $TargetUri,
-
-                [Parameter(Mandatory = $True)]
-                $AuthUri,
-
-                [Parameter(Mandatory = $True)]
-                $ClientId,
-
-                [Parameter(Mandatory = $False)]
-                [System.Management.Automation.PSCredential]
-                $Credentials
-            )
-            # Load AAD Assemblies
-            $AzureADDLL = Get-AzureADDLL
-            if ([string]::IsNullOrEmpty($AzureADDLL))
-            {
-                throw "Can't find Azure AD DLL"
-            }
-            [System.Reflection.Assembly]::LoadFrom($AzureADDLL) | Out-Null
-
-            $UserPasswordCreds = [Microsoft.IdentityModel.Clients.ActiveDirectory.UserPasswordCredential]::new($Credentials.UserName, $Credentials.Password)
-            $context = [Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext]::new($AuthUri, $false, [Microsoft.IdentityModel.Clients.ActiveDirectory.TokenCache]::DefaultShared)
-            $authResult = $context.AcquireTokenSilentAsync($TargetUri, $ClientId)
-
-            if ($null -eq $authResult.result)
-            {
-                $authResult = [Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContextIntegratedAuthExtensions]::AcquireTokenAsync($context, $targetUri, $ClientId, $UserPasswordCreds)
-            }
-            $token = $authResult.result.AccessToken
-            return $token
-        } -ArgumentList @($targetUri, $AuthUri, $ClientId, $Credentials) | Out-Null
-        $job = Get-Job | Where-Object -FilterScript {$_.Name -eq $jobName}
-        do
+        $AzureADDLL = Get-AzureADDLL
+        if ([string]::IsNullOrEmpty($AzureADDLL))
         {
-            Start-Sleep -Seconds 1
-        } while ($job.JobStateInfo.State -ne "Completed")
-        $AccessToken = Receive-Job -Name $jobName
+            throw "Can't find Azure AD DLL"
+        }
+        [System.Reflection.Assembly]::LoadFrom($AzureADDLL) | Out-Null
+
+        $UserPasswordCreds = [Microsoft.IdentityModel.Clients.ActiveDirectory.UserPasswordCredential]::new($Credentials.UserName, $Credentials.Password)
+        $context = [Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext]::new($AuthUri, $false, [Microsoft.IdentityModel.Clients.ActiveDirectory.TokenCache]::DefaultShared)
+
+        $authResult = $context.AcquireTokenSilentAsync($TargetUri, $ClientId)
+        $AccessToken = $authResult.result.AccessToken
         Write-Verbose "Token Found --> $AccessToken"
         return $AccessToken
     }
     catch
     {
-        throw $_
+        Write-Verbose $_
     }
 }
 
