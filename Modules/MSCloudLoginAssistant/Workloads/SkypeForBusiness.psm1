@@ -73,7 +73,16 @@ function Connect-MSCloudLoginSkypeForBusiness
             $RedirectURI = "urn:ietf:wg:oauth:2.0:oob";
             $clientId = '1950a258-227b-4e31-a9cf-717495945fc2'
             $Global:ADALServicePoint = New-ADALServiceInfo -TenantName $adminDomain -UserPrincipalName $Global:o365Credential.UserName
-            $authResult = $Global:ADALServicePoint.authContext.AcquireTokenAsync($targetUri, $clientId, $RedirectURI, $Global:ADALServicePoint.platformParam, $Global:ADALServicePoint.userId)
+            $authResult = $null
+            try
+            {
+                $authResult = $Global:ADALServicePoint.authContext.AcquireTokenAsync($targetUri.OriginalString, $clientId, [Uri]$RedirectURI, $Global:ADALServicePoint.platformParam.PromptBehavior, $Global:ADALServicePoint.userId, "", "")
+            }
+            catch
+            {
+                $authResult = $Global:ADALServicePoint.authContext.AcquireTokenAsync($targetUri.OriginalString, $clientId, [Uri]$RedirectURI, $Global:ADALServicePoint.platformParam, $Global:ADALServicePoint.userId)
+            }
+            
 
             $token = $authResult.result.AccessToken
             $networkCreds = [System.Net.NetworkCredential]::new("", $token)
