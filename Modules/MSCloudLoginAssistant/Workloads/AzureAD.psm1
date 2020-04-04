@@ -2,7 +2,7 @@ function Connect-MSCloudLoginAzureAD
 {
     [CmdletBinding()]
     param()
-    try 
+    try
     {
         Connect-AzureAD -Credential $Global:o365Credential -ErrorAction Stop | Out-Null
         $Global:IsMFAAuth = $false
@@ -14,7 +14,7 @@ function Connect-MSCloudLoginAzureAD
         {
             try
             {
-                Connect-AzureAD -Credential $Global:o365Credential -AzureEnvironmentName AzureGermanyCloud -ErrorAction Stop| Out-Null
+                Connect-AzureAD -Credential $Global:o365Credential -AzureEnvironmentName AzureGermanyCloud -ErrorAction Stop | Out-Null
                 $Global:IsMFAAuth = $false
                 $Global:MSCloudLoginAzureADConnected = $true
                 $Global:CloudEnvironment = 'Germany'
@@ -83,7 +83,7 @@ function Connect-MSCloudLoginAzureADMFA
     {
         try
         {
-            Connect-AzureAD -AccountId $Global:o365Credential.UserName -AzureEnvironmentName AzureUSGovernment -ErrorAction Stop| Out-Null
+            Connect-AzureAD -AccountId $Global:o365Credential.UserName -AzureEnvironmentName AzureUSGovernment -ErrorAction Stop | Out-Null
             $Global:IsMFAAuth = $true
             $Global:MSCloudLoginAzureADConnected = $true
 

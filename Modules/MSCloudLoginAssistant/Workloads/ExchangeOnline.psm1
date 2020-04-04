@@ -4,7 +4,7 @@ function Connect-MSCloudLoginExchangeOnline
     param()
     if ($null -eq $Global:o365Credential)
     {
-       $Global:o365Credential = Get-Credential -Message "Cloud Credential"
+        $Global:o365Credential = Get-Credential -Message "Cloud Credential"
     }
     $VerbosePreference = 'SilentlyContinue'
     $WarningPreference = "Continue"
@@ -24,7 +24,7 @@ function Connect-MSCloudLoginExchangeOnline
 
     $Global:OpenExchangeSession = Get-PSSession -Name 'ExchangeOnline' `
         -ErrorAction SilentlyContinue | `
-            Where-Object -FilterScript { $_.State -eq 'Opened' }
+        Where-Object -FilterScript { $_.State -eq 'Opened' }
     if ($null -eq $Global:OpenExchangeSession)
     {
         try
@@ -32,7 +32,7 @@ function Connect-MSCloudLoginExchangeOnline
             $PowerShellConnections = Get-NetTCPConnection | `
                 Where-Object -FilterScript { `
                     $_.RemotePort -eq '443' -and $_.State -ne 'Established' `
-                }
+            }
 
             while ($PowerShellConnections)
             {
@@ -126,9 +126,9 @@ function Connect-MSCloudLoginExchangeOnline
                 [regex]$WaitTimePattern = 'Please wait for [0-9]* seconds'
 
                 $WaitTimePatternMatch = (($WaitTimePattern.Match($ExceptionMessage)).Value | `
-                    Select-String -Pattern '[0-9]*' -AllMatches)
+                        Select-String -Pattern '[0-9]*' -AllMatches)
 
-                $WaitTimeInSeconds = ($WaitTimePatternMatch | ForEach-Object {$_.Matches} | Where-Object -FilterScript { $_.Value -NotLike $null }).Value
+                $WaitTimeInSeconds = ($WaitTimePatternMatch | ForEach-Object { $_.Matches } | Where-Object -FilterScript { $_.Value -NotLike $null }).Value
                 Write-Verbose -Message "Waiting for requested $WaitTimeInSeconds seconds..."
                 Start-Sleep -Seconds ($WaitTimeInSeconds + 1)
                 try

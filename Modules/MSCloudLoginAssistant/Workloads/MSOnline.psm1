@@ -13,9 +13,9 @@ function Connect-MSCloudLoginMSOnline
         }
         try
         {
-            $InformationPreference ='SilentlyContinue'
+            $InformationPreference = 'SilentlyContinue'
             $EnvironmentName = 'AzureCloud'
-            
+
             if ($Global:o365Credential.UserName.Split('@')[1] -like '*.de')
             {
                 $Global:CloudEnvironment = 'Germany'

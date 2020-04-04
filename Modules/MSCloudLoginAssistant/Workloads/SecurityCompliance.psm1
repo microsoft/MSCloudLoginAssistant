@@ -4,18 +4,18 @@ function Connect-MSCloudLoginSecurityCompliance
     param()
     if ($null -eq $Global:o365Credential)
     {
-       $Global:o365Credential = Get-Credential -Message "Cloud Credential"
+        $Global:o365Credential = Get-Credential -Message "Cloud Credential"
     }
     $moduleName = "O365SecurityAndComplianceShell"
     $WarningPreference = 'SilentlyContinue'
     $InformationPreference = 'Continue'
     $Global:SessionSecurityCompliance = Get-PSSession | `
         Where-Object { `
-            ($_.ComputerName -like "*ps.compliance.protection.outlook.com" -or `
-            $_.ComputerName -like "*ps.compliance.protection.office365.us" -or `
-            $_.ComputerName -like "*ps.compliance.protection.outlook.de") `
+        ($_.ComputerName -like "*ps.compliance.protection.outlook.com" -or `
+                $_.ComputerName -like "*ps.compliance.protection.office365.us" -or `
+                $_.ComputerName -like "*ps.compliance.protection.outlook.de") `
             -and $_.State -eq "Opened"`
-        }
+    }
 
     $CloudEnvironment = "Public"
     $ConnectionUrl = 'https://ps.compliance.protection.outlook.com/powershell-liveid/'
@@ -35,11 +35,11 @@ function Connect-MSCloudLoginSecurityCompliance
             {
                 Write-Verbose -Message "Session to Security & Compliance no working session found, creating a new one"
                 $Global:SessionSecurityCompliance = New-PSSession -ConfigurationName "Microsoft.Exchange" `
-                -ConnectionUri $ConnectionUrl `
-                -Credential $O365Credential `
-                -Authentication Basic `
-                -ErrorAction Stop `
-                -AllowRedirection
+                    -ConnectionUri $ConnectionUrl `
+                    -Credential $O365Credential `
+                    -Authentication Basic `
+                    -ErrorAction Stop `
+                    -AllowRedirection
             }
             catch
             {
@@ -65,7 +65,7 @@ function Connect-MSCloudLoginSecurityCompliance
         catch
         {
             if ($_.ErrorDetails.ToString().Contains('Fail to create a runspace because you have exceeded the maximum number of connections allowed' -and `
-                $CloudEnvironment -ne 'Germany'))
+                        $CloudEnvironment -ne 'Germany'))
             {
                 $counter = 1
                 while ($null -eq $Global:SessionSecurityCompliance -and $counter -le 10)
@@ -103,7 +103,8 @@ function Connect-MSCloudLoginSecurityCompliance
                         $InformationPreference = "SilentlyContinue"
                     }
                     catch
-                    {}
+                    {
+                    }
                     $counter ++
                 }
             }
@@ -120,8 +121,8 @@ function Connect-MSCloudLoginSecurityCompliance
                     }
                     $RedirectURI = "urn:ietf:wg:oauth:2.0:oob";
                     $AuthHeader = Get-AuthHeader -UserPrincipalName $Global:o365Credential.UserName `
-                                                  -ResourceURI $ResourceURI -clientID $clientID `
-                                                  -RedirectURI $RedirectURI
+                        -ResourceURI $ResourceURI -clientID $clientID `
+                        -RedirectURI $RedirectURI
 
                     $Password = ConvertTo-SecureString -AsPlainText $AuthHeader -Force
 

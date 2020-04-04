@@ -12,8 +12,8 @@ Import-Module -Name (Join-Path -Path $PSScriptRoot `
         -Resolve)
 
 $Global:DscHelper = New-MSCloudLoginAssistantUnitTestHelper `
-                        -StubModule $CmdletModule `
-                        -SubModulePath "..\MSCloudLoginAssistant\MSCloudLoginAssistant.psm1"
+    -StubModule $CmdletModule `
+    -SubModulePath "..\MSCloudLoginAssistant\MSCloudLoginAssistant.psm1"
 Describe -Name $Global:DscHelper.DescribeHeader -Fixture {
     InModuleScope -ModuleName $Global:DscHelper.ModuleName -ScriptBlock {
         Invoke-Command -ScriptBlock $Global:DscHelper.InitializeScript -NoNewScope
@@ -29,7 +29,7 @@ Describe -Name $Global:DscHelper.DescribeHeader -Fixture {
         # Test contexts
         Context -Name "Connecting to Azure for the first time" -Fixture {
             $CallNumber = 0
-            Mock -CommandName Invoke-Expression -MockWith{
+            Mock -CommandName Invoke-Expression -MockWith {
                 if ($CallNumber -eq 0)
                 {
                     $CallNumber++
@@ -48,7 +48,7 @@ Describe -Name $Global:DscHelper.DescribeHeader -Fixture {
 
         Context -Name "Connecting to AzureAD for the first time" -Fixture {
             $CallNumber = 0
-            Mock -CommandName Invoke-Expression -MockWith{
+            Mock -CommandName Invoke-Expression -MockWith {
                 if ($CallNumber -eq 0)
                 {
                     $CallNumber++
@@ -67,14 +67,14 @@ Describe -Name $Global:DscHelper.DescribeHeader -Fixture {
 
         Context -Name "Connecting to SharePointOnline for the first time" -Fixture {
             $CallNumber = 0
-            Mock -CommandName Invoke-Expression -MockWith{
+            Mock -CommandName Invoke-Expression -MockWith {
                 if ($CallNumber -eq 0)
                 {
                     $CallNumber++
                 }
             }
 
-            Mock -CommandName Get-AzureADDomain -MockWith{
+            Mock -CommandName Get-AzureADDomain -MockWith {
                 return @{
                     Name      = "contoso.onmicrosoft.com"
                     IsInitial = $true
@@ -93,7 +93,7 @@ Describe -Name $Global:DscHelper.DescribeHeader -Fixture {
 
         Context -Name "Connecting to ExchangeOnline for the first time" -Fixture {
             $CallNumber = 0
-            Mock -CommandName Invoke-Expression -MockWith{
+            Mock -CommandName Invoke-Expression -MockWith {
                 if ($CallNumber -eq 0)
                 {
                     $CallNumber++
@@ -133,7 +133,7 @@ Describe -Name $Global:DscHelper.DescribeHeader -Fixture {
 
         Context -Name "Connecting to SecurityComplianceCenter for the first time" -Fixture {
             $CallNumber = 0
-            Mock -CommandName Invoke-Expression -MockWith{
+            Mock -CommandName Invoke-Expression -MockWith {
                 if ($CallNumber -eq 0)
                 {
                     $CallNumber++
@@ -166,7 +166,7 @@ Describe -Name $Global:DscHelper.DescribeHeader -Fixture {
 
         Context -Name "Connecting to MSOnline for the first time" -Fixture {
             $CallNumber = 0
-            Mock -CommandName Invoke-Expression -MockWith{
+            Mock -CommandName Invoke-Expression -MockWith {
                 if ($CallNumber -eq 0)
                 {
                     $CallNumber++
@@ -185,14 +185,14 @@ Describe -Name $Global:DscHelper.DescribeHeader -Fixture {
 
         Context -Name "Connecting to PnP for the first time" -Fixture {
             $CallNumber = 0
-            Mock -CommandName Invoke-Expression -MockWith{
+            Mock -CommandName Invoke-Expression -MockWith {
                 if ($CallNumber -eq 0)
                 {
                     $CallNumber++
                 }
             }
 
-            Mock -CommandName Get-AzureADDomain -MockWith{
+            Mock -CommandName Get-AzureADDomain -MockWith {
                 return @{
                     Name      = "contoso.onmicrosoft.com"
                     IsInitial = $true
@@ -217,7 +217,7 @@ Describe -Name $Global:DscHelper.DescribeHeader -Fixture {
 
         Context -Name "Connecting to MicrosoftTeams for the first time" -Fixture {
             $CallNumber = 0
-            Mock -CommandName Invoke-Expression -MockWith{
+            Mock -CommandName Invoke-Expression -MockWith {
                 if ($CallNumber -eq 0)
                 {
                     $CallNumber++

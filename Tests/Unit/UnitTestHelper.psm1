@@ -41,12 +41,12 @@ function New-MSCloudLoginAssistantUnitTestHelper
 "@
 
     return @{
-        DescribeHeader = $describeHeader
-        ModuleName = $moduleName
+        DescribeHeader        = $describeHeader
+        ModuleName            = $moduleName
         CurrentStubModulePath = $StubModule
-        InitializeScript = [ScriptBlock]::Create($initScript)
-        RepoRoot = $repoRoot
-        CleanupScript = [ScriptBlock]::Create(@"
+        InitializeScript      = [ScriptBlock]::Create($initScript)
+        RepoRoot              = $repoRoot
+        CleanupScript         = [ScriptBlock]::Create(@"
 
             `$global:DSCMachineStatus = 0
 
