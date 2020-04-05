@@ -5,7 +5,7 @@ function Connect-MSCloudLoginSkypeForBusiness
 
     if ($null -eq $Global:o365Credential)
     {
-       $Global:o365Credential = Get-Credential -Message "Cloud Credential"
+        $Global:o365Credential = Get-Credential -Message "Cloud Credential"
     }
     if ($Global:o365Credential.UserName.Split('@')[1] -like '*.de')
     {
@@ -16,7 +16,7 @@ function Connect-MSCloudLoginSkypeForBusiness
 
     try
     {
-        if ($null -eq $Global:SkypeModule -and $null -eq (Get-command Get-CsTeamsClientConfiguration -EA SilentlyContinue))
+        if ($null -eq $Global:SkypeModule -and $null -eq (Get-Command Get-CsTeamsClientConfiguration -EA SilentlyContinue))
         {
             Write-Verbose "Creating a new Session to Skype for Business Servers"
             $ErrorActionPreference = "Stop"
@@ -49,8 +49,8 @@ function Connect-MSCloudLoginSkypeForBusiness
 
             $psSessionName = "SfBPowerShellSession"
             $ConnectorVersion = "7.0.2374.2"
-            $SessionOption = New-PsSessionOption
-            $SessionOption.ApplicationArguments = @{}
+            $SessionOption = New-PSSessionOption
+            $SessionOption.ApplicationArguments = @{ }
             $SessionOption.ApplicationArguments['X-MS-Client-Version'] = $ConnectorVersion
             $SessionOption.NoMachineProfile = $true
             $Global:SkypeSession = New-PSSession -Name $psSessionName -ConnectionUri $ConnectionUri.Uri `
@@ -82,7 +82,7 @@ function Connect-MSCloudLoginSkypeForBusiness
             {
                 $authResult = $Global:ADALServicePoint.authContext.AcquireTokenAsync($targetUri.OriginalString, $clientId, [Uri]$RedirectURI, $Global:ADALServicePoint.platformParam, $Global:ADALServicePoint.userId)
             }
-            
+
 
             $token = $authResult.result.AccessToken
             $networkCreds = [System.Net.NetworkCredential]::new("", $token)
@@ -96,8 +96,8 @@ function Connect-MSCloudLoginSkypeForBusiness
 
             $psSessionName = "SfBPowerShellSession"
             $ConnectorVersion = "7.0.2374.2"
-            $SessionOption = New-PsSessionOption
-            $SessionOption.ApplicationArguments = @{}
+            $SessionOption = New-PSSessionOption
+            $SessionOption.ApplicationArguments = @{ }
             $SessionOption.ApplicationArguments['X-MS-Client-Version'] = $ConnectorVersion
             $SessionOption.NoMachineProfile = $true
             $Global:SkypeSession = New-PSSession -Name $psSessionName -ConnectionUri $ConnectionUri.Uri `

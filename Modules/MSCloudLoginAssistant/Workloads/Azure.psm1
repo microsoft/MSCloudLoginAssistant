@@ -15,7 +15,7 @@ function Connect-MSCloudLoginAzure
             $Global:MSCloudLoginAzureConnected = $True
         }
     }
-    catch 
+    catch
     {
         if ($_.Exception -like '*unknown_user_type: Unknown User Type*')
         {

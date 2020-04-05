@@ -18,7 +18,7 @@ function Connect-MSCloudLoginTeams
         {
             Connect-MSCloudLoginTeamsMFA -EnvironmentName $Global:CloudEnvironment
         }
-        try 
+        try
         {
             Connect-MicrosoftTeams -Credential $Global:o365Credential -ErrorAction Stop | Out-Null
             $Global:MSCloudLoginTeamsConnected = $true
@@ -62,7 +62,7 @@ function Connect-MSCloudLoginTeams
     }
     else
     {
-        try 
+        try
         {
             Connect-MicrosoftTeams -ErrorAction Stop | Out-Null
             $Global:MSCloudLoginTeamsConnected = $true

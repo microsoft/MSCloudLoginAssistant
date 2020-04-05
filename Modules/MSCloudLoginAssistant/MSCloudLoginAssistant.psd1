@@ -9,31 +9,31 @@
 @{
 
     # Script module or binary module file associated with this manifest.
-    RootModule = 'MSCloudLoginAssistant.psm1'
+    RootModule             = 'MSCloudLoginAssistant.psm1'
 
     # Version number of this module.
-    ModuleVersion = '1.0.5'
+    ModuleVersion          = '1.0.5'
 
     # Supported PSEditions
     # CompatiblePSEditions = @()
 
     # ID used to uniquely identify this module
-    GUID = 'ca0435a6-ea50-4aa6-8f97-5d031fdc5abe'
+    GUID                   = 'ca0435a6-ea50-4aa6-8f97-5d031fdc5abe'
 
     # Author of this module
-    Author = 'Microsoft Corporation'
+    Author                 = 'Microsoft Corporation'
 
     # Company or vendor of this module
-    CompanyName = 'Microsoft Corporation'
+    CompanyName            = 'Microsoft Corporation'
 
     # Copyright statement for this module
-    Copyright = '(c) 2020 Microsoft Corporation. All rights reserved.'
+    Copyright              = '(c) 2020 Microsoft Corporation. All rights reserved.'
 
     # Description of the functionality provided by this module
-    Description = 'Checks the current status of connections to (and as required, prompts for login to) various Microsoft Cloud platforms.'
+    Description            = 'Checks the current status of connections to (and as required, prompts for login to) various Microsoft Cloud platforms.'
 
     # Minimum version of the Windows PowerShell engine required by this module
-    PowerShellVersion = '5.1'
+    PowerShellVersion      = '5.1'
 
     # Name of the Windows PowerShell host required by this module
     # PowerShellHostName = ''
@@ -51,11 +51,11 @@
     # ProcessorArchitecture = ''
 
     # Modules that must be imported into the global environment prior to importing this module
-    RequiredModules = @(
-    @{
-        ModuleName      = "AzureADPreview"
-        RequiredVersion = "2.0.2.89"
-    })
+    RequiredModules        = @(
+        @{
+            ModuleName      = "AzureADPreview"
+            RequiredVersion = "2.0.2.89"
+        })
 
     # Assemblies that must be loaded prior to importing this module
     # RequiredAssemblies = @()
@@ -70,7 +70,7 @@
     # FormatsToProcess = @()
 
     # Modules to import as nested modules of the module specified in RootModule/ModuleToProcess
-    NestedModules     = @(
+    NestedModules          = @(
         'Workloads\Azure.psm1',
         'Workloads\AzureAD.psm1',
         'Workloads\ExchangeOnline.psm1',
@@ -87,13 +87,13 @@
     #FunctionsToExport = ''
 
     # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
-    CmdletsToExport = @('Test-MSCloudLogin')
+    CmdletsToExport        = @('Test-MSCloudLogin')
 
     # Variables to export from this module
-    VariablesToExport = '*'
+    VariablesToExport      = '*'
 
     # Aliases to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no aliases to export.
-    AliasesToExport = @()
+    AliasesToExport        = @()
 
     # DSC resources to export from this module
     # DscResourcesToExport = @()
@@ -105,12 +105,12 @@
     # FileList = @()
 
     # Private data to pass to the module specified in RootModule/ModuleToProcess. This may also contain a PSData hashtable with additional module metadata used by PowerShell.
-    PrivateData = @{
+    PrivateData            = @{
 
         PSData = @{
 
             # Tags applied to this module. These help with module discovery in online galleries.
-            Tags = 'Azure', 'Az', 'AzureAD', 'Cloud', 'Office365', 'PnP', 'MicrosoftTeams', "ExchangeOnline", "SharePointOnline"
+            Tags       = 'Azure', 'Az', 'AzureAD', 'Cloud', 'Office365', 'PnP', 'MicrosoftTeams', "ExchangeOnline", "SharePointOnline"
 
             # A URL to the license for this module.
             # LicenseUri = ''

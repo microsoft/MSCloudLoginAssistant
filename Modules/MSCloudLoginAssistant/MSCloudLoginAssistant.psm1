@@ -18,10 +18,10 @@ function Test-MSCloudLogin
     [CmdletBinding()]
     param
     (
-        [Parameter(Mandatory=$true)]
-        [ValidateSet("Azure","AzureAD","SharePointOnline","ExchangeOnline", `
-                     "SecurityComplianceCenter","MSOnline","PnP","PowerPlatforms", `
-                     "MicrosoftTeams","SkypeForBusiness")]
+        [Parameter(Mandatory = $true)]
+        [ValidateSet("Azure", "AzureAD", "SharePointOnline", "ExchangeOnline", `
+                "SecurityComplianceCenter", "MSOnline", "PnP", "PowerPlatforms", `
+                "MicrosoftTeams", "SkypeForBusiness")]
         [System.String]
         $Platform,
 
@@ -41,11 +41,11 @@ function Test-MSCloudLogin
 
     if ($VerbosePreference -eq "Continue")
     {
-        $verboseParameter = @{Verbose = $true}
+        $verboseParameter = @{Verbose = $true }
     }
     else
     {
-        $verboseParameter = @{}
+        $verboseParameter = @{ }
     }
 
     # If we specified the CloudCredential parameter then set the global o365Credential object to its value
@@ -119,11 +119,11 @@ function Get-SPOAdminUrl
     Write-Verbose -Message "Connection to Azure AD is required to automatically determine SharePoint Online admin URL..."
     Test-MSCloudLogin -Platform AzureAD -CloudCredential $CloudCredential
     Write-Verbose -Message "Getting SharePoint Online admin URL..."
-    $defaultDomain = Get-AzureADDomain | Where-Object {$_.Name -like "*.onmicrosoft.com" -and $_.IsInitial -eq $true} # We don't use IsDefault here because the default could be a custom domain
+    $defaultDomain = Get-AzureADDomain | Where-Object { $_.Name -like "*.onmicrosoft.com" -and $_.IsInitial -eq $true } # We don't use IsDefault here because the default could be a custom domain
 
     if ($null -eq $defaultDomain)
     {
-        $defaultDomain = Get-AzureADDomain | Where-Object {$_.Name -like "*.onmicrosoft.de" -and $_.IsInitial -eq $true}
+        $defaultDomain = Get-AzureADDomain | Where-Object { $_.Name -like "*.onmicrosoft.de" -and $_.IsInitial -eq $true }
         $domain = '.onmicrosoft.de'
         $tenantName = $defaultDomain[0].Name.Replace($domain, '')
         if ($Global:CloudEnvironment -eq 'Germany')
@@ -164,8 +164,8 @@ function Get-AzureADDLL
     )
     $manifest = Import-PowerShellDataFile ($SCRIPT:MyInvocation.MyCommand.Path.Replace('.psm1', '.psd1'))
     $dependencies = $manifest.RequiredModules
-    $AzureADVersion = $dependencies | Where-Object -FilterScript {$_.ModuleName -eq 'AzureADPreview'}
-    [array]$AzureADModules = Get-Module -ListAvailable | Where-Object {$_.name -eq "AzureADPreview" -and $_.Version -eq $AzureADVersion.RequiredVersion}
+    $AzureADVersion = $dependencies | Where-Object -FilterScript { $_.ModuleName -eq 'AzureADPreview' }
+    [array]$AzureADModules = Get-Module -ListAvailable | Where-Object { $_.name -eq "AzureADPreview" -and $_.Version -eq $AzureADVersion.RequiredVersion }
 
     if ($AzureADModules.count -eq 0)
     {
@@ -173,7 +173,7 @@ function Get-AzureADDLL
     }
     else
     {
-        $AzureDLL = Join-Path (($AzureADModules | Sort-Object version -Descending | Select-Object -first 1).Path | split-Path) Microsoft.IdentityModel.Clients.ActiveDirectory.dll
+        $AzureDLL = Join-Path (($AzureADModules | Sort-Object version -Descending | Select-Object -first 1).Path | Split-Path) Microsoft.IdentityModel.Clients.ActiveDirectory.dll
         return $AzureDLL
     }
 
@@ -189,10 +189,10 @@ function Get-TenantLoginEndPoint
         $TenantName,
         [Parameter(Mandatory = $false)]
         [System.String]
-        [ValidateSet('MicrosoftOnline','EvoSTS')]
+        [ValidateSet('MicrosoftOnline', 'EvoSTS')]
         $LoginSource = "EvoSTS"
     )
-    $TenantInfo = @{}
+    $TenantInfo = @{ }
     if ($LoginSource -eq "EvoSTS")
     {
         $webrequest = Invoke-WebRequest -Uri https://login.windows.net/$($TenantName)/.well-known/openid-configuration -UseBasicParsing
@@ -222,7 +222,7 @@ function New-ADALServiceInfo
 
         [Parameter(Mandatory = $false)]
         [System.String]
-        [ValidateSet('MicrosoftOnline','EvoSTS')]
+        [ValidateSet('MicrosoftOnline', 'EvoSTS')]
         $LoginSource = "EvoSTS"
     )
     $AzureADDLL = Get-AzureADDLL
@@ -247,7 +247,7 @@ function New-ADALServiceInfo
         [string] $authority = $TenantInfo.authorization_endpoint
     }
     $PromptBehavior = [Microsoft.IdentityModel.Clients.ActiveDirectory.PromptBehavior]::Auto
-    $Service = @{}
+    $Service = @{ }
     $Service["authContext"] = [Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext]::new($authority, $false)
     $Service["platformParam"] = New-Object "Microsoft.IdentityModel.Clients.ActiveDirectory.PlatformParameters" -ArgumentList $PromptBehavior
     $Service["userId"] = New-Object "Microsoft.IdentityModel.Clients.ActiveDirectory.UserIdentifier" -ArgumentList $UserPrincipalName, "OptionalDisplayableId"
@@ -352,10 +352,10 @@ function Get-SkypeForBusinessServiceEndpoint
     $xml = Get-RTCXml -Url $liveIdUrl
     $root = $xml.AutodiscoverResponse.Root
 
-    $domain = $root.Link | Where-Object -FilterScript {$_.Token -eq 'domain'}
+    $domain = $root.Link | Where-Object -FilterScript { $_.Token -eq 'domain' }
     if ($null -eq $domain)
     {
-        $redirect = $root.Link | Where-Object -FilterScript {$_.Token -eq 'redirect'}
+        $redirect = $root.Link | Where-Object -FilterScript { $_.Token -eq 'redirect' }
 
         if ($null -eq $redirect)
         {
@@ -366,10 +366,10 @@ function Get-SkypeForBusinessServiceEndpoint
         {
             $xml = Get-RTCXml -Url $redirect.href
             $root = $xml.AutodiscoverResponse.Root
-            $domain = $root.Link | Where-Object -FilterScript {$_.Token -eq 'domain'}
+            $domain = $root.Link | Where-Object -FilterScript { $_.Token -eq 'domain' }
             if ($null -eq $domain)
             {
-                $redirect = $root.Link | Where-Object -FilterScript {$_.Token -eq 'redirect'}
+                $redirect = $root.Link | Where-Object -FilterScript { $_.Token -eq 'redirect' }
             }
             else
             {
@@ -378,8 +378,8 @@ function Get-SkypeForBusinessServiceEndpoint
         }
     }
     $xml = Get-RTCXml -Url $domain.href
-    $endpoint = $xml.AutodiscoverResponse.Domain.Link | Where-Object -FilterScript {$_.token -eq $desiredLink}
-    $endpointUrl = $endpoint.href.Replace("/OcsPowershellLiveId","/OcsPowershellOAuth")
+    $endpoint = $xml.AutodiscoverResponse.Domain.Link | Where-Object -FilterScript { $_.token -eq $desiredLink }
+    $endpointUrl = $endpoint.href.Replace("/OcsPowershellLiveId", "/OcsPowershellOAuth")
     return [Uri]::new($endpointUrl)
 }
 
@@ -427,7 +427,7 @@ function Get-SkypeForBusinessAccessInfo
     $clientId = $null
     if ($end -gt $start)
     {
-        $clientId = $header.Substring($start, $end-$start)
+        $clientId = $header.Substring($start, $end - $start)
     }
 
     # Get Auth Url
@@ -437,12 +437,12 @@ function Get-SkypeForBusinessAccessInfo
     $authUrl = $null
     if ($end -gt $start)
     {
-        $authUrl = $header.Substring($start, $end-$start)
+        $authUrl = $header.Substring($start, $end - $start)
     }
 
     $result = @{
         ClientID = $clientId
-        AuthUrl = $authUrl
+        AuthUrl  = $authUrl
     }
     return $result
 }
@@ -451,7 +451,7 @@ function Get-PowerPlatformTokenInfo
 {
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [System.String]
         $Audience,
 
@@ -463,7 +463,7 @@ function Get-PowerPlatformTokenInfo
     $jobName = 'AcquireTokenAsync' + (New-Guid).ToString()
     Start-Job -Name $jobName -ScriptBlock {
         Param(
-            [Parameter(Mandatory=$true)]
+            [Parameter(Mandatory = $true)]
             [System.Management.Automation.PSCredential]
             $O365Credentials,
 
@@ -508,7 +508,7 @@ function Get-PowerPlatformTokenInfo
         }
     } -ArgumentList @($Credentials, $Audience) | Out-Null
 
-    $job = Get-Job | Where-Object -FilterScript {$_.Name -eq $jobName}
+    $job = Get-Job | Where-Object -FilterScript { $_.Name -eq $jobName }
     do
     {
         Start-Sleep -Seconds 1

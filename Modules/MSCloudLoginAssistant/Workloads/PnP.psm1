@@ -11,7 +11,7 @@ function Connect-MSCloudLoginPnP
 
     if ($null -eq $Global:o365Credential)
     {
-       $Global:o365Credential = Get-Credential -Message "Cloud Credential"
+        $Global:o365Credential = Get-Credential -Message "Cloud Credential"
     }
 
     if ([string]::IsNullOrEmpty($ConnectionUrl))
@@ -41,13 +41,13 @@ function Connect-MSCloudLoginPnP
     catch
     {
         if ($_.Exception -like '*Microsoft.SharePoint.Client.ServerUnauthorizedAccessException*' -or `
-            $_.Exception -like '*The remote server returned an error: (401) Unauthorized.*')
+                $_.Exception -like '*The remote server returned an error: (401) Unauthorized.*')
         {
             $Global:MSCloudLoginAzurePnPConnected = $false
             throw [System.Exception] "Specified account does not have access to connect to the site. $_"
         }
         elseif ($_.Exception -like "*The remote name could not be resolved:*" -and ($Global:CloudEnvironment -eq 'USGovernment' -or `
-            $Global:CloudEnvironment -eq 'GCCHigh') -and !$Global:IsMFAAuth)
+                    $Global:CloudEnvironment -eq 'GCCHigh') -and !$Global:IsMFAAuth)
         {
             # We are most likely dealing with a GCC High environment, we need to change the connection url to *.us
             $Global:SPOConnectionUrl = $Global:SPOConnectionUrl.Replace('.com', '.us')
@@ -59,7 +59,7 @@ function Connect-MSCloudLoginPnP
         {
             # This error means that the account was trying to connect using MFA.
             try
-            {            
+            {
                 $Global:SPOAdminUrl = Get-SPOAdminUrl -CloudCredential $Global:o365Credential
                 $AuthHeader = Get-AuthHeader -UserPrincipalName $Global:o365Credential.UserName `
                     -ResourceURI $Global:SPOAdminUrl -clientID $clientID -RedirectURI $RedirectURI
