@@ -516,3 +516,24 @@ function Get-PowerPlatformTokenInfo
     $TokenInfo = Receive-Job -Name $jobName
     return $TokenInfo
 }
+
+function Test-MSCloudLoginCommand
+{
+    [CmdletBinding()]
+    [OutputType([System.Boolean])]
+    Param(
+        [Parameter(Mandatory = $true)]
+        [System.String]
+        $Command
+    )
+
+    try
+    {
+        $testResult = Invoke-Command $Command
+        return $true
+    }
+    catch
+    {
+        return $false
+    }
+}

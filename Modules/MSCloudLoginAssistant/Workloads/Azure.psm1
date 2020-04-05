@@ -4,15 +4,18 @@ function Connect-MSCloudLoginAzure
     param()
     try
     {
-        if ($null -ne $Global:o365Credential)
+        if (-not (Test-MSCloudLoginCommand 'Get-AzResource'))
         {
-            Connect-AzAccount -Credential $Global:o365Credential -ErrorAction Stop | Out-Null
-            $Global:MSCloudLoginAzureConnected = $True
-        }
-        else
-        {
-            Connect-AzAccount -ErrorAction Stop | Out-Null
-            $Global:MSCloudLoginAzureConnected = $True
+            if ($null -ne $Global:o365Credential)
+            {
+                Connect-AzAccount -Credential $Global:o365Credential -ErrorAction Stop | Out-Null
+                $Global:MSCloudLoginAzureConnected = $True
+            }
+            else
+            {
+                Connect-AzAccount -ErrorAction Stop | Out-Null
+                $Global:MSCloudLoginAzureConnected = $True
+            }
         }
     }
     catch
