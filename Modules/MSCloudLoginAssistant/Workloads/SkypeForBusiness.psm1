@@ -2,7 +2,6 @@ function Connect-MSCloudLoginSkypeForBusiness
 {
     [CmdletBinding()]
     param()
-
     if ($null -eq $Global:o365Credential)
     {
         $Global:o365Credential = Get-Credential -Message "Cloud Credential"
@@ -18,7 +17,7 @@ function Connect-MSCloudLoginSkypeForBusiness
     {
         if ($null -eq $Global:SkypeModule -and $null -eq (Get-Command Get-CsTeamsClientConfiguration -EA SilentlyContinue))
         {
-            Write-Verbose "Creating a new Session to Skype for Business Servers"
+            Write-Verbose -Message "Creating a new Session to Skype for Business Servers"
             $ErrorActionPreference = "Stop"
 
             $adminDomain = $Global:o365Credential.UserName.Split('@')[1]
@@ -32,6 +31,7 @@ function Connect-MSCloudLoginSkypeForBusiness
                 $AccessToken = Get-AccessToken -TargetUri $targetUri -ClientID $clientId `
                     -AuthUri $authUri `
                     -Credentials $Global:o365Credential
+                Write-Verbose -Message "AccessToken = $AccessToken"
                 $networkCreds = [System.Net.NetworkCredential]::new("", $AccessToken)
                 $secPassword = $networkCreds.SecurePassword
                 $user = "oauth"
@@ -39,6 +39,7 @@ function Connect-MSCloudLoginSkypeForBusiness
             }
             catch
             {
+                Write-Verbose -Message "An error occured trying to get the access token."
                 throw $_
             }
 
@@ -68,6 +69,7 @@ function Connect-MSCloudLoginSkypeForBusiness
     {
         if ($_.Exception -like '*Connecting to remote server*')
         {
+            Write-Verbose -Message "The connection requires MFA. Attempting to connect with Multi-Factor."
             $adminDomain = $Global:o365Credential.UserName.Split('@')[1]
             $targetUri = Get-SkypeForBusinessServiceEndpoint -TargetDomain $adminDomain
             $RedirectURI = "urn:ietf:wg:oauth:2.0:oob";

@@ -38,7 +38,7 @@ function Test-MSCloudLogin
         [Switch]
         $UseModernAuth
     )
-
+    $VerbosePreference = 'SilentlyContinue'
     if ($VerbosePreference -eq "Continue")
     {
         $verboseParameter = @{Verbose = $true }
@@ -322,11 +322,58 @@ function Get-AccessToken
         }
         [System.Reflection.Assembly]::LoadFrom($AzureADDLL) | Out-Null
 
-        $UserPasswordCreds = [Microsoft.IdentityModel.Clients.ActiveDirectory.UserPasswordCredential]::new($Credentials.UserName, $Credentials.Password)
         $context = [Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext]::new($AuthUri, $false, [Microsoft.IdentityModel.Clients.ActiveDirectory.TokenCache]::DefaultShared)
 
+        Write-Verbose -Message "TargetURI = $TargetUri"
+        Write-Verbose -Message "ClientID = $ClientID"
+        Write-Verbose -Message "Content = $context"
         $authResult = $context.AcquireTokenSilentAsync($TargetUri, $ClientId)
         $AccessToken = $authResult.result.AccessToken
+
+        if ([System.String]::IsNullOrEmpty($AccessToken))
+        {
+            $jobName = "AcquireTokenAsync" + (New-Guid).ToString()
+            Start-Job -Name $jobName -ScriptBlock {
+                Param(
+                    [Parameter(Mandatory = $True)]
+                    $TargetUri,
+
+                    [Parameter(Mandatory = $True)]
+                    $AuthUri,
+
+                    [Parameter(Mandatory = $True)]
+                    $ClientId,
+
+                    [Parameter(Mandatory = $False)]
+                    [System.Management.Automation.PSCredential]
+                    $Credentials
+                )
+                # Load AAD Assemblies
+                $AzureADDLL = Get-AzureADDLL
+                if ([string]::IsNullOrEmpty($AzureADDLL))
+                {
+                    throw "Can't find Azure AD DLL"
+                }
+                [System.Reflection.Assembly]::LoadFrom($AzureADDLL) | Out-Null
+
+                $UserPasswordCreds = [Microsoft.IdentityModel.Clients.ActiveDirectory.UserPasswordCredential]::new($Credentials.UserName, $Credentials.Password)
+                $context = [Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext]::new($AuthUri, $false, [Microsoft.IdentityModel.Clients.ActiveDirectory.TokenCache]::DefaultShared)
+                $authResult = $context.AcquireTokenSilentAsync($TargetUri, $ClientId)
+
+                if ($null -eq $authResult.result)
+                {
+                    $authResult = [Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContextIntegratedAuthExtensions]::AcquireTokenAsync($context, $targetUri, $ClientId, $UserPasswordCreds)
+                }
+                $token = $authResult.result.AccessToken
+                return $token
+            } -ArgumentList @($targetUri, $AuthUri, $ClientId, $Credentials) | Out-Null
+            $job = Get-Job | Where-Object -FilterScript {$_.Name -eq $jobName}
+            do
+            {
+                Start-Sleep -Seconds 1
+            } while ($job.JobStateInfo.State -ne "Completed")
+            $AccessToken = Receive-Job -Name $jobName
+        }
         Write-Verbose "Token Found --> $AccessToken"
         return $AccessToken
     }
@@ -515,4 +562,25 @@ function Get-PowerPlatformTokenInfo
     } while ($job.JobStateInfo.State -ne "Completed")
     $TokenInfo = Receive-Job -Name $jobName
     return $TokenInfo
+}
+
+function Test-MSCloudLoginCommand
+{
+    [CmdletBinding()]
+    [OutputType([System.Boolean])]
+    Param(
+        [Parameter(Mandatory = $true)]
+        [System.String]
+        $Command
+    )
+
+    try
+    {
+        $testResult = Invoke-Command $Command
+        return $true
+    }
+    catch
+    {
+        return $false
+    }
 }
