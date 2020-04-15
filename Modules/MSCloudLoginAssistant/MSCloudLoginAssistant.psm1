@@ -135,13 +135,26 @@ function Get-SPOAdminUrl
 
     if($Global:UseApplicationIdentity)
     {
-        Write-Verbose -Message "Retrieving SharePoint Online Admin url with MS graph api..."
-        #unfortunately, application permissions are not working so we will use our fallback delegated user
-        $accessToken = Get-OnBehalfOfAccessToken -TargetUri "https://graph.microsoft.com"
-        [Hashtable] $headers = @{}
-        $Headers["Authorization"] = "Bearer $accessToken";
-        $tenantId = $Global:appIdentityParams.Tenant
-        $response = Invoke-WebRequest -Uri "https://graph.microsoft.com/v1.0/$tenantId/sites/root?`$select=sitecollection" -Headers $headers -Method Get -UseBasicParsing -UserAgent "SysKitTrace"
+        Write-Verbose -Message "Retrieving SharePoint Online Admin url with MS graph api..."    
+        try
+        {
+            $accessToken = Get-AppIdentityAccessToken -TargetUri "https://graph.microsoft.com"
+            [Hashtable] $headers = @{}
+            $Headers["Authorization"] = "Bearer $accessToken";
+            $tenantId = $Global:appIdentityParams.Tenant
+            $response = Invoke-WebRequest -Uri "https://graph.microsoft.com/v1.0/$tenantId/sites/root?`$select=sitecollection" -Headers $headers -Method Get -UseBasicParsing -UserAgent "SysKitTrace"
+        }
+        catch
+        {
+            #unfortunately, application permissions are not working so we will use our fallback delegated user
+            $accessToken = Get-OnBehalfOfAccessToken -TargetUri "https://graph.microsoft.com"
+            [Hashtable] $headers = @{}
+            $Headers["Authorization"] = "Bearer $accessToken";
+            $tenantId = $Global:appIdentityParams.Tenant
+            $response = Invoke-WebRequest -Uri "https://graph.microsoft.com/v1.0/$tenantId/sites/root?`$select=sitecollection" -Headers $headers -Method Get -UseBasicParsing -UserAgent "SysKitTrace"
+        }
+        
+
         $json = ConvertFrom-Json $response.Content
         $hostname = $json.siteCollection.hostname
         $spTenantNameLength = $hostname.IndexOf(".sharepoint", [System.StringComparison]::OrdinalIgnoreCase)
