@@ -1,129 +1,163 @@
 function Connect-MSCloudLoginAzure
 {
     [CmdletBinding()]
-    param()
+    param
+    (
+        [Parameter()]
+        [Alias("o365Credential")]
+        [System.Management.Automation.PSCredential]
+        $CloudCredential,
+
+        [Parameter()]
+        [Switch]
+        $UseModernAuth
+    )
+    # If we specified the CloudCredential parameter then set the global o365Credential object to its value
+    if ($null -ne $CloudCredential)
+    {
+        $Global:o365Credential = $CloudCredential
+    }
+
+    if ($null -eq $Global:UseModernAuth)
+    {
+        $Global:UseModernAuth = $UseModernAuth.IsPresent
+    }
+    $exceptionStringMFA = "AADSTS";
+    $clientid = "1950a258-227b-4e31-a9cf-717495945fc2";
+    $ResourceURI = "https://management.core.windows.net";
+    $RedirectURI = "urn:ietf:wg:oauth:2.0:oob";
+    ##$connectCmdlet = "Connect-AzAccount";
+
+    $global:azLoginSucceeded = $false
     try
     {
-        if (-not (Test-MSCloudLoginCommand 'Get-AzResource'))
+        Write-Verbose -Message "Checking Azure login..."
+        # Run a simple command to check if we are logged in
+        Get-AzResource -ErrorAction Stop -WarningAction SilentlyContinue | Out-Null
+        if ($? -eq $false)
         {
-            if ($null -ne $Global:o365Credential)
-            {
-                Connect-AzAccount -Credential $Global:o365Credential -ErrorAction Stop | Out-Null
-                $Global:MSCloudLoginAzureConnected = $True
-            }
-            else
-            {
-                Connect-AzAccount -ErrorAction Stop | Out-Null
-                $Global:MSCloudLoginAzureConnected = $True
-            }
-        }
-    }
-    catch
-    {
-        if ($_.Exception -like '*unknown_user_type: Unknown User Type*')
-        {
-            if ($Global:o365Credential.UserName.Split('@')[1] -like '*.de')
-            {
-                $EnvironmentName = 'AzureGermanCloud'
-                $Global:CloudEnvironment = 'Germany'
-            }
-            else
-            {
-                $EnvironmentName = 'AzureCloud'
-                $Global:CloudEnvironment = 'Public'
-            }
-            try
-            {
-                Connect-AzAccount -Credential $Global:o365Credential -Environment $EnvironmentName -ErrorAction Stop | Out-Null
-                $Global:MSCloudLoginAzureConnected = $True
-                $Global:IsMFAAuth = $false
-            }
-            catch
-            {
-                if ($_.Exception -like '*Due to a configuration change made by your administrator*')
-                {
-                    Connect-MSCloudLoginAzureMFA -EnvironmentName $EnvironmentName
-                }
-                elseif ($_.Exception -like '*unknown_user_type*')
-                {
-                    $Global:CloudEnvironment = 'GCCHigh'
-                    Connect-MSCloudLoginAzureMFA -EnvironmentName 'GCCHigh'
-                }
-                else
-                {
-                    $Global:MSCloudLoginAzureConnected = $False
-                    throw $_
-                }
-            }
+            throw
         }
         else
         {
-            if ($_.Exception -like '*Due to a configuration change made by your administrator*')
-            {
-                Connect-MSCloudLoginAzureMFA -EnvironmentName 'AzureCloud'
-            }
-            else
-            {
-                $Global:MSCloudLoginAzureConnected = $false
-                throw $_
-            }
+            Write-Verbose -Message "You are already logged in to Azure."
         }
-    }
-
-    [array]$subscriptions = Get-AzSubscription -WarningAction Continue
-    # Prompt for a subscription in case we have more than one
-    if ($subscriptions.Count -gt 1)
-    {
-        Write-Host -ForegroundColor Cyan " - Prompting for Azure subscription..."
-        $Global:subscriptionDetails = Get-AzSubscription -WarningAction SilentlyContinue | Sort-Object Name | Out-GridView -Title "Select ONE subscription..." -PassThru
-        if ($null -eq $subscriptionDetails)
-        {
-            throw " - A subscription must be selected."
-        }
-        elseif ($subscriptionDetails.Count -gt 1)
-        {
-            throw " - Please select *only one* subscription."
-        }
-        Write-Host -ForegroundColor White " - Setting active subscription to '$($Global:subscriptionDetails.Name)'..."
-        Set-AzContext -Subscription $Global:subscriptionDetails.Id
-    }
-    return
-}
-
-function Connect-MSCloudLoginAzureMFA
-{
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory = $true)]
-        [System.String]
-        $EnvironmentName
-    )
-
-    $clientID = "1950a258-227b-4e31-a9cf-717495945fc2"
-    $ResourceURI = "https://management.core.windows.net"
-    if ($EnvironmentName -eq 'AzureGermanCloud')
-    {
-        $ResourceURI = 'https://management.core.cloudapi.de/'
-    }
-    elseif ($EnvironmentName -eq 'GCCHigh')
-    {
-        $ResourceURI = 'https://management.core.usgovcloudapi.net/'
-        $EnvironmentName = 'AzureUSGovernment'
-    }
-    $RedirectURI = "urn:ietf:wg:oauth:2.0:oob"
-    try
-    {
-        $AuthHeader = Get-AuthHeader -UserPrincipalName $Global:o365Credential.UserName `
-            -ResourceURI $ResourceURI -clientID $clientID -RedirectURI $RedirectURI
-        $AccessToken = $AuthHeader.split(" ")[1]
-        Connect-AzAccount -AccountId $Global:o365Credential.UserName -Environment $EnvironmentName -AccessToken $AccessToken -ErrorAction Stop | Out-Null
-        $Global:IsMFAAuth = $true
-        $Global:MSCloudLoginAzureConnected = $True
     }
     catch
     {
-        $Global:MSCloudLoginAzureConnected = $False
-        throw $_
+        if ($_.Exception -like "*Connect-AzAccount*" -or $_.Exception -like "*The access token expiry*" -or `
+            $_.Exception -like "*Authentication_ExpiredToken*")
+        {
+            Write-Debug -Message "Running 'Get-AzResource' failed on initial attempt."
+            try
+            {
+                # Prompt for Windows-style credentials if we don't already have a credential object and not logging into Azure
+                if ($_.Exception -like "*The access token expiry*")
+                {
+                    throw
+                }
+                if ($Global:UseModernAuth -eq $True)
+                {
+                    throw
+                }
+                Write-Verbose -Message "Running 'Connect-AzAccount -ErrorAction Stop -ErrorVariable `$err | Out-Null'"
+                Connect-AzAccount -ErrorAction Stop -ErrorVariable `$err | Out-Null
+                if ($? -eq $false -or $err)
+                {
+                    throw
+                }
+                else
+                {
+                    $global:azLoginSucceeded = $true
+                }
+            }
+            catch
+            {
+                Write-Debug -Message "Login using 'Connect-AzAccount' failed on initial attempt."
+                if ($_.Exception -like "*User canceled authentication*")
+                {
+                    throw "User canceled authentication"
+                }
+                elseif ($_.Exception -like "*The user name or password is incorrect*" -or $_.Exception -like "*ID3242*")
+                {
+                    throw  "Bad credentials were supplied"
+                }
+                elseif (($_.Exception -like "*$exceptionStringMFA*") -or `
+                        ($_.Exception -like "*Sequence contains no elements*") -or `
+                        ($_.Exception -like "*The access token expiry*") ##-or `
+                        ##$Global:UseModernAuth -eq $True
+                        )
+                {
+                    Write-Verbose -Message "The specified account is configured for Multi-Factor Authentication. Please re-enter your credentials."
+
+                    try
+                    {
+                        $AuthHeader = Get-AuthHeader -UserPrincipalName $Global:o365Credential.UserName -ResourceURI $ResourceURI -clientID $clientID -RedirectURI $RedirectURI
+                        $AuthToken = $AuthHeader.split(" ")[1]
+                        Connect-AzAccount -ErrorAction Stop -AccessToken $AuthToken -AccountId $global:o365Credential.UserName | Out-Null
+                        if ($? -eq $false)
+                        {
+                            throw
+                        }
+                        else
+                        {
+                            $global:azLoginSucceeded = $true
+                            $Global:UseModernAuth = $True
+                        }
+                    }
+                    catch
+                    {
+                        Write-Debug -Message "Login using 'Connect-AzAccount' and '-AccessToken $AuthToken -AccountId $($global:o365Credential.UserName)' failed."
+                        Write-Host -ForegroundColor Red $_.Exception
+                        throw $_
+                    }
+                }
+            }
+        }
+        elseif ($_.Exception -like "*Unable to acquire token for tenant*")
+        {
+            Write-Host -ForegroundColor Red $_.Exception
+        }
+        elseif ($_.Exception -like "*null array*")
+        {
+            # Do nothing
+        }
+        elseif ($_.Exception -like "*Get-AzResource*")
+        {
+            # If the exception contains the name of the cmdlet we're trying to run, we probably don't have the required module installed yet
+            throw "It appears you don't have the module for Azure installed, or it isn't loaded.`nPlease install/load the module and try again. `nYou can quickly and easily install the 'Az' module with: `n`"Install-Module -Name Az`""
+        }
+        elseif ($_.Exception -like "*this.Client.SubscriptionId*")
+        {
+            throw "It appears there are no Azure subscriptions associated with the account '$($Global:o365Credential.UserName)'."
+        }
+        else
+        {
+            Write-Host -ForegroundColor Red $_.Exception
+        }
     }
-    return
+    finally
+    {
+        if ($global:azLoginSucceeded)
+        {
+            Write-Verbose -Message " - Successfully logged in to Azure."
+            # Needed when we're logging into Azure - in case we have multiple subs we need to prompt for one
+            [array]$subscriptions = Get-AzSubscription -WarningAction Continue
+            if ($subscriptions.Count -gt 1)
+            {
+                Write-Host -ForegroundColor Cyan " - Prompting for Azure subscription..."
+                $Global:subscriptionDetails = Get-AzSubscription -WarningAction SilentlyContinue | Sort-Object Name | Out-GridView -Title "Select ONE subscription..." -PassThru
+                if ($null -eq $subscriptionDetails)
+                {
+                    throw " - A subscription must be selected."
+                }
+                elseif ($subscriptionDetails.Count -gt 1)
+                {
+                    throw " - Please select *only one* subscription."
+                }
+                Write-Host -ForegroundColor White " - Setting active subscription to '$($Global:subscriptionDetails.Name)'..."
+                Set-AzContext -Subscription $Global:subscriptionDetails.Id
+            }
+        }
+    }
 }

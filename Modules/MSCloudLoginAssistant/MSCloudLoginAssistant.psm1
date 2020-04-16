@@ -38,7 +38,6 @@ function Test-MSCloudLogin
         [Switch]
         $UseModernAuth
     )
-    $VerbosePreference = 'SilentlyContinue'
     if ($VerbosePreference -eq "Continue")
     {
         $verboseParameter = @{Verbose = $true }
