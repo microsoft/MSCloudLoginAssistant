@@ -1,7 +1,10 @@
 function Connect-MSCloudLoginExchangeOnline
 {
     [CmdletBinding()]
-    param()
+    param(
+        [Parameter()]
+        [System.String]$Prefix
+    )
     if ($null -eq $Global:o365Credential)
     {
         $Global:o365Credential = Get-Credential -Message "Cloud Credential"
@@ -112,7 +115,12 @@ function Connect-MSCloudLoginExchangeOnline
                 Write-Verbose -Message "Importing all commands into the EXO Session"
                 $WarningPreference = 'SilentlyContinue'
                 $Global:ExchangeOnlineModules = Import-PSSession $Global:ExchangeOnlineSession -AllowClobber
-                Import-Module $Global:ExchangeOnlineModules -Global | Out-Null
+                $IPMOParameters = @{}
+                if ($PSBoundParameters.containskey("Prefix"))
+                {
+                    $IPMOParameters.add("Prefix",$prefix)
+                }
+                Import-Module $Global:ExchangeOnlineModules -Global $ipmoparameters | Out-Null
             }
         }
         catch
