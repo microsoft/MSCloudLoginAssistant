@@ -64,7 +64,15 @@ function Connect-MSCloudLoginPnP
                 $AuthHeader = Get-AuthHeader -UserPrincipalName $Global:o365Credential.UserName `
                     -ResourceURI $Global:SPOAdminUrl -clientID $clientID -RedirectURI $RedirectURI
                 $AccessToken = $AuthHeader.split(" ")[1]
-                Connect-PnPOnline -Url $Global:SPOConnectionUrl -UseWebLogin
+
+                if ($null -ne $AccessToken)
+                {
+                    Connect-PnPOnline -Url $Global:SPOConnectionUrl -AccessToken $AccessToken
+                }
+                else
+                {
+                    Connect-PnPOnline -Url $Global:SPOConnectionUrl -UseWebLogin
+                }
                 $Global:IsMFAAuth = $true
                 $Global:MSCloudLoginAzurePnPConnected = $true
             }
