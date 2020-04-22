@@ -1,7 +1,10 @@
 function Connect-MSCloudLoginSecurityCompliance
 {
     [CmdletBinding()]
-    param()
+    param(
+        [Parameter()]
+        [System.String]$Prefix
+    )
 
     if ($null -eq $Global:SessionSecurityCompliance)
     {
@@ -170,7 +173,13 @@ function Connect-MSCloudLoginSecurityCompliance
                     -ErrorAction SilentlyContinue `
                     -AllowClobber
 
-                $Global:SCModule = Import-Module $Global:SCSession -Global -PassThru | Out-Null
+                $IPMOParameters = @{}
+                if ($PSBoundParameters.containskey("Prefix"))
+                {
+                    $IPMOParameters.add("Prefix",$prefix)
+                }
+
+                $Global:SCModule = Import-Module $Global:SCSession -Global -PassThru @IPMOParameters | Out-Null
             }
         }
     }

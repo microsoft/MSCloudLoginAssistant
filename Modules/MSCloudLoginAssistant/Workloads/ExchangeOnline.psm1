@@ -120,7 +120,7 @@ function Connect-MSCloudLoginExchangeOnline
                 {
                     $IPMOParameters.add("Prefix",$prefix)
                 }
-                Import-Module $Global:ExchangeOnlineModules -Global $ipmoparameters | Out-Null
+                Import-Module $Global:ExchangeOnlineModules -Global @IPMOParameters | Out-Null
             }
         }
         catch
