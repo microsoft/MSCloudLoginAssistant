@@ -1,7 +1,10 @@
 function Connect-MSCloudLoginSkypeForBusiness
 {
     [CmdletBinding()]
-    param()
+    param(
+        [Parameter()]
+        [System.String]$Prefix
+    )
     if ($null -eq $Global:o365Credential)
     {
         $Global:o365Credential = Get-Credential -Message "Cloud Credential"
@@ -57,7 +60,11 @@ function Connect-MSCloudLoginSkypeForBusiness
             $Global:SkypeSession = New-PSSession -Name $psSessionName -ConnectionUri $ConnectionUri.Uri `
                 -Credential $cred -Authentication Basic -SessionOption $SessionOption
             $Global:SkypeModule = Import-PSSession $Global:SkypeSession
-            Import-Module $Global:SkypeModule -Global | Out-Null
+            if ($PSBoundParameters.containskey("Prefix"))
+            {
+                $IPMOParameters.add("Prefix",$prefix)
+            }
+            Import-Module $Global:SkypeModule -Global @IPMOParameters | Out-Null
         }
         else
         {
@@ -105,7 +112,12 @@ function Connect-MSCloudLoginSkypeForBusiness
             $Global:SkypeSession = New-PSSession -Name $psSessionName -ConnectionUri $ConnectionUri.Uri `
                 -Credential $cred -Authentication Basic -SessionOption $SessionOption
             $Global:SkypeModule = Import-PSSession $Global:SkypeSession
-            Import-Module $Global:SkypeModule -Global | Out-Null
+            $IPMOParameters = @{}
+            if ($PSBoundParameters.containskey("Prefix"))
+            {
+                $IPMOParameters.add("Prefix",$prefix)
+            }
+            Import-Module $Global:SkypeModule -Global @IPMOParameters | Out-Null
         }
         else
         {
