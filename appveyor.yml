@@ -8,7 +8,7 @@ install:
     - ps: |
         $moduleName = 'MSCloudLoginAssistant'
         $mainModuleFolder = "Modules\$moduleName"
-        Install-Module MicrosoftTeams -Force
+        Install-Module MicrosoftTeams,AzureADPreview -Force
         Import-Module -Name "$env:APPVEYOR_BUILD_FOLDER\DscResource.Tests\AppVeyor.psm1"
         Invoke-AppveyorInstallTask
 
