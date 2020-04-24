@@ -1,50 +1,80 @@
 function Connect-MSCloudLoginAzureAD
 {
     [CmdletBinding()]
-    param()
-    try
+    param(
+        [Parameter()]
+        [System.String]
+        $ApplicationId,
+
+        [Parameter()]
+        [System.String]
+        $TenantId,
+
+        [Parameter()]
+        [System.String]
+        $CertificateThumbprint
+    )
+
+    if (-not [String]::IsNullOrEmpty($ApplicationId) -and `
+        -not [String]::IsNullOrEmpty($TenantId) -and `
+        -not [String]::IsNullOrEmpty($CertificateThumbprint))
     {
-        Connect-AzureAD -Credential $Global:o365Credential -ErrorAction Stop | Out-Null
-        $Global:IsMFAAuth = $false
-        $Global:MSCloudLoginAzureADConnected = $true
-    }
-    catch
-    {
-        if ($_.Exception -like '*unknown_user_type: Unknown User Type*')
+        Write-Verbose -Message "Connecting to AzureAD using Application {$ApplicationId}"
+        try
         {
-            try
-            {
-                Connect-AzureAD -Credential $Global:o365Credential -AzureEnvironmentName AzureGermanyCloud -ErrorAction Stop | Out-Null
-                $Global:IsMFAAuth = $false
-                $Global:MSCloudLoginAzureADConnected = $true
-                $Global:CloudEnvironment = 'Germany'
-            }
-            catch
-            {
-                if ($_.Exception -like '*AADSTS50076*')
-                {
-                    Connect-MSCloudLoginAzureADMFA
-                }
-                elseif ($_.Exception -like '*unknown_user_type*')
-                {
-                    $Global:CloudEnvironment = 'GCCHigh'
-                    Connect-MSCloudLoginAzureADMFA
-                }
-                else
-                {
-                    $Global:MSCloudLoginAzureADConnected = $false
-                    throw $_
-                }
-            }
+            Connect-AzureAD -ApplicationId $ApplicationId -TenantId $TenantId -CertificateThumbprint $CertificateThumbprint | Out-Null
         }
-        elseif ($_.Exception -like '*AADSTS50076*')
+        catch
         {
-            Connect-MSCloudLoginAzureADMFA
-        }
-        else
-        {
-            $Global:MSCloudLoginAzureADConnected = $false
             throw $_
+        }
+    }
+    else
+    {
+        try
+        {
+            Connect-AzureAD -Credential $Global:o365Credential -ErrorAction Stop | Out-Null
+            $Global:IsMFAAuth = $false
+            $Global:MSCloudLoginAzureADConnected = $true
+        }
+        catch
+        {
+            if ($_.Exception -like '*unknown_user_type: Unknown User Type*')
+            {
+                try
+                {
+                    Connect-AzureAD -Credential $Global:o365Credential -AzureEnvironmentName AzureGermanyCloud -ErrorAction Stop | Out-Null
+                    $Global:IsMFAAuth = $false
+                    $Global:MSCloudLoginAzureADConnected = $true
+                    $Global:CloudEnvironment = 'Germany'
+                }
+                catch
+                {
+                    if ($_.Exception -like '*AADSTS50076*')
+                    {
+                        Connect-MSCloudLoginAzureADMFA
+                    }
+                    elseif ($_.Exception -like '*unknown_user_type*')
+                    {
+                        $Global:CloudEnvironment = 'GCCHigh'
+                        Connect-MSCloudLoginAzureADMFA
+                    }
+                    else
+                    {
+                        $Global:MSCloudLoginAzureADConnected = $false
+                        throw $_
+                    }
+                }
+            }
+            elseif ($_.Exception -like '*AADSTS50076*')
+            {
+                Connect-MSCloudLoginAzureADMFA
+            }
+            else
+            {
+                $Global:MSCloudLoginAzureADConnected = $false
+                throw $_
+            }
         }
     }
     return

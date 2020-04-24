@@ -1,9 +1,35 @@
 function Connect-MSCloudLoginTeams
 {
     [CmdletBinding()]
-    param()
+    param(
+        [Parameter()]
+        [System.String]
+        $ApplicationId,
 
-    if ($null -ne $Global:o365Credential)
+        [Parameter()]
+        [System.String]
+        $TenantId,
+
+        [Parameter()]
+        [System.String]
+        $CertificateThumbprint
+    )
+    Import-Module MicrosoftTeams -Force
+    if (-not [String]::IsNullOrEmpty($ApplicationId) -and `
+        -not [String]::IsNullOrEmpty($TenantId) -and `
+        -not [String]::IsNullOrEmpty($CertificateThumbprint))
+    {
+        Write-Verbose -Message "Connecting to Microsoft Teams using AzureAD Application {$ApplicationId}"
+        try
+        {
+            Connect-MicrosoftTeams -ApplicationId $ApplicationId -TenantId $TenantId -CertificateThumbprint $CertificateThumbprint | Out-Null
+        }
+        catch
+        {
+            throw $_
+        }
+    }
+    elseif ($null -ne $Global:o365Credential)
     {
         if ($Global:o365Credential.UserName.Split('@')[1] -like '*.de')
         {

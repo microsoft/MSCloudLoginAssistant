@@ -35,9 +35,26 @@ function Test-MSCloudLogin
         $CloudCredential,
 
         [Parameter()]
+        [System.String]
+        $ApplicationId,
+
+        [Parameter()]
+        [System.String]
+        $TenantId,
+
+        [Parameter()]
+        [System.String]
+        $ApplicationSecret,
+
+        [Parameter()]
+        [System.String]
+        $CertificateThumbprint,
+
+        [Parameter()]
         [Switch]
         $UseModernAuth
     )
+
     if ($VerbosePreference -eq "Continue")
     {
         $verboseParameter = @{Verbose = $true }
@@ -67,7 +84,8 @@ function Test-MSCloudLogin
         }
         'AzureAD'
         {
-            Connect-MSCloudLoginAzureAD @verboseParameter
+            Connect-MSCloudLoginAzureAD @verboseParameter -ApplicationId $ApplicationId -TenantId $TenantId `
+                -CertificateThumbprint $CertificateThumbprint
         }
         'SharePointOnline'
         {
@@ -91,7 +109,8 @@ function Test-MSCloudLogin
         }
         'MicrosoftTeams'
         {
-            Connect-MSCloudLoginTeams @verboseParameter
+            Connect-MSCloudLoginTeams @verboseParameter -ApplicationId $ApplicationId -TenantId $TenantId `
+                -CertificateThumbprint $CertificateThumbprint
         }
         'SkypeForBusiness'
         {
