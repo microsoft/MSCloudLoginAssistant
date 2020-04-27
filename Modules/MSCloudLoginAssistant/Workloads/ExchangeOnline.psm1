@@ -3,7 +3,8 @@ function Connect-MSCloudLoginExchangeOnline
     [CmdletBinding()]
     param(
         [Parameter()]
-        [System.String]$Prefix
+        [System.String]
+        $Prefix
     )
     if ($null -eq $Global:o365Credential)
     {
