@@ -60,6 +60,7 @@ function Connect-MSCloudLoginSkypeForBusiness
             $Global:SkypeSession = New-PSSession -Name $psSessionName -ConnectionUri $ConnectionUri.Uri `
                 -Credential $cred -Authentication Basic -SessionOption $SessionOption
             $Global:SkypeModule = Import-PSSession $Global:SkypeSession
+            $IPMOParameters = @{}
             if ($PSBoundParameters.containskey("Prefix"))
             {
                 $IPMOParameters.add("Prefix",$prefix)
