@@ -156,7 +156,7 @@ function Connect-MSCloudLoginAzure
                     throw " - Please select *only one* subscription."
                 }
                 Write-Host -ForegroundColor White " - Setting active subscription to '$($Global:subscriptionDetails.Name)'..."
-                Set-AzContext -Subscription $Global:subscriptionDetails.Id
+                Set-AzContext -Subscription $Global:subscriptionDetails.Id -Name $Global:subscriptionDetails.Name -Force
             }
         }
     }
