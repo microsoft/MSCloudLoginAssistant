@@ -131,31 +131,55 @@ function Connect-MSCloudLoginAzureADMFA
     return
 }
 
-function Get-AADToken
+function Get-MSCloudLoginAADToken
 {
     [CmdletBinding()]
-    [OutputType([string])]
+    [OutputType([System.String])]
     param (
-      [Parameter(Mandatory=$true)]
-      [System.String]
-      $TenantID,
+        [Parameter()]
+        [System.Management.Automation.PSCredential]
+        $GlobalAdminAccount,
 
-      [Parameter(Mandatory=$true)]
-      [System.String]
-      $ApplicationId,
+        [Parameter()]
+        [System.String]
+        $TenantID,
 
-      [Parameter(Mandatory=$true)]
-      [System.String]
-      $ApplicationSecret
+        [Parameter()]
+        [System.String]
+        $ApplicationId,
+
+        [Parameter()]
+        [System.String]
+        $ApplicationSecret
     )
     try
     {
         $resourceAppIdURI = 'https://management.core.windows.net/'
-        $authority = 'https://login.windows.net/' + $TenantId
-        $ClientCred = [Microsoft.IdentityModel.Clients.ActiveDirectory.ClientCredential]::new($ApplicationId, $ApplicationSecret)
-        $authContext = [Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext]::new($authority)
-        $authResult = $authContext.AcquireTokenAsync($resourceAppIdURI,$ClientCred)
-        $Token = $authResult.Result.CreateAuthorizationHeader()
+
+        if (-not [System.String]::IsNullOrEMpty($ApplicationId) -and `
+            -not [System.String]::IsNullOrEMpty($TenantID) -and `
+            -not [System.String]::IsNullOrEMpty($ApplicationSecret))
+        {
+            $authority = 'https://login.windows.net/' + $TenantId
+            $ClientCred = [Microsoft.IdentityModel.Clients.ActiveDirectory.ClientCredential]::new($ApplicationId, $ApplicationSecret)
+            $authContext = [Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext]::new($authority)
+            $authResult = $authContext.AcquireTokenAsync($resourceAppIdURI,$ClientCred)
+            $Token = $authResult.Result.CreateAuthorizationHeader()
+        }
+        elseif ($null -ne $GlobalAdminAccount)
+        {
+            # Set well-known client ID for Azure PowerShell
+            $clientId = '1950a258-227b-4e31-a9cf-717495945fc2'
+            Test-MSCloudLogin -Platform AzureAD -CloudCredential $GlobalAdminAccount
+            $tenantDetails = Get-AzureADTenantDetail
+            $TenantID = $tenantDetails.ObjectId
+            $authority = 'https://login.windows.net/' + $TenantId
+            $ClientCred = [Microsoft.IdentityModel.Clients.ActiveDirectory.UserCredential]::new($GlobalAdminAccount.UserName, $GlobalAdminAccount.Password)
+            $authContext = [Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext]::new($authority)
+            $authResult = $authContext.AcquireTokenAsync($resourceAppIdURI, $clientId, $ClientCred)
+            $Token = $authResult.Result.CreateAuthorizationHeader()
+        }
+
     }
     catch
     {
