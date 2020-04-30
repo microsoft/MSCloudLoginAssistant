@@ -154,8 +154,14 @@ function Get-MSCloudLoginAADToken
     )
     try
     {
-        $resourceAppIdURI = 'https://management.core.windows.net/'
+        $resourceAppIdURI = 'https://graph.microsoft.com'
 
+        $AzureADDLL = Get-AzureADDLL
+        if ([string]::IsNullOrEmpty($AzureADDLL))
+        {
+            throw "Can't find Azure AD DLL"
+        }
+        [System.Reflection.Assembly]::LoadFrom($AzureADDLL) | Out-Null
         if (-not [System.String]::IsNullOrEMpty($ApplicationId) -and `
             -not [System.String]::IsNullOrEMpty($TenantID) -and `
             -not [System.String]::IsNullOrEMpty($ApplicationSecret))
@@ -174,12 +180,9 @@ function Get-MSCloudLoginAADToken
             $tenantDetails = Get-AzureADTenantDetail
             $TenantID = $tenantDetails.ObjectId
             $authority = 'https://login.windows.net/' + $TenantId
-            $ClientCred = [Microsoft.IdentityModel.Clients.ActiveDirectory.UserCredential]::new($GlobalAdminAccount.UserName, $GlobalAdminAccount.Password)
-            $authContext = [Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext]::new($authority)
-            $authResult = $authContext.AcquireTokenAsync($resourceAppIdURI, $clientId, $ClientCred)
-            $Token = $authResult.Result.CreateAuthorizationHeader()
+            $Token = Get-AccessToken -AuthUri $authority -TargetUri $resourceAppIdURI -ClientId $clientId -Credentials $GlobalAdminAccount
+            $Token = "Bearer $Token"
         }
-
     }
     catch
     {
