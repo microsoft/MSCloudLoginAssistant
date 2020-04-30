@@ -130,3 +130,36 @@ function Connect-MSCloudLoginAzureADMFA
     }
     return
 }
+
+function Get-AADToken
+{
+    [CmdletBinding()]
+    [OutputType([string])]
+    param (
+      [Parameter(Mandatory=$true)]
+      [System.String]
+      $TenantID,
+
+      [Parameter(Mandatory=$true)]
+      [System.String]
+      $ApplicationId,
+
+      [Parameter(Mandatory=$true)]
+      [System.String]
+      $ApplicationSecret
+    )
+    try
+    {
+        $resourceAppIdURI = 'https://management.core.windows.net/'
+        $authority = 'https://login.windows.net/' + $TenantId
+        $ClientCred = [Microsoft.IdentityModel.Clients.ActiveDirectory.ClientCredential]::new($ApplicationId, $ApplicationSecret)
+        $authContext = [Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext]::new($authority)
+        $authResult = $authContext.AcquireTokenAsync($resourceAppIdURI,$ClientCred)
+        $Token = $authResult.Result.CreateAuthorizationHeader()
+    }
+    catch
+    {
+      throw $_
+    }
+    return $Token
+}
