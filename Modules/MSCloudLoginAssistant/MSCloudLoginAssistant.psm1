@@ -6,9 +6,9 @@
 .EXAMPLE
     Test-MSCloudLogin -Platform PnP
 .PARAMETER Platform
-    The Platform parameter specifies which cloud service for which we are testing the login state. Possible values are Azure, AzureAD, SharePointOnline, ExchangeOnline, SecurityComplianceCenter, MSOnline, PnP, PowerPlatforms, MicrosoftTeams, and SkypeForBusiness.
+    The Platform parameter specifies which cloud service for which we are testing the login state. Possible values are Azure, AzureAD, SharePointOnline, ExchangeOnline, SecurityComplianceCenter, MSOnline, PnP, PowerPlatforms, MicrosoftTeams, MicrosoftGraph and SkypeForBusiness.
 .NOTES
-    Created & maintained by Brian Lalancette (@brianlala), 2019-2020.
+    Created & maintained by the Microsoft365DSC Team, 2019-2020. (@BrianLala & @NikCharlebois)
 .LINK
     https://github.com/Microsoft/MSCloudLoginAssistant
 #>
@@ -21,7 +21,7 @@ function Test-MSCloudLogin
         [Parameter(Mandatory = $true)]
         [ValidateSet("Azure", "AzureAD", "SharePointOnline", "ExchangeOnline", `
                 "SecurityComplianceCenter", "MSOnline", "PnP", "PowerPlatforms", `
-                "MicrosoftTeams", "SkypeForBusiness")]
+                "MicrosoftTeams", "SkypeForBusiness", "MicrosoftGraph")]
         [System.String]
         $Platform,
 
@@ -98,6 +98,11 @@ function Test-MSCloudLogin
         'SecurityComplianceCenter'
         {
             Connect-MSCloudLoginSecurityCompliance @verboseParameter
+        }
+        'MicrosoftGraph'
+        {
+            Connect-MicrosoftGraph @verboseParameter -ApplicationId $ApplicationId -TenantId $TenantId `
+                -CertificateThumbprint $CertificateThumbprint
         }
         'MSOnline'
         {

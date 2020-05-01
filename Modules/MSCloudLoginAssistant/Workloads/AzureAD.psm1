@@ -130,3 +130,63 @@ function Connect-MSCloudLoginAzureADMFA
     }
     return
 }
+
+function Get-MSCloudLoginAADToken
+{
+    [CmdletBinding()]
+    [OutputType([System.String])]
+    param (
+        [Parameter()]
+        [System.Management.Automation.PSCredential]
+        $GlobalAdminAccount,
+
+        [Parameter()]
+        [System.String]
+        $TenantID,
+
+        [Parameter()]
+        [System.String]
+        $ApplicationId,
+
+        [Parameter()]
+        [System.String]
+        $ApplicationSecret
+    )
+    try
+    {
+        $resourceAppIdURI = 'https://graph.microsoft.com'
+
+        $AzureADDLL = Get-AzureADDLL
+        if ([string]::IsNullOrEmpty($AzureADDLL))
+        {
+            throw "Can't find Azure AD DLL"
+        }
+        [System.Reflection.Assembly]::LoadFrom($AzureADDLL) | Out-Null
+        if (-not [System.String]::IsNullOrEMpty($ApplicationId) -and `
+            -not [System.String]::IsNullOrEMpty($TenantID) -and `
+            -not [System.String]::IsNullOrEMpty($ApplicationSecret))
+        {
+            $authority = 'https://login.windows.net/' + $TenantId
+            $ClientCred = [Microsoft.IdentityModel.Clients.ActiveDirectory.ClientCredential]::new($ApplicationId, $ApplicationSecret)
+            $authContext = [Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext]::new($authority)
+            $authResult = $authContext.AcquireTokenAsync($resourceAppIdURI,$ClientCred)
+            $Token = $authResult.Result.CreateAuthorizationHeader()
+        }
+        elseif ($null -ne $GlobalAdminAccount)
+        {
+            # Set well-known client ID for Azure PowerShell
+            $clientId = '1950a258-227b-4e31-a9cf-717495945fc2'
+            Test-MSCloudLogin -Platform AzureAD -CloudCredential $GlobalAdminAccount
+            $tenantDetails = Get-AzureADTenantDetail
+            $TenantID = $tenantDetails.ObjectId
+            $authority = 'https://login.windows.net/' + $TenantId
+            $Token = Get-AccessToken -AuthUri $authority -TargetUri $resourceAppIdURI -ClientId $clientId -Credentials $GlobalAdminAccount
+            $Token = "Bearer $Token"
+        }
+    }
+    catch
+    {
+      throw $_
+    }
+    return $Token
+}

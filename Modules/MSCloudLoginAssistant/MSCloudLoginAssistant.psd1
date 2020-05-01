@@ -12,7 +12,7 @@
     RootModule             = 'MSCloudLoginAssistant.psm1'
 
     # Version number of this module.
-    ModuleVersion          = '1.0.11'
+    ModuleVersion          = '1.0.12'
 
     # Supported PSEditions
     # CompatiblePSEditions = @()
@@ -74,6 +74,7 @@
         'Workloads\Azure.psm1',
         'Workloads\AzureAD.psm1',
         'Workloads\ExchangeOnline.psm1',
+        'Workloads\MicrosoftGraph.psm1',
         'Workloads\MSOnline.psm1',
         'Workloads\PnP.psm1',
         'Workloads\PowerPlatform.psm1',
@@ -87,7 +88,7 @@
     #FunctionsToExport = ''
 
     # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
-    CmdletsToExport        = @('Test-MSCloudLogin')
+    CmdletsToExport        = @('Test-MSCloudLogin', 'Get-MSCloudLoginAADToken')
 
     # Variables to export from this module
     VariablesToExport      = '*'
