@@ -4,7 +4,7 @@ function Connect-MicrosoftGraph
     param(
         [Parameter(Mandatory = $true)]
         [System.String]
-        $ApplicationID,
+        $ApplicationId,
 
         [Parameter(Mandatory = $true)]
         [System.String]
@@ -17,7 +17,7 @@ function Connect-MicrosoftGraph
 
     try
     {
-        Connect-Graph -ClientId $ApplicationId -TenantId $TenantId -CertificateThumbprint $CertificateThumbprint -ErrorAction Stop | Out-Null
+        Connect-Graph -ClientId $ApplicationId -TenantId $TenantId -CertificateThumbprint $CertificateThumbprint
     }
     catch
     {
