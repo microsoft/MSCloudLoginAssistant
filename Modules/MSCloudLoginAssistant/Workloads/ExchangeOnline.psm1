@@ -21,6 +21,21 @@ function Connect-MSCloudLoginExchangeOnline
     }
     catch
     {
-        throw $_
+        if ($_.Exception -like '*you must use multi-factor authentication to access*')
+        {
+            try
+            {
+                Connect-ExchangeOnline -UserPrincipalName $Global:o365Credential.UserName -ShowBanner:$false -ShowProgress:$false | Out-Null
+                $Global:MSCloudLoginEXOConnected = $true
+            }
+            catch
+            {
+                throw $_
+            }
+        }
+        else
+        {
+            throw $_
+        }
     }
 }
