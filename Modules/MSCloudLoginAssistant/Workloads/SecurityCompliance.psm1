@@ -21,6 +21,21 @@ function Connect-MSCloudLoginSecurityCompliance
     }
     catch
     {
-        throw $_
+        if ($_.Exception -like '*you must use multi-factor authentication to access*')
+        {
+            try
+            {
+                Connect-IPPSSession -UserPrincipalName $Global:o365Credential.UserName | Out-Null
+                $Global:MSCloudLoginSCConnected = $true
+            }
+            catch
+            {
+                throw $_
+            }
+        }
+        else
+        {
+            throw $_
+        }
     }
 }
