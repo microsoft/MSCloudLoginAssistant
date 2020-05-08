@@ -15,7 +15,7 @@ function Connect-MSCloudLoginExchangeOnline
     {
         if ($null -eq $Global:MSCloudLoginEXOConnected -or -not $Global:MSCloudLoginEXOConnected)
         {
-`           Connect-ExchangeOnline -Credential $Global:o365Credential | Out-Null
+`           Connect-ExchangeOnline -Credential $Global:o365Credential -ShowBanner:$false -ShowProgress:$false | Out-Null
             $Global:MSCloudLoginEXOConnected = $true
         }
     }
