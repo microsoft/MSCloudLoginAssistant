@@ -14,7 +14,8 @@ function Connect-MSCloudLoginTeams
         [System.String]
         $CertificateThumbprint
     )
-    Import-Module MicrosoftTeams -Force
+    # Explicitly import the required module(s) in case there is cmdlet ambiguity with other modules e.g. SharePointPnPPowerShell2013
+    Import-Module -Name MicrosoftTeams -DisableNameChecking -Force
     if (-not [String]::IsNullOrEmpty($ApplicationId) -and `
         -not [String]::IsNullOrEmpty($TenantId) -and `
         -not [String]::IsNullOrEmpty($CertificateThumbprint))

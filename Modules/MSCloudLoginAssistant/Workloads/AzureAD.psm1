@@ -14,6 +14,8 @@ function Connect-MSCloudLoginAzureAD
         [System.String]
         $CertificateThumbprint
     )
+    # Explicitly import the required module(s) in case there is cmdlet ambiguity with other modules e.g. SharePointPnPPowerShell2013
+    Import-Module -Name AzureADPreview -DisableNameChecking -Force
 
     if (-not [String]::IsNullOrEmpty($ApplicationId) -and `
         -not [String]::IsNullOrEmpty($TenantId) -and `

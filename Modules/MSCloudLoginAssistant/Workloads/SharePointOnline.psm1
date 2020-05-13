@@ -3,6 +3,9 @@ function Connect-MSCloudLoginSharePointOnline
     [CmdletBinding()]
     param()
 
+    # Explicitly import the required module(s) in case there is cmdlet ambiguity with other modules e.g. SharePointPnPPowerShell2013
+    Import-Module -Name Microsoft.Online.SharePoint.PowerShell -DisableNameChecking -Force
+
     try
     {
         if ($null -ne $Global:o365Credential)
