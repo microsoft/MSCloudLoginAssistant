@@ -306,7 +306,7 @@ function Get-AuthHeader
         if ($null -eq $authResult.result)
         {
             $RedirectURI = [System.Uri]::new($RedirectURI)
-            $authResult = $Global:ADALServicePoint.authContext.AcquireTokenAsync($ResourceURI, $clientId, $RedirectURI, $Global:ADALServicePoint.platformParam.PromptBehavior, $Global:ADALServicePoint.userId, "", "")
+            $authResult = $Global:ADALServicePoint.authContext.AcquireTokenAsync($ResourceURI, $clientId, $RedirectURI, $Global:ADALServicePoint.platformParam, $Global:ADALServicePoint.userId, "", "")
         }
         $AuthHeader = $authResult.result.CreateAuthorizationHeader()
     }
@@ -605,5 +605,62 @@ function Test-MSCloudLoginCommand
     catch
     {
         return $false
+    }
+}
+
+function Get-CloudEnvironment
+{
+    [CmdletBinding()]
+    [OutputType([System.String])]
+    param(
+        [Parameter(Mandatory=$true)]
+        [System.Management.Automation.PSCredential]
+        $Credentials,
+
+        [Parameter()]
+        [ValidateSet('AzureCloud', 'AzureUSGovernment', 'AzureGermanCloud')]
+        [System.String]
+        $Environment = 'AzureCloud'
+    )
+
+    try
+    {
+        Write-Verbose -Message "Trying to connect to $Environment using Non-MFA"
+        if ($Environment -ne 'AzureCloud')
+        {
+            Connect-AzAccount -Credential $Credentials -Environment $Environment -SkipContextPopulation -ErrorAction Stop | Out-Null
+        }
+        else
+        {
+            Connect-AzAccount -Credential $Credentials -SkipContextPopulation -ErrorAction Stop | Out-Null
+        }
+        Write-Verbose -Message "Successfully connected to $Environment using Non-MFA"
+        $Global:UseModernAuth = $false
+        return $Environment
+    }
+    catch
+    {
+        if ($_.Exception -like '*you must use multi-factor authentication to access*')
+        {
+            try
+            {
+                Write-Verbose -Message "Trying to connect to $Environment using MFA"
+                Connect-AzAccount -SkipContextPopulation | Out-Null
+                Write-Verbose -Message "Successfully connected to $Environment using MFA"
+                $Global:UseModernAuth = $True
+                return $Environment
+            }
+            catch
+            {
+                Write-Verbose -Message "Could not connect to $Environment"
+            }
+        }
+    }
+
+    switch ($Environment)
+    {
+        "AzureCloud" { return (Get-CloudEnvironment -Credentials $Global:o365Credential -Environment 'AzureUSGovernment')}
+        "AzureUSGovernment" { return (Get-CloudEnvironment -Credentials $Global:o365Credential -Environment 'AzureGermanCloud')}
+        "AzureGermanCloud" {throw 'MSCloudLoginAssistant: Could not find environment from Get-CloudEnvironment'}
     }
 }
