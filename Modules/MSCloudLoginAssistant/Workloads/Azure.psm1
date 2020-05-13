@@ -28,6 +28,9 @@ function Connect-MSCloudLoginAzure
     $RedirectURI = "urn:ietf:wg:oauth:2.0:oob";
     ##$connectCmdlet = "Connect-AzAccount";
 
+    # Explicitly import the required module(s) in case there is cmdlet ambiguity with other modules e.g. SharePointPnPPowerShell2013
+    Import-Module -Name Az -DisableNameChecking -Force
+
     $global:azLoginSucceeded = $false
     try
     {
