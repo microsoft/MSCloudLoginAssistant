@@ -306,7 +306,7 @@ function Get-AuthHeader
         if ($null -eq $authResult.result)
         {
             $RedirectURI = [System.Uri]::new($RedirectURI)
-            $authResult = $Global:ADALServicePoint.authContext.AcquireTokenAsync($ResourceURI, $clientId, $RedirectURI, $Global:ADALServicePoint.platformParam.PromptBehavior, $Global:ADALServicePoint.userId, "", "")
+            $authResult = $Global:ADALServicePoint.authContext.AcquireTokenAsync($ResourceURI, $clientId, $RedirectURI, $Global:ADALServicePoint.platformParam, $Global:ADALServicePoint.userId, "", "")
         }
         $AuthHeader = $authResult.result.CreateAuthorizationHeader()
     }
@@ -622,12 +622,18 @@ function Get-CloudEnvironment
         [System.String]
         $Environment = 'AzureCloud'
     )
-    $VerbosePreference = 'Continue'
-    Clear-AzContext -Force
+
     try
     {
         Write-Verbose -Message "Trying to connect to $Environment using Non-MFA"
-        Connect-AzAccount -Credential $Credentials -Environment $Environment -ErrorAction Stop | Out-Null
+        if ($Environment -ne 'AzureCloud')
+        {
+            Connect-AzAccount -Credential $Credentials -Environment $Environment -SkipContextPopulation -ErrorAction Stop | Out-Null
+        }
+        else
+        {
+            Connect-AzAccount -Credential $Credentials -SkipContextPopulation -ErrorAction Stop | Out-Null
+        }
         Write-Verbose -Message "Successfully connected to $Environment using Non-MFA"
         $Global:UseModernAuth = $false
         return $Environment
@@ -639,7 +645,7 @@ function Get-CloudEnvironment
             try
             {
                 Write-Verbose -Message "Trying to connect to $Environment using MFA"
-                Connect-AzAccount | Out-Null
+                Connect-AzAccount -SkipContextPopulation | Out-Null
                 Write-Verbose -Message "Successfully connected to $Environment using MFA"
                 $Global:UseModernAuth = $True
                 return $Environment

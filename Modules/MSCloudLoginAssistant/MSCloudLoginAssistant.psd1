@@ -53,6 +53,10 @@
     # Modules that must be imported into the global environment prior to importing this module
     RequiredModules        = @(
         @{
+            ModuleName      = "Az.Accounts"
+            RequiredVersion = "1.7.4"
+        },
+        @{
             ModuleName      = "AzureADPreview"
             RequiredVersion = "2.0.2.89"
         })

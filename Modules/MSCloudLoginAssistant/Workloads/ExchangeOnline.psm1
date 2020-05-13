@@ -6,7 +6,6 @@ function Connect-MSCloudLoginExchangeOnline
         [System.String]
         $Prefix
     )
-    $VerbosePreference = 'Continue'
     if ($null -eq $Global:o365Credential)
     {
         $Global:o365Credential = Get-Credential -Message "Cloud Credential"
@@ -36,7 +35,6 @@ function Connect-MSCloudLoginExchangeOnline
 
     try
     {
-        $VerbosePreference = 'Continue'
         Write-Verbose -Message "Uses Modern Auth: $($Global:UseModernAuth)"
         $ExistingSession = Get-PSSession | Where-Object -FilterScript {$_.ConfigurationName -eq 'Microsoft.Exchange' -and $_.ComputerName -like 'outlook.*'}
 
@@ -60,19 +58,28 @@ function Connect-MSCloudLoginExchangeOnline
             else
             {
                 Write-Verbose -Message "Attempting to create a new session to Exchange Online - Non-MFA"
+
+                $previousVerbose = $VerbosePreference
+                $previousWarning = $WarningPreference
+                $WarningPreference = 'SilentlyContinue'
+                $VerbosePreference = 'SilentlyContinue'
+
                 $ExistingSession = New-PSSession -ConfigurationName Microsoft.Exchange `
                     -ConnectionUri $ConnectionUrl `
                     -Credential $o365Credential `
                     -Authentication Basic `
                     -AllowRedirection
-                $EXOModule = Import-PSSession $ExistingSession -DisableNameChecking -AllowClobber
+                $EXOModule = Import-PSSession $ExistingSession -DisableNameChecking -AllowClobber -Verbose:$false
 
                 $IPMOParameters = @{}
                 if ($PSBoundParameters.containskey("Prefix"))
                 {
                     $IPMOParameters.add("Prefix",$prefix)
                 }
-                Import-Module $EXOModule -Global @IPMOParameters | Out-Null
+                Import-Module $EXOModule -Global @IPMOParameters -Verbose:$false | Out-Null
+
+                $WarningPreference = $previousWarning
+                $VerbosePreference = $previousVerbose
             }
         }
     }
@@ -107,7 +114,7 @@ function Connect-MSCloudLoginExchangeOnlineMFA
         Connect-ExchangeOnline -UserPrincipalName $Credentials.UserName `
             -ShowBanner:$false `
             -ShowProgress:$false `
-            -ConnectionUri $ConnectionUrl | Out-Null
+            -ConnectionUri $ConnectionUrl -Verbose:$false | Out-Null
         $Global:MSCloudLoginEXOConnected = $true
     }
     catch
