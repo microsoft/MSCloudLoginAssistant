@@ -48,23 +48,27 @@ function Connect-MSCloudLoginSecurityCompliance
             }
             catch
             {
+                throw $_
+
+                # we do not have correct different Cloud support, so best not to use this logic
+                # it only leads to confusion
                 # If the connection failed against either the Public or Germany clouds, then attempt to connect
                 # to the GCC Cloud.
-                try
-                {
-                    $CloudEnvironment = "GCC"
-                    Write-Verbose -Message "Session to Security & Compliance no working session found, creating a new one"
-                    $Global:SessionSecurityCompliance = New-PSSession -ConfigurationName "Microsoft.Exchange" `
-                        -ConnectionUri 'https://ps.compliance.protection.office365.us/powershell-liveid/' `
-                        -Credential $O365Credential `
-                        -Authentication Basic `
-                        -ErrorAction Stop `
-                        -AllowRedirection
-                }
-                catch
-                {
-                    throw $_
-                }
+                # try
+                # {
+                #     $CloudEnvironment = "GCC"
+                #     Write-Verbose -Message "Session to Security & Compliance no working session found, creating a new one"
+                #     $Global:SessionSecurityCompliance = New-PSSession -ConfigurationName "Microsoft.Exchange" `
+                #         -ConnectionUri 'https://ps.compliance.protection.office365.us/powershell-liveid/' `
+                #         -Credential $O365Credential `
+                #         -Authentication Basic `
+                #         -ErrorAction Stop `
+                #         -AllowRedirection
+                # }
+                # catch
+                # {
+                #     throw $_
+                # }
             }
         }
         catch

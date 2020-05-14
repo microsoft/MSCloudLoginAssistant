@@ -732,21 +732,28 @@ function Get-SkypeForBusinessServiceEndpoint
     param(
         [Parameter(Mandatory = $true)]
         [System.String]
-        $TargetDomain
-    )
-    $overrideDiscoveryUri = "http://lyncdiscover." + $TargetDomain;
+        $TargetDomain,
+
+        [Parameter()]
+        [System.String]
+        $OverrideDiscoveryUri
+    )    
+    if(!$OverrideDiscoveryUri)
+    {
+        $OverrideDiscoveryUri = "http://lyncdiscover." + $TargetDomain;
+    }
     $desiredLink = "External/RemotePowerShell";
-    $liveIdUrl = $overrideDiscoveryUri.ToString() + "?Domain=" + $TargetDomain
+    $liveIdUrl = $OverrideDiscoveryUri.ToString() + "?Domain=" + $TargetDomain
 
     $xml = Get-RTCXml -Url $liveIdUrl
     if(!$xml)
     {
-        Write-Verbose "Did not find anything @ $overrideDiscoveryUri, will try with initial domain"
+        Write-Verbose "Did not find anything @ $OverrideDiscoveryUri, will try with initial domain"
         Test-MSCloudLogin -Platform AzureAD
         $initialDomain = (Get-AzureADDomain | Where-Object -FilterScript { $_.IsInitial}).Name
-        $overrideDiscoveryUri = "http://lyncdiscover." + $initialDomain;
+        $OverrideDiscoveryUri = "http://lyncdiscover." + $initialDomain;
         $desiredLink = "External/RemotePowerShell";
-        $liveIdUrl = $overrideDiscoveryUri.ToString() + "?Domain=" + $initialDomain
+        $liveIdUrl = $OverrideDiscoveryUri.ToString() + "?Domain=" + $initialDomain
         $xml = Get-RTCXml -Url $liveIdUrl
     }
 
@@ -779,6 +786,12 @@ function Get-SkypeForBusinessServiceEndpoint
     }
     $xml = Get-RTCXml -Url $domain.href
     $endpoint = $xml.AutodiscoverResponse.Domain.Link | Where-Object -FilterScript {$_.token -eq $desiredLink}
+    if(!$endpoint)
+    {
+        $hybrid = $xml.AutodiscoverResponse.Domain.Link | Where-Object -FilterScript {$_.token -eq 'Hybrid'}
+        return Get-SkypeForBusinessServiceEndpoint -TargetDomain $TargetDomain -OverrideDiscoveryUri $hybrid.href
+    }
+
     $endpointUrl = $endpoint.href.Replace("/OcsPowershellLiveId","/OcsPowershellOAuth")
     return [Uri]::new($endpointUrl)
 }
