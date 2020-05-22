@@ -69,19 +69,28 @@ function Connect-MSCloudLoginSecurityCompliance
                 $WarningPreference = 'SilentlyContinue'
                 $VerbosePreference = 'SilentlyContinue'
 
-                $ExistingSession = New-PSSession -ConfigurationName Microsoft.Exchange `
-                    -ConnectionUri $ConnectionUrl `
-                    -Credential $o365Credential `
-                    -Authentication Basic `
-                    -AllowRedirection
-                $SCModule = Import-PSSession $ExistingSession -DisableNameChecking -AllowClobber -Verbose:$false
-
-                $IPMOParameters = @{}
-                if ($PSBoundParameters.containskey("Prefix"))
+                try
                 {
-                    $IPMOParameters.add("Prefix",$prefix)
+                    $ExistingSession = New-PSSession -ConfigurationName Microsoft.Exchange `
+                        -ConnectionUri $ConnectionUrl `
+                        -Credential $o365Credential `
+                        -Authentication Basic `
+                        -AllowRedirection -ErrorAction 'Stop'
+                    $SCModule = Import-PSSession $ExistingSession -DisableNameChecking -AllowClobber -Verbose:$false
+
+                    $IPMOParameters = @{}
+                    if ($PSBoundParameters.containskey("Prefix"))
+                    {
+                        $IPMOParameters.add("Prefix",$prefix)
+                    }
+                    Import-Module $SCModule -Global @IPMOParameters -Verbose:$false | Out-Null
                 }
-                Import-Module $SCModule -Global @IPMOParameters -Verbose:$false | Out-Null
+                catch
+                {
+                    Connect-MSCloudLoginSecurityComplianceMFA -Credentials $Global:o365Credential `
+                        -ConnectionUrl $ConnectionUrl `
+                        -AuthorizationUrl $AuthorizationUrl
+                }
                 $WarningPreference = $previousWarning
                 $VerbosePreference = $previousVerbose
             }
