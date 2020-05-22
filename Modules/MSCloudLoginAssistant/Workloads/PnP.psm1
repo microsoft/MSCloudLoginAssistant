@@ -45,8 +45,17 @@ function Connect-MSCloudLoginPnP
         if ($_.Exception -like '*Microsoft.SharePoint.Client.ServerUnauthorizedAccessException*' -or `
                 $_.Exception -like '*The remote server returned an error: (401) Unauthorized.*')
         {
-            $Global:MSCloudLoginAzurePnPConnected = $false
-            throw [System.Exception] "Specified account does not have access to connect to the site. $_"
+            try
+            {
+                Connect-PnPOnline -Url $Global:SPOConnectionUrl -UseWebLogin
+                $Global:IsMFAAuth = $true
+                $Global:MSCloudLoginAzurePnPConnected = $true
+            }
+            catch
+            {
+                $Global:MSCloudLoginAzurePnPConnected = $false
+                throw $_
+            }
         }
         elseif ($_.Exception -like "*The remote name could not be resolved:*" -and ($Global:CloudEnvironment -eq 'USGovernment' -or `
                     $Global:CloudEnvironment -eq 'GCCHigh') -and !$Global:IsMFAAuth)
@@ -66,10 +75,11 @@ function Connect-MSCloudLoginPnP
                 {
                     $Global:SPOAdminUrl = Get-SPOAdminUrl -CloudCredential $Global:o365Credential
                 }
+                Write-Verbose "Trying to acquire AccessToken"
                 $AuthHeader = Get-AuthHeader -UserPrincipalName $Global:o365Credential.UserName `
                     -ResourceURI $Global:SPOAdminUrl -clientID $clientID -RedirectURI $RedirectURI
                 $AccessToken = $AuthHeader.split(" ")[1]
-
+                Write-Verbose "Access Token = $AccessToken"
                 if ($null -ne $AccessToken)
                 {
                     Connect-PnPOnline -Url $Global:SPOConnectionUrl -AccessToken $AccessToken
@@ -83,8 +93,18 @@ function Connect-MSCloudLoginPnP
             }
             catch
             {
-                $Global:MSCloudLoginAzurePnPConnected = $false
-                throw $_
+                Write-Verbose "Error acquiring AccessToken: $_.Exception"
+                try
+                {
+                    Connect-PnPOnline -Url $Global:SPOConnectionUrl -UseWebLogin
+                    $Global:IsMFAAuth = $true
+                    $Global:MSCloudLoginAzurePnPConnected = $true
+                }
+                catch
+                {
+                    $Global:MSCloudLoginAzurePnPConnected = $false
+                    throw $_
+                }
             }
         }
     }
