@@ -54,7 +54,6 @@ function Test-MSCloudLogin
         [Switch]
         $UseModernAuth
     )
-
     if ($VerbosePreference -eq "Continue")
     {
         $verboseParameter = @{Verbose = $true }
@@ -101,7 +100,7 @@ function Test-MSCloudLogin
         }
         'MicrosoftGraph'
         {
-            Connect-MicrosoftGraph @verboseParameter -ApplicationId $ApplicationId -TenantId $TenantId `
+            Connect-MSCloudLoginMicrosoftGraph @verboseParameter -ApplicationId $ApplicationId -TenantId $TenantId `
                 -CertificateThumbprint $CertificateThumbprint
         }
         'MSOnline'
@@ -256,6 +255,7 @@ function New-ADALServiceInfo
     }
     else
     {
+        Write-Verbose -Message "AzureADDLL: $AzureADDLL"
         $tMod = [System.Reflection.Assembly]::LoadFrom($AzureADDLL)
     }
 
@@ -274,6 +274,9 @@ function New-ADALServiceInfo
     $Service["authContext"] = [Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext]::new($authority, $false)
     $Service["platformParam"] = New-Object "Microsoft.IdentityModel.Clients.ActiveDirectory.PlatformParameters" -ArgumentList $PromptBehavior
     $Service["userId"] = New-Object "Microsoft.IdentityModel.Clients.ActiveDirectory.UserIdentifier" -ArgumentList $UserPrincipalName, "OptionalDisplayableId"
+
+    Write-Verbose -Message "Current Assembly for AD AuthenticationContext: $([Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext].Assembly | Out-String)"
+
     return $Service
 }
 

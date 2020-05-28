@@ -1,4 +1,4 @@
-function Connect-MicrosoftGraph
+function Connect-MSCloudLoginMicrosoftGraph
 {
     [CmdletBinding()]
     param(
@@ -14,13 +14,21 @@ function Connect-MicrosoftGraph
         [System.String]
         $CertificateThumbprint
     )
-
+$VerbosePreference = 'Continue'
     try
     {
+        Write-Verbose "ICI"
+        Write-Verbose $ApplicationId
+        Write-Verbose $TenantId
+        Write-Verbose $CertificateThumbprint
+
+        Import-Module -Name Microsoft.Graph.Authentication -DisableNameChecking -Force | out-null
         Connect-Graph -ClientId $ApplicationId -TenantId $TenantId -CertificateThumbprint $CertificateThumbprint
+        Write-Verbose "Connected"
     }
     catch
     {
+        Write-Verbose -Message $_
         throw $_
     }
 }

@@ -10,13 +10,9 @@ function Connect-MSCloudLoginSharePointOnline
     {
         if ($null -ne $Global:o365Credential)
         {
-            if ([string]::IsNullOrEmpty($ConnectionUrl))
+            if ([string]::IsNullOrEmpty($Global:SPOAdminUrl))
             {
                 $Global:spoAdminUrl = Get-SPOAdminUrl -CloudCredential $Global:o365Credential
-            }
-            else
-            {
-                $Global:spoAdminUrl = $ConnectionUrl
             }
             if ($Global:IsMFAAuth)
             {

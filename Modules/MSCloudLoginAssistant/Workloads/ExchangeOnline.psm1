@@ -64,20 +64,26 @@ function Connect-MSCloudLoginExchangeOnline
                 $WarningPreference = 'SilentlyContinue'
                 $VerbosePreference = 'SilentlyContinue'
 
-                $ExistingSession = New-PSSession -ConfigurationName Microsoft.Exchange `
-                    -ConnectionUri $ConnectionUrl `
-                    -Credential $o365Credential `
-                    -Authentication Basic `
-                    -AllowRedirection
-                $EXOModule = Import-PSSession $ExistingSession -DisableNameChecking -AllowClobber -Verbose:$false
-
-                $IPMOParameters = @{}
-                if ($PSBoundParameters.containskey("Prefix"))
+                try
                 {
-                    $IPMOParameters.add("Prefix",$prefix)
-                }
-                Import-Module $EXOModule -Global @IPMOParameters -Verbose:$false | Out-Null
+                    $ExistingSession = New-PSSession -ConfigurationName Microsoft.Exchange `
+                        -ConnectionUri $ConnectionUrl `
+                        -Credential $o365Credential `
+                        -Authentication Basic `
+                        -AllowRedirection -ErrorAction 'Stop'
+                    $EXOModule = Import-PSSession $ExistingSession -DisableNameChecking -AllowClobber -Verbose:$false
 
+                    $IPMOParameters = @{}
+                    if ($PSBoundParameters.containskey("Prefix"))
+                    {
+                        $IPMOParameters.add("Prefix",$prefix)
+                    }
+                    Import-Module $EXOModule -Global @IPMOParameters -Verbose:$false | Out-Null
+                }
+                catch
+                {
+                    Connect-MSCloudLoginExchangeOnlineMFA -Credentials $Global:o365Credential -ConnectionUrl $ConnectionUrl
+                }
                 $WarningPreference = $previousWarning
                 $VerbosePreference = $previousVerbose
             }
