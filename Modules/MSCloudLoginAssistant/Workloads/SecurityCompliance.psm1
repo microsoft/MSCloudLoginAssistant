@@ -3,19 +3,25 @@ function Connect-MSCloudLoginSecurityCompliance
     [CmdletBinding()]
     param(
         [Parameter()]
-        [System.String]$Prefix
+        [System.Management.Automation.PSCredential]
+        $CloudCredential
     )
-    if ($null -eq $Global:o365Credential)
+    if ($null -eq $CloudCredential)
     {
-        $Global:o365Credential = Get-Credential -Message "Cloud Credential"
+        Write-Verbose -Message "Credential is null. Prompting user to provide it."
+        $CloudCredential = Get-Credential -Message "Cloud Credential"
     }
 
     #region Get Connection Info
     if ($null -eq $Global:EnvironmentName)
     {
-        $Global:EnvironmentName = Get-CloudEnvironment -Credentials $Global:o365Credential
+        Write-Verbose -Message "Global:EnvironmentName is null. Obtaining it"
+        $Global:EnvironmentName = Get-CloudEnvironment -Credentials $CloudCredential
+        Write-Verbose -Message "Successfully obtained Global:EnvironmentName = $($Global:EnvironmentName)"
     }
-    Write-Verbose -Message "Detected Azure Environment: $EnvironmentName"
+    else {
+        Write-Verbose -Message "Already Detected Azure Environment: $EnvironmentName"
+    }
 
     $ConnectionUrl = $null
     $AuthorizationUrl = $null
@@ -34,6 +40,8 @@ function Connect-MSCloudLoginSecurityCompliance
             $AuthorizationUrl = 'https://login.microsoftonline.de/common'
         }
     }
+    Write-Verbose -Message "ConnectionUrl = $ConnectionUrl"
+    Write-Verbose -Message "AuthorizationUrl = $AuthorizationUrl"
     #endregion
 
     try
@@ -47,6 +55,10 @@ function Connect-MSCloudLoginSecurityCompliance
             $ExistingSession | Remove-PSSession
             $ExistingSession = $null
         }
+        else
+        {
+            Write-Verbose -Message "No existing connections to Security and Compliance were detected."
+        }
 
         if ($null -ne $ExistingSession)
         {
@@ -56,7 +68,8 @@ function Connect-MSCloudLoginSecurityCompliance
         {
             if ($Global:UseModernAuth)
             {
-                Connect-MSCloudLoginSecurityComplianceMFA -Credentials $Global:o365Credential `
+                Write-Verbose -Message "Calling into the Connect-MSCloudLoginSecurityComplianceMFA method"
+                Connect-MSCloudLoginSecurityComplianceMFA -CloudCredential $CloudCredential `
                     -ConnectionUrl $ConnectionUrl `
                     -AuthorizationUrl $AuthorizationUrl
             }
@@ -64,43 +77,78 @@ function Connect-MSCloudLoginSecurityCompliance
             {
                 Write-Verbose -Message "Attempting to create a new session to Security and Compliance Center - Non-MFA"
 
-                $previousVerbose = $VerbosePreference
-                $previousWarning = $WarningPreference
-                $WarningPreference = 'SilentlyContinue'
-                $VerbosePreference = 'SilentlyContinue'
-
                 try
                 {
+                    $previousVerbose = $VerbosePreference
+                    $previousWarning = $WarningPreference
+
+                    $WarningPreference = 'SilentlyContinue'
+                    $VerbosePreference = 'SilentlyContinue'
                     $ExistingSession = New-PSSession -ConfigurationName Microsoft.Exchange `
                         -ConnectionUri $ConnectionUrl `
                         -Credential $o365Credential `
                         -Authentication Basic `
                         -AllowRedirection -ErrorAction 'Stop'
-                    $SCModule = Import-PSSession $ExistingSession -DisableNameChecking -AllowClobber -Verbose:$false
+                    $VerbosePreference = $previousPreference
+                    $WarningPreference = $previousPreference
+                    Write-Verbose -Message "New Session created successfully"
 
+                    $WarningPreference = 'SilentlyContinue'
+                    $VerbosePreference = 'SilentlyContinue'
+                    $SCModule = Import-PSSession $ExistingSession -DisableNameChecking -AllowClobber -Verbose:$false
+                    $VerbosePreference = $previousPreference
+                    $WarningPreference = $previousPreference
+
+                    Write-Verbose -Message "Session imported successfully"
                     $IPMOParameters = @{}
                     if ($PSBoundParameters.containskey("Prefix"))
                     {
                         $IPMOParameters.add("Prefix",$prefix)
                     }
+
+                    $WarningPreference = 'SilentlyContinue'
+                    $VerbosePreference = 'SilentlyContinue'
                     Import-Module $SCModule -Global @IPMOParameters -Verbose:$false | Out-Null
+                    $VerbosePreference = $previousPreference
+                    $WarningPreference = $previousPreference
+                    Write-Verbose -Message "Module imported successfully"
                 }
                 catch
                 {
-                    Connect-MSCloudLoginSecurityComplianceMFA -Credentials $Global:o365Credential `
-                        -ConnectionUrl $ConnectionUrl `
-                        -AuthorizationUrl $AuthorizationUrl
+                    if ($_.Exception -like '*Access is denied*')
+                    {
+                        try
+                        {
+                            Write-Verbose -Message "UserName:$($CloudCredential.UserName)"
+                            Write-Verbose -Message "Getting an access denied error. Trying to connect with IPPSSession"
+                            Connect-IPPSSession -Credential $CloudCredential -Verbose:$false | Out-Null
+                        }
+                        catch
+                        {
+                            Write-Verbose -Message "Could not connect connect IPPSSession with Credentials: {$($_.Exception)}"
+                            Connect-MSCloudLoginSecurityComplianceMFA -CloudCredential $CloudCredential `
+                                -ConnectionUrl $ConnectionUrl `
+                                -AuthorizationUrl $AuthorizationUrl
+                        }
+                    }
+                    else
+                    {
+                        Write-Verbose -Message "An Error occured, calling into the MFA method: {$($_.Exception)}"
+                        Connect-MSCloudLoginSecurityComplianceMFA -CloudCredential $CloudCredential `
+                            -ConnectionUrl $ConnectionUrl `
+                            -AuthorizationUrl $AuthorizationUrl
+                    }
                 }
-                $WarningPreference = $previousWarning
-                $VerbosePreference = $previousVerbose
             }
         }
     }
     catch
     {
+        Write-Verbose -Message "An Error occured. Details: {$($_.Exception)}"
         if ($_.Exception -like '*you must use multi-factor authentication to access*')
         {
-            Connect-MSCloudLoginSecurityComplianceeMFA -Credentials $Global:o365Credential `
+            Write-Verbose -Message "Calling into the MFA function since we received a message that it was required."
+            Connect-MSCloudLoginSecurityComplianceeMFA -CloudCredential $CloudCredential `
                 -ConnectionUrl $ConnectionUrl `
                 -AuthorizationUrl $AuthorizationUrl
         }
@@ -117,7 +165,7 @@ function Connect-MSCloudLoginSecurityComplianceMFA
     Param(
         [Parameter(Mandatory=$true)]
         [System.Management.Automation.PSCredential]
-        $Credentials,
+        $CloudCredential,
 
         [Parameter(Mandatory=$true)]
         [System.String]
@@ -130,9 +178,10 @@ function Connect-MSCloudLoginSecurityComplianceMFA
     try
     {
         Write-Verbose -Message "Creating a new Security and Compliance Session using MFA"
-        Connect-IPPSSession -UserPrincipalName $Credentials.UserName `
+        Connect-IPPSSession -UserPrincipalName $CloudCredential.UserName `
             -ConnectionUri $ConnectionUrl `
             -AzureADAuthorizationEndpointUri $AuthorizationUrl -Verbose:$false | Out-Null
+        Write-Verbose -Message "New Session with MFA created successfully"
         $Global:MSCloudLoginSCConnected = $true
     }
     catch
