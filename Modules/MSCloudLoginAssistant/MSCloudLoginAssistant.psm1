@@ -75,6 +75,7 @@ function Test-MSCloudLogin
         $Global:UseModernAuth = $UseModernAuth.IsPresent
     }
 
+    Write-Verbose -Message "Trying to connect to platform {$Platform}"
     switch ($Platform)
     {
         'Azure'
@@ -96,7 +97,7 @@ function Test-MSCloudLogin
         }
         'SecurityComplianceCenter'
         {
-            Connect-MSCloudLoginSecurityCompliance @verboseParameter
+            Connect-MSCloudLoginSecurityCompliance @verboseParameter -CloudCredential $CloudCredential
         }
         'MicrosoftGraph'
         {
