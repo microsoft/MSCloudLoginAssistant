@@ -70,6 +70,9 @@ function Test-MSCloudLogin
         $Global:DomainName = $Global:o365Credential.UserName.Split('@')[1]
     }
 
+    # Required because of Connect-AzAccount which clears the password otherwise;
+    $Global:o365Credential.Password.MakeReadOnly()
+
     if ($null -eq $Global:UseModernAuth)
     {
         $Global:UseModernAuth = $UseModernAuth.IsPresent
@@ -185,10 +188,7 @@ function Get-AzureADDLL
     [OutputType([System.String])]
     param(
     )
-    $manifest = Import-PowerShellDataFile ($SCRIPT:MyInvocation.MyCommand.Path.Replace('.psm1', '.psd1'))
-    $dependencies = $manifest.RequiredModules
-    $AzureADVersion = $dependencies | Where-Object -FilterScript { $_.ModuleName -eq 'AzureADPreview' }
-    [array]$AzureADModules = Get-Module -ListAvailable | Where-Object { $_.name -eq "AzureADPreview" -and $_.Version -eq $AzureADVersion.RequiredVersion }
+    [array]$AzureADModules = Get-Module -ListAvailable | Where-Object { $_.name -eq "AzureADPreview"}
 
     if ($AzureADModules.count -eq 0)
     {

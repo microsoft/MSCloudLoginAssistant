@@ -39,7 +39,7 @@ function Connect-MSCloudLoginTeams
             return
         }
         Import-Module -Name 'MicrosoftTeams' -Force
-
+        Import-Module -Name 'AzureADPreview' -Force
         Test-MSCloudLogin -Platform AzureAD -CloudCredential $Global:o365Credential
         if ($Global:IsMFAAuth)
         {
