@@ -70,8 +70,11 @@ function Test-MSCloudLogin
         $Global:DomainName = $Global:o365Credential.UserName.Split('@')[1]
     }
 
-    # Required because of Connect-AzAccount which clears the password otherwise;
-    $Global:o365Credential.Password.MakeReadOnly()
+    if ($null -ne $Global:o365Credential)
+    {
+        # Required because of Connect-AzAccount which clears the password otherwise;
+        $Global:o365Credential.Password.MakeReadOnly()
+    }
 
     if ($null -eq $Global:UseModernAuth)
     {

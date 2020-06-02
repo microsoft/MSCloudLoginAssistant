@@ -14,7 +14,6 @@ function Connect-MSCloudLoginMicrosoftGraph
         [System.String]
         $CertificateThumbprint
     )
-$VerbosePreference = 'Continue'
     try
     {
         Write-Verbose "ICI"
@@ -23,7 +22,8 @@ $VerbosePreference = 'Continue'
         Write-Verbose $CertificateThumbprint
 
         Import-Module -Name Microsoft.Graph.Authentication -DisableNameChecking -Force | out-null
-        Connect-Graph -ClientId $ApplicationId -TenantId $TenantId -CertificateThumbprint $CertificateThumbprint
+        Connect-Graph -ClientId $ApplicationId -TenantId $TenantId `
+          -CertificateThumbprint $CertificateThumbprint | Out-Null
         Write-Verbose "Connected"
     }
     catch
