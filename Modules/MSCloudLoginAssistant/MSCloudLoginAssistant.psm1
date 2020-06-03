@@ -615,59 +615,27 @@ function Test-MSCloudLoginCommand
     }
 }
 
-function Get-CloudEnvironment
+function Get-CloudEnvironmentInfo
 {
     [CmdletBinding()]
-    [OutputType([System.String])]
+    [OutputType([PSCustomObject])]
     param(
         [Parameter(Mandatory=$true)]
         [System.Management.Automation.PSCredential]
-        $Credentials,
-
-        [Parameter()]
-        [ValidateSet('AzureCloud', 'AzureUSGovernment', 'AzureGermanCloud')]
-        [System.String]
-        $Environment = 'AzureCloud'
+        $Credentials
     )
 
     try
     {
-        Write-Verbose -Message "Trying to connect to $Environment using Non-MFA"
-        if ($Environment -ne 'AzureCloud')
-        {
-            Connect-AzAccount -Credential $Credentials -Environment $Environment -SkipContextPopulation -ErrorAction Stop | Out-Null
-        }
-        else
-        {
-            Connect-AzAccount -Credential $Credentials -SkipContextPopulation -ErrorAction Stop | Out-Null
-        }
-        Write-Verbose -Message "Successfully connected to $Environment using Non-MFA"
-        $Global:UseModernAuth = $false
-        return $Environment
+        $tenantName = $Credentials.UserName.Split('@')[1]
+        $response = Invoke-WebRequest -Uri "https://login.microsoftonline.com/$tenantName/v2.0/.well-known/openid-configuration" -Method Get
+
+        $content = $response.Content
+        $result = ConvertFrom-Json $content
+        return $result
     }
     catch
     {
-        if ($_.Exception -like '*you must use multi-factor authentication to access*')
-        {
-            try
-            {
-                Write-Verbose -Message "Trying to connect to $Environment using MFA"
-                Connect-AzAccount -SkipContextPopulation | Out-Null
-                Write-Verbose -Message "Successfully connected to $Environment using MFA"
-                $Global:UseModernAuth = $True
-                return $Environment
-            }
-            catch
-            {
-                Write-Verbose -Message "Could not connect to $Environment"
-            }
-        }
-    }
-
-    switch ($Environment)
-    {
-        "AzureCloud" { return (Get-CloudEnvironment -Credentials $Global:o365Credential -Environment 'AzureUSGovernment')}
-        "AzureUSGovernment" { return (Get-CloudEnvironment -Credentials $Global:o365Credential -Environment 'AzureGermanCloud')}
-        "AzureGermanCloud" {throw 'MSCloudLoginAssistant: Could not find environment from Get-CloudEnvironment'}
+        throw $_
     }
 }
