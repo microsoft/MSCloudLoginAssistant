@@ -12,22 +12,18 @@ function Connect-MSCloudLoginExchangeOnline
     }
 
     #region Get Connection Info
-    if ($null -eq $Global:EnvironmentName)
-    {
-        $Global:EnvironmentName = Get-CloudEnvironment -Credentials $Global:o365Credential
-    }
-    Write-Verbose -Message "Detected Azure Environment: $EnvironmentName"
+    $info = Get-CloudEnvironmentInfo -Credentials $Global:o365Credential
 
     $ConnectionUrl = $null
-    switch ($Global:EnvironmentName)
+    switch ($info.cloud_instance_name)
     {
-        "AzureCloud" {
+        "microsoftonline.com" {
             $ConnectionUrl = 'https://outlook.office365.com/powershell-liveid/'
         }
-        "AzureUSGovernment" {
+        "microsoftonline.us" {
             $ConnectionUrl = 'https://outlook.office365.us/powershell-liveid/'
         }
-        "AzureGermanCloud" {
+        "microsoftonline.de" {
             $ConnectionUrl = 'https://outlook.office.de/powershell-liveid/'
         }
     }

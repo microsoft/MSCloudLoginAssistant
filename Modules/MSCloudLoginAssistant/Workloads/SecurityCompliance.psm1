@@ -13,29 +13,19 @@ function Connect-MSCloudLoginSecurityCompliance
     }
 
     #region Get Connection Info
-    if ($null -eq $Global:EnvironmentName)
-    {
-        Write-Verbose -Message "Global:EnvironmentName is null. Obtaining it"
-        $Global:EnvironmentName = Get-CloudEnvironment -Credentials $CloudCredential
-        Write-Verbose -Message "Successfully obtained Global:EnvironmentName = $($Global:EnvironmentName)"
-    }
-    else {
-        Write-Verbose -Message "Already Detected Azure Environment: $EnvironmentName"
-    }
+    $info = Get-CloudEnvironmentInfo -Credentials $Global:o365Credential
 
-    $ConnectionUrl = $null
-    $AuthorizationUrl = $null
-    switch ($Global:EnvironmentName)
+    switch ($info.cloud_instance_name)
     {
-        "AzureCloud" {
+        "microsoftonline.com" {
             $ConnectionUrl = 'https://ps.compliance.protection.outlook.com/powershell-liveid/'
             $AuthorizationUrl = 'https://login.microsoftonline.com/common'
         }
-        "AzureUSGovernment" {
+        "microsoftonline.us" {
             $ConnectionUrl = 'https://ps.compliance.protection.office365.us/powershell-liveid/'
             $AuthorizationUrl = 'https://login.microsoftonline.us/common'
         }
-        "AzureGermanCloud" {
+        "microsoftonline.de" {
             $ConnectionUrl = 'https://ps.compliance.protection.outlook.de/powershell-liveid/'
             $AuthorizationUrl = 'https://login.microsoftonline.de/common'
         }
