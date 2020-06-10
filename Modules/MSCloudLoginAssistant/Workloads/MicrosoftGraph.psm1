@@ -100,7 +100,11 @@ function Invoke-MSCloudLoginMicrosoftGraphAPI
 
         [Parameter()]
         [System.String]
-        $ApplicationId
+        $ApplicationId,
+
+        [Parameter()]
+        [System.UInt32]
+        $CallCount = 1
     )
     $VerbosePreference = 'Continue'
     Connect-MSCloudLoginMicrosoftGraphWithCredential -CloudCredential $CloudCredential
@@ -110,9 +114,46 @@ function Invoke-MSCloudLoginMicrosoftGraphAPI
     }
     foreach ($key in $Headers.Keys)
     {
-        Write-Verbose -Message "Adding Header {$key}"
+        Write-Verbose -Message "    $key = $($requestHeaders.$key)"
         $requestHeaders.Add($key, $Headers.$key)
     }
-    $Result = Invoke-RestMethod -Method $Method -Headers $requestheaders -Uri $Uri -Body $Body
+
+    Write-Verbose -Message "URI: $Uri"
+    Write-Verbose -Message "Method: $Method"
+    $requestParams = @{
+        Method  = $Method
+        Uri     = $Uri
+        Headers = $requestHeaders
+    }
+    if (-not [System.String]::IsNullOrEmpty($Body))
+    {
+        $requestParams.Add("Body", $Body)
+        Write-Verbose -Message "Body: $Body"
+    }
+
+    try
+    {
+        $Result = Invoke-RestMethod @requestParams
+    }
+    catch
+    {
+        if ($_.Exception -like '*The remote server returned an error: (401) Unauthorized.*')
+        {
+            if ($CallCount -eq 1)
+            {
+                Write-Verbose -Message "This is the first time the method is called. Wait 10 seconds and retry the call."
+                Start-Sleep -Seconds 10
+            }
+            else
+            {
+                $newSleepTime = 10 * $CallCount
+                Write-Verbose -Message "The Access Token expired, waiting {$newSleepTime} and then regenerating a new one."
+                $Global:MSCloudLoginGraphAccessToken = $null
+            }
+            $CallCount++
+            return (Invoke-MSCloudLoginMicrosoftGraphAPI @PSBoundParameters -CallCount $CallCount)
+        }
+        throw $_
+    }
     return $result
 }
