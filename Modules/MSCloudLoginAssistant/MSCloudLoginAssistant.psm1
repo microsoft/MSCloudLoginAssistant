@@ -116,7 +116,8 @@ function Test-MSCloudLogin
         }
         'PnP'
         {
-            Connect-MSCloudLoginPnP -ConnectionUrl $ConnectionUrl @verboseParameter
+            Connect-MSCloudLoginPnP -ConnectionUrl $ConnectionUrl @verboseParameter -ApplicationId $ApplicationId -TenantId $TenantId `
+            -CertificateThumbprint $CertificateThumbprint
         }
         'MicrosoftTeams'
         {
@@ -639,3 +640,30 @@ function Get-CloudEnvironmentInfo
         throw $_
     }
 }
+
+function Get-TenantDomain
+{
+    param(
+        [Parameter(Mandatory = $true)]
+        [System.String]
+        $ApplicationId,
+
+        [Parameter(Mandatory = $true)]
+        [System.String]
+        $TenantId,
+
+        [Parameter(Mandatory = $true)]
+        [System.String]
+        $CertificateThumbprint
+    )
+
+    Test-MSCloudLogin -Platform AzureAD -ApplicationId $ApplicationId -TenantId $TenantId -CertificateThumbprint $CertificateThumbprint
+
+    $domain = Get-AzureADDomain  | where-object {$_.IsInitial -eq $True} | select Name
+
+    if ($null -ne $domain){
+
+        return $domain.Name.split(".")[0]
+    }
+}
+
