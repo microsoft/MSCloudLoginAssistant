@@ -4,12 +4,27 @@ function Connect-MSCloudLoginPnP
     param(
         [Parameter(Mandatory = $False)]
         [System.String]
-        $ConnectionUrl
+        $ConnectionUrl,
+
+        [Parameter()]
+        [System.String]
+        $ApplicationId,
+
+        [Parameter()]
+        [System.String]
+        $TenantId,
+
+        [Parameter()]
+        [System.String]
+        $CertificateThumbprint
     )
     $clientid = "9bc3ab49-b65d-410a-85ad-de819febfddc"
     $RedirectURI = "https://oauth.spops.microsoft.com/"
 
-    if ($null -eq $Global:o365Credential)
+
+    if ($null -eq $Global:o365Credential -and [String]::IsNullOrEmpty($ApplicationId) `
+        -and [String]::IsNullOrEmpty($TenantId) `
+         -and [String]::IsNullOrEmpty($CertificateThumbprint))
     {
         $Global:o365Credential = Get-Credential -Message "Cloud Credential"
     }
@@ -22,7 +37,17 @@ function Connect-MSCloudLoginPnP
         }
         else
         {
-            $Global:SPOAdminUrl = Get-SPOAdminUrl -CloudCredential $Global:o365Credential
+            if (-not [String]::IsNullOrEmpty($ApplicationId) -and `
+            -not [String]::IsNullOrEmpty($TenantId) -and `
+            -not [String]::IsNullOrEmpty($CertificateThumbprint))
+            {
+                $domain = Get-TenantDomain -ApplicationId $ApplicationId -TenantId $TenantId  -CertificateThumbprint $CertificateThumbprint
+                $Global:SPOAdminUrl = "https://$domain-admin.sharepoint.com"
+            }
+            else
+            {
+                $Global:SPOAdminUrl = Get-SPOAdminUrl -CloudCredential $Global:o365Credential
+            }
         }
         $Global:SPOConnectionUrl = $Global:SPOAdminUrl
     }
@@ -36,9 +61,20 @@ function Connect-MSCloudLoginPnP
 
     try
     {
-        Connect-PnPOnline -Url $Global:SPOConnectionUrl -Credentials $Global:o365Credential
-        Write-Verbose "Connected to PnP {$($Global:SPOConnectionUrl) using regular authentication"
-        $Global:IsMFAAuth = $false
+        if (-not [String]::IsNullOrEmpty($ApplicationId) -and `
+        -not [String]::IsNullOrEmpty($TenantId) -and `
+        -not [String]::IsNullOrEmpty($CertificateThumbprint))
+        {
+            Connect-PnPOnline -Url $Global:SPOConnectionUrl -ClientId $ApplicationId -tenant $tenantId -thumbprint $CertificateThumbprint
+            Write-Verbose "Connected to PnP {$($Global:SPOConnectionUrl) using application authentication"
+            $Global:IsMFAAuth = $false
+        }
+        else
+        {
+            Connect-PnPOnline -Url $Global:SPOConnectionUrl -Credentials $Global:o365Credential
+            Write-Verbose "Connected to PnP {$($Global:SPOConnectionUrl) using regular authentication"
+            $Global:IsMFAAuth = $false
+        }
     }
     catch
     {
