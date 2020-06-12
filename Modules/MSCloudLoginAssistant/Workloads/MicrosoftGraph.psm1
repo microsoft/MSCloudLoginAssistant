@@ -33,7 +33,7 @@ function Connect-MSCloudLoginMicrosoftGraph
         Import-Module -Name Microsoft.Graph.Authentication -DisableNameChecking -Force | out-null
         Connect-Graph -ClientId $ApplicationId -TenantId $TenantId `
           -CertificateThumbprint $CertificateThumbprint | Out-Null
-        Write-Verbose "Connected"
+        Write-Verbose -Message "Connected"
     }
     catch
     {
@@ -106,7 +106,6 @@ function Invoke-MSCloudLoginMicrosoftGraphAPI
         [System.UInt32]
         $CallCount = 1
     )
-    $VerbosePreference = 'Continue'
     Connect-MSCloudLoginMicrosoftGraphWithCredential -CloudCredential $CloudCredential
     $requestHeaders = @{
         "Authorization" = "Bearer " + $Global:MSCloudLoginGraphAccessToken
@@ -151,6 +150,14 @@ function Invoke-MSCloudLoginMicrosoftGraphAPI
                 $Global:MSCloudLoginGraphAccessToken = $null
             }
             $CallCount++
+            try
+            {
+                $PSBoundParameters.Remove("CallCount") | Out-Null
+            }
+            catch
+            {
+                Write-Verbose -Message "CallCount was not already specified."
+            }
             return (Invoke-MSCloudLoginMicrosoftGraphAPI @PSBoundParameters -CallCount $CallCount)
         }
         throw $_
