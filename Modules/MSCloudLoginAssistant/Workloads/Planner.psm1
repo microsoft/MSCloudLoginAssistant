@@ -14,10 +14,6 @@ function Get-MSCloudLoginPlannerAuthResults
     #endregion
 
     $clientId = "d3590ed6-52b3-4102-aeff-aad2292ab01c"
-
-    $redirectUri = "urn:ietf:wg:oauth:2.0:oob"
-    $promptBehavior = [Microsoft.IdentityModel.Clients.ActiveDirectory.PromptBehavior]::Always
-
     $authentiationContext = New-Object "Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext" -ArgumentList $authUrl, $False
 
     $authenticationResult = Get-AccessToken -AuthUri $authURl `
@@ -35,22 +31,19 @@ function Get-MSCloudLoginPlannerEnvironmentInfo
         $Credentials
     )
 
-    if ($null -eq $Global:EnvironmentName)
-    {
-        $Global:EnvironmentName = Get-CloudEnvironment -Credentials $Credentials
-    }
+    $info = Get-CloudEnvironmentInfo -Credentials $Credentials
     Write-Verbose -Message "Detected Azure Environment: $EnvironmentName"
 
     $result = $null
-    switch ($Global:EnvironmentName)
+    switch ($info.cloud_instance_name)
     {
-        'AzureCloud'{
+        'microsoftonline.com'{
             $result = @{
                 authUrl = "https://login.microsoftonline.com/common"
                 resource = "https://tasks.office.com"
             }
         }
-        "AzureUSGovernment" {
+        "microsoftonline.us" {
             $result = @{
                 authUrl = "https://login.microsoftonline.us/common"
                 resource = "https://tasks.office365.us"
