@@ -16,15 +16,27 @@ function Connect-MSCloudLoginPnP
 
         [Parameter()]
         [System.String]
-        $CertificateThumbprint
+        $CertificateThumbprint,
+
+        [Parameter()]
+        [SecureString]
+        $CertificatePassword,
+
+        [Parameter()]
+        [System.String]
+        $CertificatePath
     )
     $clientid = "9bc3ab49-b65d-410a-85ad-de819febfddc"
     $RedirectURI = "https://oauth.spops.microsoft.com/"
 
+    if (-not [String]::IsNullOrEmpty($CertificateThumbprint) -and (-not[String]::IsNullOrEmpty($CertificatePassword) -or
+            -not[String]::IsNullOrEmpty($CertificatePath))
+    )
+    {
+        throw "Cannot specific both a Certificate Thumbprint and Certificate Path and Password"
+    }
 
-    if ($null -eq $Global:o365Credential -and [String]::IsNullOrEmpty($ApplicationId) `
-        -and [String]::IsNullOrEmpty($TenantId) `
-         -and [String]::IsNullOrEmpty($CertificateThumbprint))
+    if ($null -eq $Global:o365Credential -and [String]::IsNullOrEmpty($ApplicationId))
     {
         $Global:o365Credential = Get-Credential -Message "Cloud Credential"
     }
@@ -37,16 +49,21 @@ function Connect-MSCloudLoginPnP
         }
         else
         {
-            if (-not [String]::IsNullOrEmpty($ApplicationId) -and `
-            -not [String]::IsNullOrEmpty($TenantId) -and `
-            -not [String]::IsNullOrEmpty($CertificateThumbprint))
+            if ($null -ne $Global:o365Credential)
             {
-                $domain = Get-TenantDomain -ApplicationId $ApplicationId -TenantId $TenantId  -CertificateThumbprint $CertificateThumbprint
-                $Global:SPOAdminUrl = "https://$domain-admin.sharepoint.com"
+                $Global:SPOAdminUrl = Get-SPOAdminUrl -CloudCredential $Global:o365Credential
             }
             else
             {
-                $Global:SPOAdminUrl = Get-SPOAdminUrl -CloudCredential $Global:o365Credential
+                if ($TenantId.Contains("onmicrosoft"))
+                {
+                    $domain = $TenantId.Split(".")[0]
+                    $Global:SPOAdminUrl = "https://$domain-admin.sharepoint.com"
+                }
+                else
+                {
+                    throw "TenantID must be in format contoso.onmicrosoft.com"
+                }
             }
         }
         $Global:SPOConnectionUrl = $Global:SPOAdminUrl
@@ -62,10 +79,21 @@ function Connect-MSCloudLoginPnP
     try
     {
         if (-not [String]::IsNullOrEmpty($ApplicationId) -and `
-        -not [String]::IsNullOrEmpty($TenantId) -and `
-        -not [String]::IsNullOrEmpty($CertificateThumbprint))
+                -not [String]::IsNullOrEmpty($TenantId) -and `
+                -not [String]::IsNullOrEmpty($CertificateThumbprint) -and `
+                - [String]::IsNullOrEmpty($CertificatePath)
+        )
         {
             Connect-PnPOnline -Url $Global:SPOConnectionUrl -ClientId $ApplicationId -tenant $tenantId -thumbprint $CertificateThumbprint
+            Write-Verbose "Connected to PnP {$($Global:SPOConnectionUrl) using application authentication"
+            $Global:IsMFAAuth = $false
+        }
+        elseif (-not [String]::IsNullOrEmpty($ApplicationId) -and `
+                -not [String]::IsNullOrEmpty($TenantId) -and `
+                -not [String]::IsNullOrEmpty($CertificatePassword) -and `
+                -not [String]::IsNullOrEmpty($CertificatePath))
+        {
+            Connect-PnPOnline -Url $Global:SPOConnectionUrl -ClientId $ApplicationId -tenant $tenantId -CertificatePassword $CertificatePassword -CertificatePath $CertificatePath
             Write-Verbose "Connected to PnP {$($Global:SPOConnectionUrl) using application authentication"
             $Global:IsMFAAuth = $false
         }
