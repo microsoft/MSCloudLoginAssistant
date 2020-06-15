@@ -42,7 +42,7 @@ function Connect-MSCloudLoginMicrosoftGraph
     }
 }
 
-function Connect-MSCloudLoginMicrosoftGraphWithCredential
+function Connect-MSCloudLoginMSGraphWithUser
 {
     [CmdletBinding()]
     Param(
@@ -73,15 +73,61 @@ function Connect-MSCloudLoginMicrosoftGraphWithCredential
     }
 }
 
+function Connect-MSCloudLoginMSGraphWithServicePrincipal
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory = $true)]
+        [System.String]
+        $ApplicationId,
+
+        [Parameter(Mandatory = $true)]
+        [System.String]
+        $TenantId,
+
+        [Parameter(Mandatory = $true)]
+        [System.String]
+        $ApplicationSecret
+    )
+
+    $url = "https://login.microsoftonline.com/$TenantId/oauth2/v2.0/token"
+    $body = "client_id=$ApplicationId&scope=https%3A%2F%2Fgraph.microsoft.com%2F.default&client_secret=$ApplicationSecret&grant_type=client_credentials"
+    $response = Invoke-RestMethod -Method POST -Uri $url -Body $body
+    $Global:MSCloudLoginGraphAccessToken = $response.access_token
+}
+
+function Connect-MSCloudLoginMSGraphWithServicePrincipalDelegated
+{
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory = $true)]
+        [System.String]
+        $ApplicationId,
+
+        [Parameter(Mandatory = $true)]
+        [System.String]
+        $TenantId,
+
+        [Parameter(Mandatory = $true)]
+        [System.String]
+        $ApplicationSecret,
+
+        [Parameter(Mandatory = $true)]
+        [System.String]
+        $Scope
+    )
+
+    $url = "https://login.microsoftonline.com/$TenantId/oauth2/v2.0/authorize?"
+    $body = "client_id=$ApplicationId&scope=$scope&client_secret=$ApplicationSecret&response_type=code"
+    $response = Invoke-RestMethod -Method GET -Uri ($url + $body)
+    $Global:MSCloudLoginGraphAccessToken = $response.access_token
+}
+
 function Invoke-MSCloudLoginMicrosoftGraphAPI
 {
     [CmdletBinding()]
     [OutputType([System.String])]
     Param(
-        [Parameter(Mandatory = $true)]
-        [System.Management.Automation.PSCredential]
-        $CloudCredential,
-
         [Parameter(Mandatory = $true)]
         [System.String]
         $Uri,
@@ -99,6 +145,10 @@ function Invoke-MSCloudLoginMicrosoftGraphAPI
         $Method,
 
         [Parameter()]
+        [System.Management.Automation.PSCredential]
+        $CloudCredential,
+
+        [Parameter()]
         [System.String]
         $ApplicationId,
 
@@ -106,7 +156,9 @@ function Invoke-MSCloudLoginMicrosoftGraphAPI
         [System.UInt32]
         $CallCount = 1
     )
-    Connect-MSCloudLoginMicrosoftGraphWithCredential -CloudCredential $CloudCredential
+    Connect-MSCloudLoginMSGraphWithUser -CloudCredential $CloudCredential `
+        -ApplicationId $ApplicationId
+
     $requestHeaders = @{
         "Authorization" = "Bearer " + $Global:MSCloudLoginGraphAccessToken
         "Content-Type" = "application/json"
@@ -136,6 +188,7 @@ function Invoke-MSCloudLoginMicrosoftGraphAPI
     }
     catch
     {
+        Write-Verbose -Message $_
         if ($_.Exception -like '*The remote server returned an error: (401) Unauthorized.*')
         {
             if ($CallCount -eq 1)

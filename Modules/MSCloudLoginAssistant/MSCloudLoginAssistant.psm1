@@ -355,6 +355,7 @@ function Get-AccessToken
 
         $context = [Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext]::new($AuthUri, $false, [Microsoft.IdentityModel.Clients.ActiveDirectory.TokenCache]::DefaultShared)
 
+        Write-Verbose -Message "AuthURI = $AuthURI"
         Write-Verbose -Message "TargetURI = $TargetUri"
         Write-Verbose -Message "ClientID = $ClientID"
         Write-Verbose -Message "Content = $context"
