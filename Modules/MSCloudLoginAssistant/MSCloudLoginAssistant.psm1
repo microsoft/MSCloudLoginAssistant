@@ -52,7 +52,16 @@ function Test-MSCloudLogin
 
         [Parameter()]
         [Switch]
-        $UseModernAuth
+        $UseModernAuth,
+
+        [Parameter()]
+        [SecureString]
+        $CertificatePassword,
+
+        [Parameter()]
+        [System.String]
+        $CertificatePath
+
     )
     if ($VerbosePreference -eq "Continue")
     {
@@ -117,7 +126,7 @@ function Test-MSCloudLogin
         'PnP'
         {
             Connect-MSCloudLoginPnP -ConnectionUrl $ConnectionUrl @verboseParameter -ApplicationId $ApplicationId -TenantId $TenantId `
-            -CertificateThumbprint $CertificateThumbprint
+            -CertificateThumbprint $CertificateThumbprint -CertificatePassword $CertificatePassword -CertificatePath $CertificatePath
         }
         'MicrosoftTeams'
         {
