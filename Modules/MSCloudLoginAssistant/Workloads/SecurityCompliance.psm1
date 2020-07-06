@@ -13,9 +13,12 @@ function Connect-MSCloudLoginSecurityCompliance
     }
 
     #region Get Connection Info
-    $info = Get-CloudEnvironmentInfo -Credentials $Global:o365Credential
+    if ($null -eq $Global:CloudEnvironmentInfo)
+    {
+        $Global:CloudEnvironmentInfo = Get-CloudEnvironmentInfo -Credentials $Global:o365Credential
+    }
 
-    switch ($info.cloud_instance_name)
+    switch ($Global:CloudEnvironmentInfo.cloud_instance_name)
     {
         "microsoftonline.com" {
             $ConnectionUrl = 'https://ps.compliance.protection.outlook.com/powershell-liveid/'
