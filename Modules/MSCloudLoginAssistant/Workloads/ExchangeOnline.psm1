@@ -4,18 +4,40 @@ function Connect-MSCloudLoginExchangeOnline
     param(
         [Parameter()]
         [System.String]
+        $ApplicationId,
+
+        [Parameter()]
+        [System.String]
+        $TenantId,
+
+        [Parameter()]
+        [System.String]
+        $CertificateThumbprint,
+
+        [Parameter()]
+        [SecureString]
+        $CertificatePassword,
+
+        [Parameter()]
+        [System.String]
+        $CertificatePath,
+
+        [Parameter()]
+        [System.String]
         $Prefix
     )
-    if ($null -eq $Global:o365Credential)
-    {
-        $Global:o365Credential = Get-Credential -Message "Cloud Credential"
-    }
 
     #region Get Connection Info
-    $info = Get-CloudEnvironmentInfo -Credentials $Global:o365Credential
+    if ($null -eq $Global:CloudEnvironmentInfo)
+    {
+        $Global:CloudEnvironmentInfo = Get-CloudEnvironmentInfo -Credentials $Global:o365Credential `
+            -ApplicationId $ApplicationId `
+            -TenantId $TenantId `
+            -CertificateThumbprint $CertificateThumbprint
+    }
 
     $ConnectionUrl = $null
-    switch ($info.cloud_instance_name)
+    switch ($Global:CloudEnvironmentInfo.cloud_instance_name)
     {
         "microsoftonline.com" {
             $ConnectionUrl = 'https://outlook.office365.com/powershell-liveid/'
@@ -29,71 +51,96 @@ function Connect-MSCloudLoginExchangeOnline
     }
     #endregion
 
-    try
+    if (-not [String]::IsNullOrEmpty($ApplicationId) -and `
+        -not [String]::IsNullOrEmpty($TenantId) -and `
+        -not [String]::IsNullOrEmpty($CertificateThumbprint))
     {
-        Write-Verbose -Message "Uses Modern Auth: $($Global:UseModernAuth)"
-        $ExistingSession = Get-PSSession | Where-Object -FilterScript {$_.ConfigurationName -eq 'Microsoft.Exchange' -and $_.ComputerName -like 'outlook.*'}
-
-        if ($null -ne $ExistingSession -and $ExistingSession.State -ne 'Opened')
+        Write-Verbose -Message "Connecting to Microsoft Teams using AzureAD Application {$ApplicationId}"
+        try
         {
-            Write-Verbose -Message "An existing session that is not opened was found {$($ExistingSession.Name)}. Closing it."
-            $ExistingSession | Remove-PSSession
-            $ExistingSession = $null
+            $Organization = Get-MSCloudLoginOrganizationName -ApplicationId $ApplicationId `
+                -TenantId $TenantId `
+                -CertificateThumbprint $CertificateThumbprint
+            Connect-ExchangeOnline -AppId $ApplicationId `
+                -Organization $Organization `
+                -CertificateThumbprint $CertificateThumbprint `
+                -ShowBanner:$false `
+                -ShowProgress:$false `
+                -Verbose:$false | Out-Null
         }
-
-        if ($null -ne $ExistingSession)
+        catch
         {
-            Write-Verbose -Message "Re-using existing Session: $($ExistingSession.Name)"
+            throw $_
         }
-        else
+    }
+    else
+    {
+        try
         {
-            if ($Global:UseModernAuth)
+            Write-Verbose -Message "Uses Modern Auth: $($Global:UseModernAuth)"
+            $ExistingSession = Get-PSSession | Where-Object -FilterScript {$_.ConfigurationName -eq 'Microsoft.Exchange' -and $_.ComputerName -like 'outlook.*'}
+
+            if ($null -ne $ExistingSession -and $ExistingSession.State -ne 'Opened')
+            {
+                Write-Verbose -Message "An existing session that is not opened was found {$($ExistingSession.Name)}. Closing it."
+                $ExistingSession | Remove-PSSession
+                $ExistingSession = $null
+            }
+
+            if ($null -ne $ExistingSession)
+            {
+                Write-Verbose -Message "Re-using existing Session: $($ExistingSession.Name)"
+            }
+            else
+            {
+                if ($Global:UseModernAuth)
+                {
+                    Connect-MSCloudLoginExchangeOnlineMFA -Credentials $Global:o365Credential -ConnectionUrl $ConnectionUrl
+                }
+                else
+                {
+                    Write-Verbose -Message "Attempting to create a new session to Exchange Online - Non-MFA"
+
+                    $previousVerbose = $VerbosePreference
+                    $previousWarning = $WarningPreference
+                    $WarningPreference = 'SilentlyContinue'
+                    $VerbosePreference = 'SilentlyContinue'
+
+                    try
+                    {
+                        $ExistingSession = New-PSSession -ConfigurationName Microsoft.Exchange `
+                            -ConnectionUri $ConnectionUrl `
+                            -Credential $o365Credential `
+                            -Authentication Basic `
+                            -AllowRedirection -ErrorAction 'Stop'
+                        $EXOModule = Import-PSSession $ExistingSession -DisableNameChecking -AllowClobber -Verbose:$false
+
+                        $IPMOParameters = @{}
+                        if ($PSBoundParameters.containskey("Prefix"))
+                        {
+                            $IPMOParameters.add("Prefix",$prefix)
+                        }
+                        Import-Module $EXOModule -Global @IPMOParameters -Verbose:$false | Out-Null
+                    }
+                    catch
+                    {
+                        Connect-MSCloudLoginExchangeOnlineMFA -Credentials $Global:o365Credential -ConnectionUrl $ConnectionUrl
+                    }
+                    $WarningPreference = $previousWarning
+                    $VerbosePreference = $previousVerbose
+                }
+            }
+        }
+        catch
+        {
+            if ($_.Exception -like '*you must use multi-factor authentication to access*')
             {
                 Connect-MSCloudLoginExchangeOnlineMFA -Credentials $Global:o365Credential -ConnectionUrl $ConnectionUrl
             }
             else
             {
-                Write-Verbose -Message "Attempting to create a new session to Exchange Online - Non-MFA"
-
-                $previousVerbose = $VerbosePreference
-                $previousWarning = $WarningPreference
-                $WarningPreference = 'SilentlyContinue'
-                $VerbosePreference = 'SilentlyContinue'
-
-                try
-                {
-                    $ExistingSession = New-PSSession -ConfigurationName Microsoft.Exchange `
-                        -ConnectionUri $ConnectionUrl `
-                        -Credential $o365Credential `
-                        -Authentication Basic `
-                        -AllowRedirection -ErrorAction 'Stop'
-                    $EXOModule = Import-PSSession $ExistingSession -DisableNameChecking -AllowClobber -Verbose:$false
-
-                    $IPMOParameters = @{}
-                    if ($PSBoundParameters.containskey("Prefix"))
-                    {
-                        $IPMOParameters.add("Prefix",$prefix)
-                    }
-                    Import-Module $EXOModule -Global @IPMOParameters -Verbose:$false | Out-Null
-                }
-                catch
-                {
-                    Connect-MSCloudLoginExchangeOnlineMFA -Credentials $Global:o365Credential -ConnectionUrl $ConnectionUrl
-                }
-                $WarningPreference = $previousWarning
-                $VerbosePreference = $previousVerbose
+                throw $_
             }
-        }
-    }
-    catch
-    {
-        if ($_.Exception -like '*you must use multi-factor authentication to access*')
-        {
-            Connect-MSCloudLoginExchangeOnlineMFA -Credentials $Global:o365Credential -ConnectionUrl $ConnectionUrl
-        }
-        else
-        {
-            throw $_
         }
     }
 }
