@@ -108,7 +108,11 @@ function Test-MSCloudLogin
         }
         'ExchangeOnline'
         {
-            Connect-MSCloudLoginExchangeOnline @verboseParameter
+            Connect-MSCloudLoginExchangeOnline @verboseParameter -ApplicationId $ApplicationId `
+                -TenantId $TenantId `
+                -CertificateThumbprint $CertificateThumbprint `
+                -CertificatePath $CertificatePath `
+                -CertificatePassword $CertificatePassword
         }
         'SecurityComplianceCenter'
         {
@@ -631,14 +635,35 @@ function Get-CloudEnvironmentInfo
     [CmdletBinding()]
     [OutputType([PSCustomObject])]
     param(
-        [Parameter(Mandatory=$true)]
+        [Parameter()]
         [System.Management.Automation.PSCredential]
-        $Credentials
+        $Credentials,
+
+        [Parameter()]
+        [System.String]
+        $ApplicationId,
+
+        [Parameter()]
+        [System.String]
+        $TenantId,
+
+        [Parameter()]
+        [System.String]
+        $CertificateThumbprint
     )
 
     try
     {
-        $tenantName = $Credentials.UserName.Split('@')[1]
+        if ($null -ne $Credentials)
+        {
+            $tenantName = $Credentials.UserName.Split('@')[1]
+        }
+        else
+        {
+            $tenantName = Get-MSCloudLoginOrganizationName -ApplicationId $ApplicationId `
+               -TenantId $TenantId `
+               -CertificateThumbprint $CertificateThumbprint
+        }
         $response = Invoke-WebRequest -Uri "https://login.microsoftonline.com/$tenantName/v2.0/.well-known/openid-configuration" -Method Get
 
         $content = $response.Content
@@ -674,6 +699,32 @@ function Get-TenantDomain
     if ($null -ne $domain){
 
         return $domain.Name.split(".")[0]
+    }
+}
+
+function Get-MSCloudLoginOrganizationName
+{
+    param(
+        [Parameter(Mandatory = $true)]
+        [System.String]
+        $ApplicationId,
+
+        [Parameter(Mandatory = $true)]
+        [System.String]
+        $TenantId,
+
+        [Parameter(Mandatory = $true)]
+        [System.String]
+        $CertificateThumbprint
+    )
+
+    Test-MSCloudLogin -Platform AzureAD -ApplicationId $ApplicationId -TenantId $TenantId -CertificateThumbprint $CertificateThumbprint
+
+    $domain = Get-AzureADDomain  | where-object {$_.IsInitial -eq $True} | select Name
+
+    if ($null -ne $domain){
+
+        return $domain.Name
     }
 }
 
