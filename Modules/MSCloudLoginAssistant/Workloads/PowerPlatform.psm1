@@ -1,45 +1,35 @@
 function Connect-MSCloudLoginPowerPlatform
 {
     [CmdletBinding()]
-    param()
-    if ($null -eq $Global:o365Credential)
-    {
-        $Global:o365Credential = Get-Credential -Message "Cloud Credential"
-    }
+    param(
+        [Parameter()]
+        [System.String]
+        $ApplicationId,
 
-    #region Get Connection Info
-    if ($null -eq $Global:EnvironmentName)
-    {
-        $Global:EnvironmentName = Get-CloudEnvironment -Credentials $Global:o365Credential
-    }
-    Write-Verbose -Message "Detected Azure Environment: $EnvironmentName"
+        [Parameter()]
+        [System.String]
+        $TenantId,
 
-    $ConnectionUrl = $null
-    switch ($Global:EnvironmentName)
-    {
-        "AzureCloud" {
-            $EndPoint = 'https://outlook.office365.com/powershell-liveid/'
-        }
-        "AzureUSGovernment" {
-            $EndPoint = 'https://outlook.office365.us/powershell-liveid/'
-        }
-        "AzureGermanCloud" {
-            $EndPoint = 'https://outlook.office.de/powershell-liveid/'
-        }
-    }
-    #endregion
-
-    #region Load ADAL context
-    <#Import-Module 'Microsoft.PowerApps.Administration.PowerShell' -Force | Out-Null
-    $module = Get-Module 'Microsoft.PowerApps.Administration.PowerShell'
-    $ADALBinaryPath = $module.Path.Replace("Microsoft.PowerApps.Administration.Powershell.psm1", "Microsoft.IdentityModel.Clients.ActiveDirectory.dll");
-    [System.Reflection.Assembly]::LoadFrom($ADALBinaryPath) | Out-Null#>
-    #endregion
+        [Parameter()]
+        [System.String]
+        $CertificateThumbprint
+    )
     try
     {
-        if ($null -eq $Global:o365Credential)
+        if (-not [String]::IsNullOrEmpty($ApplicationId) -and `
+        -not [String]::IsNullOrEmpty($TenantId) -and `
+        -not [String]::IsNullOrEmpty($CertificateThumbprint))
         {
-            Add-PowerAppsAccount -ErrorAction Stop | Out-Null
+            if ($TenantId -like '*.de')
+            {
+                $Global:CloudEnvironment = 'Germany'
+                Write-Warning 'Microsoft PowerPlatform is not supported in the Germany Cloud'
+                return
+            }
+            Add-PowerAppsAccount -ApplicationId $ApplicationId `
+                -TenantId $TenantId `
+                -CertificateThumbprint $CertificateThumbprint `
+                -ErrorAction Stop | Out-Null
             $Global:MSCloudLoginPowerPlatformConnected = $true
         }
         else
@@ -62,31 +52,73 @@ function Connect-MSCloudLoginPowerPlatform
         {
             try
             {
-                Add-PowerAppsAccount -UserName $Global:o365credential.UserName `
-                    -Password $Global:o365Credential.Password `
-                    -EndPoint 'usgov' `
-                    -ErrorAction Stop | Out-Null
-                $Global:MSCloudLoginPowerPlatformConnected = $true
+                if (-not [String]::IsNullOrEmpty($ApplicationId) -and `
+                -not [String]::IsNullOrEmpty($TenantId) -and `
+                -not [String]::IsNullOrEmpty($CertificateThumbprint))
+                {
+                    Add-PowerAppsAccount -ApplicationId $ApplicationId `
+                        -TenantId $TenantId `
+                        -CertificateThumbprint $CertificateThumbprint `
+                        -EndPoint 'usgov' `
+                        -ErrorAction Stop | Out-Null
+                    $Global:MSCloudLoginPowerPlatformConnected = $true
+                }
+                else
+                {
+                    Add-PowerAppsAccount -UserName $Global:o365credential.UserName `
+                        -Password $Global:o365Credential.Password `
+                        -EndPoint 'usgov' `
+                        -ErrorAction Stop | Out-Null
+                    $Global:MSCloudLoginPowerPlatformConnected = $true
+                }
             }
             catch
             {
                 try
                 {
-                    Add-PowerAppsAccount -UserName $Global:o365credential.UserName `
-                        -Password $Global:o365Credential.Password `
-                        -EndPoint 'usgovhigh' `
-                        -ErrorAction Stop | Out-Null
-                    $Global:MSCloudLoginPowerPlatformConnected = $true
+                    if (-not [String]::IsNullOrEmpty($ApplicationId) -and `
+                    -not [String]::IsNullOrEmpty($TenantId) -and `
+                    -not [String]::IsNullOrEmpty($CertificateThumbprint))
+                    {
+                        Add-PowerAppsAccount -ApplicationId $ApplicationId `
+                            -TenantId $TenantId `
+                            -CertificateThumbprint $CertificateThumbprint `
+                            -EndPoint 'usgovhigh' `
+                            -ErrorAction Stop | Out-Null
+                        $Global:MSCloudLoginPowerPlatformConnected = $true
+                    }
+                    else
+                    {
+                        Add-PowerAppsAccount -UserName $Global:o365credential.UserName `
+                            -Password $Global:o365Credential.Password `
+                            -EndPoint 'usgovhigh' `
+                            -ErrorAction Stop | Out-Null
+                        $Global:MSCloudLoginPowerPlatformConnected = $true
+                    }
                 }
                 catch
                 {
                     try
                     {
-                        Add-PowerAppsAccount -UserName $Global:o365credential.UserName `
-                            -Password $Global:o365Credential.Password `
-                            -EndPoint 'preview' `
-                            -ErrorAction Stop | Out-Null
-                        $Global:MSCloudLoginPowerPlatformConnected = $true
+                        if (-not [String]::IsNullOrEmpty($ApplicationId) -and `
+                        -not [String]::IsNullOrEmpty($TenantId) -and `
+                        -not [String]::IsNullOrEmpty($CertificateThumbprint))
+                        {
+                            Add-PowerAppsAccount -ApplicationId $ApplicationId `
+                                -TenantId $TenantId `
+                                -CertificateThumbprint $CertificateThumbprint `
+                                -EndPoint 'preview' `
+                                -ErrorAction Stop | Out-Null
+                            $Global:MSCloudLoginPowerPlatformConnected = $true
+                        }
+                        else
+                        {
+                            Add-PowerAppsAccount -UserName $Global:o365credential.UserName `
+                                -Password $Global:o365Credential.Password `
+                                -EndPoint 'preview' `
+                                -ErrorAction Stop | Out-Null
+                            $Global:MSCloudLoginPowerPlatformConnected = $true
+                        }
                     }
                     catch
                     {

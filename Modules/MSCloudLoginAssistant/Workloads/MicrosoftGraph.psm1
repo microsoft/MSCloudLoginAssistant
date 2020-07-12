@@ -25,7 +25,6 @@ function Connect-MSCloudLoginMicrosoftGraph
     }
     try
     {
-        Write-Verbose "ICI"
         Write-Verbose $ApplicationId
         Write-Verbose $TenantId
         Write-Verbose $CertificateThumbprint

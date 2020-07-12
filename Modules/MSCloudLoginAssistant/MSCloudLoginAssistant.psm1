@@ -99,12 +99,10 @@ function Test-MSCloudLogin
         }
         'AzureAD'
         {
-            Connect-MSCloudLoginAzureAD @verboseParameter -ApplicationId $ApplicationId -TenantId $TenantId `
+            Connect-MSCloudLoginAzureAD @verboseParameter `
+                -ApplicationId $ApplicationId `
+                -TenantId $TenantId `
                 -CertificateThumbprint $CertificateThumbprint
-        }
-        'SharePointOnline'
-        {
-            Connect-MSCloudLoginSharePointOnline @verboseParameter
         }
         'ExchangeOnline'
         {
@@ -114,13 +112,16 @@ function Test-MSCloudLogin
                 -CertificatePath $CertificatePath `
                 -CertificatePassword $CertificatePassword
         }
-        'SecurityComplianceCenter'
-        {
-            Connect-MSCloudLoginSecurityCompliance @verboseParameter -CloudCredential $CloudCredential
-        }
         'MicrosoftGraph'
         {
-            Connect-MSCloudLoginMicrosoftGraph @verboseParameter -ApplicationId $ApplicationId -TenantId $TenantId `
+            Connect-MSCloudLoginMicrosoftGraph @verboseParameter -ApplicationId $ApplicationId `
+                -TenantId $TenantId `
+                -CertificateThumbprint $CertificateThumbprint
+        }
+        'MicrosoftTeams'
+        {
+            Connect-MSCloudLoginTeams @verboseParameter -ApplicationId $ApplicationId `
+                -TenantId $TenantId `
                 -CertificateThumbprint $CertificateThumbprint
         }
         'MSOnline'
@@ -129,21 +130,35 @@ function Test-MSCloudLogin
         }
         'PnP'
         {
-            Connect-MSCloudLoginPnP -ConnectionUrl $ConnectionUrl @verboseParameter -ApplicationId $ApplicationId -TenantId $TenantId `
-            -CertificateThumbprint $CertificateThumbprint -CertificatePassword $CertificatePassword -CertificatePath $CertificatePath
+            Connect-MSCloudLoginPnP -ConnectionUrl $ConnectionUrl @verboseParameter `
+                -ApplicationId $ApplicationId `
+                -TenantId $TenantId `
+                -CertificateThumbprint $CertificateThumbprint `
+                -CertificatePassword $CertificatePassword `
+                -CertificatePath $CertificatePath
         }
-        'MicrosoftTeams'
+        'PowerPlatforms'
         {
-            Connect-MSCloudLoginTeams @verboseParameter -ApplicationId $ApplicationId -TenantId $TenantId `
+            Connect-MSCloudLoginPowerPlatform @verboseParameter -ApplicationId $ApplicationId `
+                -TenantId $TenantId `
                 -CertificateThumbprint $CertificateThumbprint
+        }
+        'SecurityComplianceCenter'
+        {
+            Connect-MSCloudLoginSecurityCompliance @verboseParameter `
+                -ApplicationId $ApplicationId `
+                -TenantId $TenantId `
+                -CertificateThumbprint $CertificateThumbprint `
+                -CertificatePath $CertificatePath `
+                -CertificatePassword $CertificatePassword
+        }
+        'SharePointOnline'
+        {
+            Connect-MSCloudLoginSharePointOnline @verboseParameter
         }
         'SkypeForBusiness'
         {
             Connect-MSCloudLoginSkypeForBusiness @verboseParameter
-        }
-        'PowerPlatforms'
-        {
-            Connect-MSCloudLoginPowerPlatform @verboseParameter
         }
     }
 }
