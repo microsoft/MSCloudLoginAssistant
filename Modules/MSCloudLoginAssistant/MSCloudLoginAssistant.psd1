@@ -72,7 +72,6 @@
         'Workloads\ExchangeOnline.psm1',
         'Workloads\MicrosoftGraph.psm1',
         'Workloads\MSOnline.psm1',
-        'Workloads\Planner.psm1',
         'Workloads\PnP.psm1',
         'Workloads\PowerPlatform.psm1',
         'Workloads\SecurityCompliance.psm1',

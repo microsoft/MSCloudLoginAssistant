@@ -84,7 +84,10 @@ function Connect-MSCloudLoginPnP
                 - [String]::IsNullOrEmpty($CertificatePath)
         )
         {
-            Connect-PnPOnline -Url $Global:SPOConnectionUrl -ClientId $ApplicationId -tenant $tenantId -thumbprint $CertificateThumbprint
+            Connect-PnPOnline -Url $Global:SPOConnectionUrl `
+                -ClientId $ApplicationId `
+                -Tenant $tenantId `
+                -Thumbprint $CertificateThumbprint
             Write-Verbose "Connected to PnP {$($Global:SPOConnectionUrl) using application authentication"
             $Global:IsMFAAuth = $false
         }
@@ -93,13 +96,18 @@ function Connect-MSCloudLoginPnP
                 -not [String]::IsNullOrEmpty($CertificatePassword) -and `
                 -not [String]::IsNullOrEmpty($CertificatePath))
         {
-            Connect-PnPOnline -Url $Global:SPOConnectionUrl -ClientId $ApplicationId -tenant $tenantId -CertificatePassword $CertificatePassword -CertificatePath $CertificatePath
+            Connect-PnPOnline -Url $Global:SPOConnectionUrl `
+                -ClientId $ApplicationId `
+                -Tenant $tenantId `
+                -CertificatePassword $CertificatePassword `
+                -CertificatePath $CertificatePath
             Write-Verbose "Connected to PnP {$($Global:SPOConnectionUrl) using application authentication"
             $Global:IsMFAAuth = $false
         }
         else
         {
-            Connect-PnPOnline -Url $Global:SPOConnectionUrl -Credentials $Global:o365Credential
+            Connect-PnPOnline -Url $Global:SPOConnectionUrl `
+                -Credentials $Global:o365Credential
             Write-Verbose "Connected to PnP {$($Global:SPOConnectionUrl) using regular authentication"
             $Global:IsMFAAuth = $false
         }
