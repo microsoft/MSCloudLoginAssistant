@@ -23,17 +23,18 @@ function Connect-MSCloudLoginSecurityCompliance
         $CertificatePath
     )
     $WarningPreference = 'SilentlyContinue'
-    [array]$activeSessions = Get-PSSession | Where-Object -FilterScript {$_.ComputerName -like '*.ps.compliance.protection*' -and $_.State -eq 'Opened'}
+    <#[array]$activeSessions = Get-PSSession | Where-Object -FilterScript {$_.ComputerName -like '*.ps.compliance.protection*' -and $_.State -eq 'Opened'}
     if ($activeSessions.Length -ge 1)
     {
         $command = Get-Command "Get-Label" -ErrorAction 'SilentlyContinue'
         if ($null -eq $command)
         {
-            Import-PSSession -Session $activeSessions[0] | Out-Null
+            $EXOModule = Import-PSSession $activeSessions[0] -DisableNameChecking -AllowClobber -Verbose:$false
+            Import-Module $EXOModule -Global -Verbose:$false | Out-Null
         }
         # There are active sessions, no need to reconnect;
         return
-    }
+    }#>
 
     #region Get Connection Info
     if ($null -eq $Global:CloudEnvironmentInfo)
