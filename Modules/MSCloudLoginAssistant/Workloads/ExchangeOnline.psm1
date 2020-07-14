@@ -33,16 +33,13 @@ function Connect-MSCloudLoginExchangeOnline
     $WarningPreference = 'SilentlyContinue'
     $ProgressPreference = 'SilentlyContinue'
     [array]$activeSessions = Get-PSSession | Where-Object -FilterScript {$_.ComputerName -like '*outlook.office*' -and $_.State -eq 'Opened'}
-    if ($activeSessions.Length -ge 1)
+    if ($activeSessions.Length -ge 1 -and $SkipModuleReload -eq $true)
     {
         Write-Verbose -Message "Found {$($activeSessions.Length)} existing Exchange Online Session"
-        if ($SkipModuleReload)
+        $command = Get-Command "Get-AcceptedDomain" -ErrorAction 'SilentlyContinue'
+        if ($null -ne $command)
         {
-            $command = Get-Command "Get-AcceptedDomain" -ErrorAction 'SilentlyContinue'
-            if ($null -ne $command)
-            {
-                return
-            }
+            return
         }
         $EXOModule = Import-PSSession $activeSessions[0] -DisableNameChecking -AllowClobber
         Import-Module $EXOModule -Global | Out-Null
