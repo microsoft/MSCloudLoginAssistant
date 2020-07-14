@@ -60,8 +60,11 @@ function Test-MSCloudLogin
 
         [Parameter()]
         [System.String]
-        $CertificatePath
+        $CertificatePath,
 
+        [Parameter()]
+        [System.Boolean]
+        $SkipModuleReload = $false
     )
     if ($VerbosePreference -eq "Continue")
     {
@@ -110,7 +113,8 @@ function Test-MSCloudLogin
                 -TenantId $TenantId `
                 -CertificateThumbprint $CertificateThumbprint `
                 -CertificatePath $CertificatePath `
-                -CertificatePassword $CertificatePassword
+                -CertificatePassword $CertificatePassword `
+                -SkipModuleReload $SkipModuleReload
         }
         'MicrosoftGraph'
         {
@@ -123,10 +127,6 @@ function Test-MSCloudLogin
             Connect-MSCloudLoginTeams @verboseParameter -ApplicationId $ApplicationId `
                 -TenantId $TenantId `
                 -CertificateThumbprint $CertificateThumbprint
-        }
-        'MSOnline'
-        {
-            Connect-MSCloudLoginMSOnline @verboseParameter
         }
         'PnP'
         {
@@ -150,7 +150,8 @@ function Test-MSCloudLogin
                 -TenantId $TenantId `
                 -CertificateThumbprint $CertificateThumbprint `
                 -CertificatePath $CertificatePath `
-                -CertificatePassword $CertificatePassword
+                -CertificatePassword $CertificatePassword `
+                -SkipModuleReload $SkipModuleReload
         }
         'SharePointOnline'
         {
