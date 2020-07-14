@@ -20,21 +20,30 @@ function Connect-MSCloudLoginSecurityCompliance
 
         [Parameter()]
         [System.String]
-        $CertificatePath
+        $CertificatePath,
+
+        [Parameter()]
+        [System.Boolean]
+        $SkipModuleReload = $false
     )
     $WarningPreference = 'SilentlyContinue'
-    <#[array]$activeSessions = Get-PSSession | Where-Object -FilterScript {$_.ComputerName -like '*.ps.compliance.protection*' -and $_.State -eq 'Opened'}
+    $ProgressPreference = 'SilentlyContinue'
+    [array]$activeSessions = Get-PSSession | Where-Object -FilterScript {$_.ComputerName -like '*.ps.compliance.protection*' -and $_.State -eq 'Opened'}
     if ($activeSessions.Length -ge 1)
     {
-        $command = Get-Command "Get-Label" -ErrorAction 'SilentlyContinue'
-        if ($null -eq $command)
+        Write-Verbose -Message "Found {$($activeSessions.Length)} existing Security and Compliance Session"
+        if ($SkipModuleReload)
         {
-            $EXOModule = Import-PSSession $activeSessions[0] -DisableNameChecking -AllowClobber -Verbose:$false
-            Import-Module $EXOModule -Global -Verbose:$false | Out-Null
+            $command = Get-Command "Get-ComplianceSearch" -ErrorAction 'SilentlyContinue'
+            if ($null -ne $command)
+            {
+                return
+            }
         }
-        # There are active sessions, no need to reconnect;
+        $SCModule = Import-PSSession $activeSessions[0] -DisableNameChecking -AllowClobber
+        Import-Module $SCModule -Global | Out-Null
         return
-    }#>
+    }
 
     #region Get Connection Info
     if ($null -eq $Global:CloudEnvironmentInfo)

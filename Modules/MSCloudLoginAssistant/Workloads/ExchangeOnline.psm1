@@ -24,13 +24,28 @@ function Connect-MSCloudLoginExchangeOnline
 
         [Parameter()]
         [System.String]
-        $Prefix
-    )
+        $Prefix,
 
+        [Parameter()]
+        [System.String]
+        $SkipModuleReload = $false
+    )
+    $WarningPreference = 'SilentlyContinue'
+    $ProgressPreference = 'SilentlyContinue'
     [array]$activeSessions = Get-PSSession | Where-Object -FilterScript {$_.ComputerName -like '*outlook.office*' -and $_.State -eq 'Opened'}
     if ($activeSessions.Length -ge 1)
     {
-        # There are active sessions, no need to reconnect;
+        Write-Verbose -Message "Found {$($activeSessions.Length)} existing Exchange Online Session"
+        if ($SkipModuleReload)
+        {
+            $command = Get-Command "Get-AcceptedDomain" -ErrorAction 'SilentlyContinue'
+            if ($null -ne $command)
+            {
+                return
+            }
+        }
+        $EXOModule = Import-PSSession $activeSessions[0] -DisableNameChecking -AllowClobber
+        Import-Module $EXOModule -Global | Out-Null
         return
     }
     #region Get Connection Info
