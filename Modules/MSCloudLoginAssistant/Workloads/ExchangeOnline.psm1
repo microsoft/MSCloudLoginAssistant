@@ -36,21 +36,20 @@ function Connect-MSCloudLoginExchangeOnline
     if ($activeSessions.Length -ge 1)
     {
         Write-Verbose -Message "Found {$($activeSessions.Length)} existing Exchange Online Session"
-        if ($SkipModuleReload)
+        $command = Get-Command "Get-AcceptedDomain" -ErrorAction 'SilentlyContinue'
+        if ($null -ne $command -and $SkipModuleReload -eq $true)
         {
-            $command = Get-Command "Get-AcceptedDomain" -ErrorAction 'SilentlyContinue'
-            if ($null -ne $command)
-            {
-                return
-            }
+            return
         }
         $EXOModule = Import-PSSession $activeSessions[0] -DisableNameChecking -AllowClobber
         Import-Module $EXOModule -Global | Out-Null
         return
     }
+    Write-Verbose -Message "No active Exchange Online session found."
     #region Get Connection Info
     if ($null -eq $Global:CloudEnvironmentInfo)
     {
+        Write-Verbose -Message "CloudEnvironmentInfo is null. Retrieving information."
         $Global:CloudEnvironmentInfo = Get-CloudEnvironmentInfo -Credentials $Global:o365Credential `
             -ApplicationId $ApplicationId `
             -TenantId $TenantId `

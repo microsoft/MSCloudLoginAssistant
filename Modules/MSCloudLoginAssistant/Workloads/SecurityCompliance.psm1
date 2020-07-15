@@ -29,16 +29,13 @@ function Connect-MSCloudLoginSecurityCompliance
     $WarningPreference = 'SilentlyContinue'
     $ProgressPreference = 'SilentlyContinue'
     [array]$activeSessions = Get-PSSession | Where-Object -FilterScript {$_.ComputerName -like '*.ps.compliance.protection*' -and $_.State -eq 'Opened'}
-    if ($activeSessions.Length -ge 1)
+    if ($activeSessions.Length -ge 1 -and $SkipModuleReload -eq $true)
     {
         Write-Verbose -Message "Found {$($activeSessions.Length)} existing Security and Compliance Session"
-        if ($SkipModuleReload)
+        $command = Get-Command "Get-ComplianceSearch" -ErrorAction 'SilentlyContinue'
+        if ($null -ne $command)
         {
-            $command = Get-Command "Get-ComplianceSearch" -ErrorAction 'SilentlyContinue'
-            if ($null -ne $command)
-            {
-                return
-            }
+            return
         }
         $SCModule = Import-PSSession $activeSessions[0] -DisableNameChecking -AllowClobber
         Import-Module $SCModule -Global | Out-Null
