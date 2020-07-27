@@ -96,6 +96,7 @@ function Connect-MSCloudLoginSecurityCompliance
             $WarningPreference = "SilentlyContinue"
             Connect-IPPSSession -Credential $Global:o365Credential `
                 -ConnectionUri $ConnectionUrl `
+                -AzureADAuthorizationEndpointUri $AuthorizationUrl `
                 -Verbose:$false | Out-Null
             $VerbosePreference = $CurrentVerbosePreference
             $InformationPreference = $CurrentInformationPreference
