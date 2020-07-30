@@ -57,16 +57,20 @@ function Connect-MSCloudLoginExchangeOnline
     }
 
     $ConnectionUrl = $null
+    $AuthorizationUrl = $null
     switch ($Global:CloudEnvironmentInfo.cloud_instance_name)
     {
         "microsoftonline.com" {
             $ConnectionUrl = 'https://outlook.office365.com/powershell-liveid/'
+            $AuthorizationUrl = 'https://login.microsoftonline.com/common'
         }
         "microsoftonline.us" {
             $ConnectionUrl = 'https://outlook.office365.us/powershell-liveid/'
+            $AuthorizationUrl = 'https://login.microsoftonline.us/common'
         }
         "microsoftonline.de" {
             $ConnectionUrl = 'https://outlook.office.de/powershell-liveid/'
+            $AuthorizationUrl = 'https://login.microsoftonline.de/common'
         }
     }
     #endregion
@@ -94,6 +98,7 @@ function Connect-MSCloudLoginExchangeOnline
                 -ShowBanner:$false `
                 -ShowProgress:$false `
                 -ConnectionUri $ConnectionUrl `
+                -AzureADAuthorizationEndpointUri $AuthorizationUrl `
                 -Verbose:$false | Out-Null
             $VerbosePreference = $CurrentVerbosePreference
             $InformationPreference = $CurrentInformationPreference
@@ -120,6 +125,7 @@ function Connect-MSCloudLoginExchangeOnline
                 -ShowProgress:$false `
                 -ShowBanner:$false `
                 -ConnectionUri $ConnectionUrl `
+                -AzureADAuthorizationEndpointUri $AuthorizationUrl `
                 -Verbose:$false | Out-Null
             $VerbosePreference = $CurrentVerbosePreference
             $InformationPreference = $CurrentInformationPreference
@@ -164,7 +170,9 @@ function Connect-MSCloudLoginExchangeOnlineMFA
         Connect-ExchangeOnline -UserPrincipalName $Credentials.UserName `
             -ShowBanner:$false `
             -ShowProgress:$false `
-            -ConnectionUri $ConnectionUrl -Verbose:$false | Out-Null
+            -ConnectionUri $ConnectionUrl `
+            -AzureADAuthorizationEndpointUri $AuthorizationUrl `
+            -Verbose:$false | Out-Null
         $VerbosePreference = $CurrentVerbosePreference
         $InformationPreference = $CurrentInformationPreference
         $WarningPreference = $CurrentWarningPreference
