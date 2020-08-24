@@ -3,17 +3,21 @@ function Connect-MSCloudLoginSkypeForBusiness
     [CmdletBinding()]
     param(
         [Parameter()]
-        [System.String]$Prefix
+        [System.String]
+        $Prefix
     )
-    if ($null -eq $Global:o365Credential)
+    if ($null -eq $Global:SfBOAccessToken)
     {
-        $Global:o365Credential = Get-Credential -Message "Cloud Credential"
-    }
-    if ($Global:o365Credential.UserName.Split('@')[1] -like '*.de')
-    {
-        $Global:CloudEnvironment = 'Germany'
-        Write-Warning 'Microsoft Teams is not supported in the Germany Cloud'
-        return
+        if ($null -eq $Global:o365Credential)
+        {
+            $Global:o365Credential = Get-Credential -Message "Cloud Credential"
+        }
+        if ($Global:o365Credential.UserName.Split('@')[1] -like '*.de')
+        {
+            $Global:CloudEnvironment = 'Germany'
+            Write-Warning 'Microsoft Teams is not supported in the Germany Cloud'
+            return
+        }
     }
 
     try
@@ -23,17 +27,30 @@ function Connect-MSCloudLoginSkypeForBusiness
             Write-Verbose -Message "Creating a new Session to Skype for Business Servers"
             $ErrorActionPreference = "Stop"
 
-            $adminDomain = $Global:o365Credential.UserName.Split('@')[1]
-            $targetUri = Get-SkypeForBusinessServiceEndpoint -TargetDomain $adminDomain
-            $appAuthInfo = Get-SkypeForBusinessAccessInfo -PowerShellEndpointUri $targetUri
+            if ($null -eq $Global:SfBOAccessToken)
+            {
+                $adminDomain = $Global:o365Credential.UserName.Split('@')[1]
+                $Global:SfBODomain = $adminDomain
+                $Global:SfBOTargerUri = $targetUri
+                $targetUri = Get-SkypeForBusinessServiceEndpoint -TargetDomain $adminDomain
+                $appAuthInfo = Get-SkypeForBusinessAccessInfo -PowerShellEndpointUri $targetUri
 
-            $clientId = $appAuthInfo.ClientID
-            $authUri = $appAuthInfo.AuthUrl
+                $clientId = $appAuthInfo.ClientID
+                $authUri = $appAuthInfo.AuthUrl
+            }
             try
             {
-                $AccessToken = Get-AccessToken -TargetUri $targetUri -ClientID $clientId `
-                    -AuthUri $authUri `
-                    -Credentials $Global:o365Credential
+                if ($null -eq $Global:SfBOAccessToken)
+                {
+                    $AccessToken = Get-AccessToken -TargetUri $targetUri -ClientID $clientId `
+                        -AuthUri $authUri `
+                        -Credentials $Global:o365Credential
+                    $Global:SfBOAccessToken = $AccessToken
+                }
+                else
+                {
+                    $AccessToken = $Global:SfBOAccessToken
+                }
                 Write-Verbose -Message "AccessToken = $AccessToken"
                 $networkCreds = [System.Net.NetworkCredential]::new("", $AccessToken)
                 $secPassword = $networkCreds.SecurePassword
@@ -46,9 +63,9 @@ function Connect-MSCloudLoginSkypeForBusiness
                 throw $_
             }
 
-            $queryStr = "AdminDomain=$adminDomain"
+            $queryStr = "AdminDomain=$Global:SfBODomain"
 
-            $ConnectionUri = [UriBuilder]$targetUri
+            $ConnectionUri = [UriBuilder]($Global:SfBOTargetUri)
             $ConnectionUri.Query = $queryStr
 
             $psSessionName = "SfBPowerShellSession"
@@ -125,4 +142,38 @@ function Connect-MSCloudLoginSkypeForBusiness
             throw $_
         }
     }
+}
+
+function Get-MSCloudLoginSkypeForBusinessOnlineAccessToken
+{
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [System.String]
+        $ApplicationId,
+
+        [Parameter(Mandatory = $true)]
+        [System.String]
+        $TenantId
+    )
+
+    $redirectUri = 'https://Microsoft365DSC.com';
+    $resourceName = Get-SkypeForBusinessServiceEndpoint -TargetDomain $TenantId
+
+    $url = 'https://login.microsoftonline.com/common/oauth2/authorize?';
+    $url += 'response_type=token';
+    $url += '&client_id=' + $ApplicationId;
+    $url += '&redirect_uri=' + $redirectUri;
+    $url += '&resource=' + $resourceName;
+
+    $ie = New-Object -com internetexplorer.application;
+    $ie.visible = $true;
+    $ie.navigate($url);
+
+    while ($ie.LocationUrl -notlike "*#access_token=*"){}
+
+    $start = $ie.LocationUrl.ToString().IndexOf("#access_token=", 0) + 14
+    $end = $ie.LocationUrl.ToString().IndexOf("&token_type", $start)
+    $Global:SfBOAccessToken = $ie.LocationUrl.ToString().Substring($start, $end-$start)
+    $ie.Quit()
 }
