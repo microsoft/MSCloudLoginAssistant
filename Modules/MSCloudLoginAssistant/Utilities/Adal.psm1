@@ -147,36 +147,10 @@ function Get-PersistedTokenCacheInstance
             # there are some very nasty problems with the fact that there are multiple versions of ADAL dll being used            
             # across all of the platforms
             # if we just pass the adaldlllocation then  ie. when calling acquireToken it would say that it cannot find the method out of the blue after a couple of calls            
-            # for the compilation step and the load type step we simply forward the currently loaded assembly
-            $onAssemblyResolveEventHandler = [ResolveEventHandler]{
-                param($sender, $e)
-            
-                Write-Verbose "ResolveEventHandler: Attempting FullName resolution of $($e.Name)" 
-                foreach($assembly in [System.AppDomain]::CurrentDomain.GetAssemblies()) {
-                    if ($assembly.FullName -eq $e.Name) {
-                        Write-Host "Successful FullName resolution of $($e.Name)" 
-                        return $assembly
-                    }
-                }
-            
-                Write-Verbose "ResolveEventHandler: Attempting name-only resolution of $($e.Name)" 
-                foreach($assembly in [System.AppDomain]::CurrentDomain.GetAssemblies()) {
-                    # Get just the name from the FullName (no version)
-                    $assemblyName = $assembly.FullName.Substring(0, $assembly.FullName.IndexOf(", "))
-            
-                    if ($e.Name.StartsWith($($assemblyName + ","))) {
-            
-                        Write-Verbose "Successful name-only (no version) resolution of $assemblyName" 
-                        return $assembly
-                    }
-                }
-                            
-                return $null
-            }
-            
+            # for the compilation step and the load type step we simply forward the currently loaded assembly 
             try
             {
-                [System.AppDomain]::CurrentDomain.add_AssemblyResolve($onAssemblyResolveEventHandler)
+                Enable-AppDomainLoadAnyVersionResolution
 
                    # $location = [PsObject].Assembly.Location
                 $adalDLLLocation = Get-AzureADDLL
@@ -201,7 +175,7 @@ function Get-PersistedTokenCacheInstance
             }            
             finally
             {
-                [System.AppDomain]::CurrentDomain.remove_AssemblyResolve($onAssemblyResolveEventHandler)
+                Disable-AppDomainLoadAnyVersionResolution
             }
         }
         catch

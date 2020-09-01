@@ -57,7 +57,7 @@
     })
 
     # Assemblies that must be loaded prior to importing this module    
-    # RequiredAssemblies = @()
+    RequiredAssemblies = @(".\Utilities\MsGrapgModuleAuthFix\SysKit.MsGraphAuthModulePatching.dll")
 
     # Script files (.ps1) that are run in the caller's environment prior to importing this module.
     # ScriptsToProcess = @()
@@ -73,6 +73,7 @@
         'Workloads\Azure.psm1',
         'Workloads\AzureAD.psm1',
         'Workloads\ExchangeOnline.psm1',
+        'Workloads\MicrosoftGraph.psm1',
         'Workloads\MSOnline.psm1',
         'Workloads\PnP.psm1',
         'Workloads\PowerPlatform.psm1',
