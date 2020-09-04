@@ -30,13 +30,21 @@ function Connect-MSCloudLoginSkypeForBusiness
             if ($null -eq $Global:SfBOAccessToken)
             {
                 $adminDomain = $Global:o365Credential.UserName.Split('@')[1]
-                $Global:SfBODomain = $adminDomain
-                $Global:SfBOTargerUri = $targetUri
+
+                if (-not $adminDomain.EndsWith(".onmicrosoft.com"))
+                {
+                    Connect-MSCloudLoginAzureAD
+                    [array]$domains = Get-AzureADDomain | Where-Object -FilterScript {$_.Name -like '*.onmicrosoft.com'}
+                    $adminDomain = $domains[0].Name
+                }
                 $targetUri = Get-SkypeForBusinessServiceEndpoint -TargetDomain $adminDomain
                 $appAuthInfo = Get-SkypeForBusinessAccessInfo -PowerShellEndpointUri $targetUri
 
                 $clientId = $appAuthInfo.ClientID
                 $authUri = $appAuthInfo.AuthUrl
+
+                $Global:SfBODomain = $adminDomain
+                $Global:SfBOTargetUri = $targetUri
             }
             try
             {
@@ -63,9 +71,9 @@ function Connect-MSCloudLoginSkypeForBusiness
                 throw $_
             }
 
-            $queryStr = "AdminDomain=$Global:SfBODomain"
+            $queryStr = "AdminDomain=$($Global:SfBODomain)"
 
-            $ConnectionUri = [UriBuilder]($Global:SfBOTargetUri)
+            $ConnectionUri = [UriBuilder]$Global:SfBOTargetUri
             $ConnectionUri.Query = $queryStr
 
             $psSessionName = "SfBPowerShellSession"
@@ -94,6 +102,7 @@ function Connect-MSCloudLoginSkypeForBusiness
     {
         if ($_.Exception -like '*Connecting to remote server*')
         {
+            Write-Host $_
             Write-Verbose -Message "The connection requires MFA. Attempting to connect with Multi-Factor."
             $adminDomain = $Global:o365Credential.UserName.Split('@')[1]
             $targetUri = Get-SkypeForBusinessServiceEndpoint -TargetDomain $adminDomain
@@ -109,7 +118,6 @@ function Connect-MSCloudLoginSkypeForBusiness
             {
                 $authResult = $Global:ADALServicePoint.authContext.AcquireTokenAsync($targetUri.OriginalString, $clientId, [Uri]$RedirectURI, $Global:ADALServicePoint.platformParam, $Global:ADALServicePoint.userId)
             }
-
 
             $token = $authResult.result.AccessToken
             $networkCreds = [System.Net.NetworkCredential]::new("", $token)
@@ -139,12 +147,13 @@ function Connect-MSCloudLoginSkypeForBusiness
         }
         else
         {
+            Write-Error $_
             throw $_
         }
     }
 }
 
-function Get-MSCloudLoginSkypeForBusinessOnlineAccessToken
+function Get-MSCloudLoginSfBOAccessToken
 {
     [CmdletBinding()]
     param(
@@ -176,4 +185,32 @@ function Get-MSCloudLoginSkypeForBusinessOnlineAccessToken
     $end = $ie.LocationUrl.ToString().IndexOf("&token_type", $start)
     $Global:SfBOAccessToken = $ie.LocationUrl.ToString().Substring($start, $end-$start)
     $ie.Quit()
+}
+
+function Get-MSCloudLoginSfBOAccessTokenDelegated
+{
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [System.String]
+        $ApplicationId,
+
+        [Parameter(Mandatory = $true)]
+        [System.String]
+        $TenantId,
+
+        [Parameter(Mandatory = $true)]
+        [System.String]
+        $ClientSecret,
+
+        [Parameter(Mandatory = $true)]
+        [System.Management.Automation.PSCredential]
+        $Credentials
+    )
+    $Global:SfBODomain = $TenantId
+    $Global:SFBOTargetUri = Get-SkypeForBusinessServiceEndpoint -TargetDomain $Global:SfBODomain
+    $url = "https://login.microsoftonline.com/$($Global:SfBODomain)/oauth2/token"
+    $body = "client_id=$ApplicationId&client_secret=$ClientSecret&grant_type=password&resource=$($Global:SfBOTargetUri)&username=$($Credentials.Username)&password=$($Credentials.GetNetworkCredential().Password)&scope=user_impersonation"
+    $response = Invoke-RestMethod -Method POST -Uri $url -Body $body
+    $Global:SfBOAccessToken = $response.access_token
 }
