@@ -485,6 +485,10 @@ function Get-SkypeForBusinessServiceEndpoint
             }
         }
     }
+    else
+    {
+        throw "Could not identify the Domain for target {$TargetDomain}"
+    }
     $xml = Get-RTCXml -Url $domain.href
     $endpoint = $xml.AutodiscoverResponse.Domain.Link | Where-Object -FilterScript { $_.token -eq $desiredLink }
     $endpointUrl = $endpoint.href.Replace("/OcsPowershellLiveId", "/OcsPowershellOAuth")
