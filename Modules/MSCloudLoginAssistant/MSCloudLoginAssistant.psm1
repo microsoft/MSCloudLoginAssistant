@@ -139,7 +139,7 @@ function Get-SPOAdminUrl
 
     if($Global:UseApplicationIdentity)
     {
-        Write-Verbose -Message "Retrieving SharePoint Online Admin url with MS graph api..."    
+        Write-Verbose -Message "Retrieving SharePoint Online Admin url with MS graph api..."
         try
         {
             $accessToken = Get-AppIdentityAccessToken -TargetUri "https://graph.microsoft.com"
@@ -157,7 +157,7 @@ function Get-SPOAdminUrl
             $tenantId = $Global:appIdentityParams.Tenant
             $response = Invoke-WebRequest -Uri "https://graph.microsoft.com/v1.0/$tenantId/sites/root?`$select=sitecollection" -Headers $headers -Method Get -UseBasicParsing -UserAgent "SysKitTrace"
         }
-        
+
 
         $json = ConvertFrom-Json $response.Content
         $hostname = $json.siteCollection.hostname
@@ -741,7 +741,7 @@ function Get-SkypeForBusinessServiceEndpoint
         [Parameter()]
         [System.String]
         $OverrideDiscoveryUri
-    )    
+    )
     if(!$OverrideDiscoveryUri)
     {
         $OverrideDiscoveryUri = "http://lyncdiscover." + $TargetDomain;
@@ -940,26 +940,26 @@ function Get-PowerPlatformTokenInfo
 $onAssemblyResolveEventHandler = [ResolveEventHandler]{
     param($sender, $e)
 
-    Write-Verbose "ResolveEventHandler: Attempting FullName resolution of $($e.Name)" 
+    Write-Verbose "ResolveEventHandler: Attempting FullName resolution of $($e.Name)"
     foreach($assembly in [System.AppDomain]::CurrentDomain.GetAssemblies()) {
         if ($assembly.FullName -eq $e.Name) {
-            Write-Host "Successful FullName resolution of $($e.Name)" 
+            Write-Host "Successful FullName resolution of $($e.Name)"
             return $assembly
         }
     }
 
-    Write-Verbose "ResolveEventHandler: Attempting name-only resolution of $($e.Name)" 
+    Write-Verbose "ResolveEventHandler: Attempting name-only resolution of $($e.Name)"
     foreach($assembly in [System.AppDomain]::CurrentDomain.GetAssemblies()) {
         # Get just the name from the FullName (no version)
         $assemblyName = $assembly.FullName.Substring(0, $assembly.FullName.IndexOf(", "))
 
         if ($e.Name.StartsWith($($assemblyName + ","))) {
 
-            Write-Verbose "Successful name-only (no version) resolution of $assemblyName" 
+            Write-Verbose "Successful name-only (no version) resolution of $assemblyName"
             return $assembly
         }
     }
-                
+
     return $null
 }
 
@@ -967,12 +967,12 @@ $anyDllVersionResolutionEnabled = $false
 
 function Enable-AppDomainLoadAnyVersionResolution
 {
-    if($anyDllVersionResolutionEnabled)
+    if($Script:anyDllVersionResolutionEnabled)
     {
         return
     }
 
-    $anyDllVersionResolutionEnabled = $true
+    $Script:anyDllVersionResolutionEnabled = $true
 
     [System.AppDomain]::CurrentDomain.add_AssemblyResolve($onAssemblyResolveEventHandler)
 }
@@ -980,11 +980,11 @@ function Enable-AppDomainLoadAnyVersionResolution
 
 function Disable-AppDomainLoadAnyVersionResolution
 {
-    if(!$anyDllVersionResolutionEnabled)
+    if(!$Script:anyDllVersionResolutionEnabled)
     {
         return
     }
 
-    $anyDllVersionResolutionEnabled = $false
+    $Script:anyDllVersionResolutionEnabled = $false
     [System.AppDomain]::CurrentDomain.remove_AssemblyResolve($onAssemblyResolveEventHandler)
 }
