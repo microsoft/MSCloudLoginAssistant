@@ -31,7 +31,7 @@ function Connect-MSCloudLoginSkypeForBusiness
             {
                 $adminDomain = $Global:o365Credential.UserName.Split('@')[1]
 
-                if (-not $adminDomain.EndsWith(".onmicrosoft.com"))
+                if (-not $adminDomain.ToLower().EndsWith(".onmicrosoft.com"))
                 {
                     Connect-MSCloudLoginAzureAD
                     [array]$domains = Get-AzureADDomain | Where-Object -FilterScript {$_.Name -like '*.onmicrosoft.com'}
