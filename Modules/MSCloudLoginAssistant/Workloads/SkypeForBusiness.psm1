@@ -214,3 +214,118 @@ function Get-MSCloudLoginSfBOAccessTokenDelegated
     $response = Invoke-RestMethod -Method POST -Uri $url -Body $body
     $Global:SfBOAccessToken = $response.access_token
 }
+
+function Get-SkypeForBusinessAccessInfo
+{
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [Uri]
+        $PowerShellEndpointUri
+    )
+
+    try
+    {
+        $response = [System.Net.HttpWebResponse] ([System.Net.HttpWebRequest] [System.Net.WebRequest]::Create($PowerShellEndpointUri)).GetResponse();
+    }
+    catch [System.Net.WebException]
+    {
+        $response = ([System.Net.WebException]$_.Exception).Response
+    }
+    $header = $response.Headers["WWW-Authenticate"]
+
+    # Get ClientID
+    $start = $header.IndexOf("client_id=") + 11
+    $end = $header.IndexOf("`"", $start)
+
+    $clientId = $null
+    if ($end -gt $start)
+    {
+        $clientId = $header.Substring($start, $end - $start)
+    }
+
+    # Get Auth Url
+    $start = $header.IndexOf("authorization_uri=") + 19
+    $end = $header.IndexOf("`"", $start)
+
+    $authUrl = $null
+    if ($end -gt $start)
+    {
+        $authUrl = $header.Substring($start, $end - $start)
+    }
+
+    $result = @{
+        ClientID = $clientId
+        AuthUrl  = $authUrl
+    }
+    return $result
+}
+
+function Get-SkypeForBusinessServiceEndpoint
+{
+    [CmdletBinding()]
+    [OutputType([Uri])]
+    param(
+        [Parameter(Mandatory = $true)]
+        [System.String]
+        $TargetDomain
+    )
+    $overrideDiscoveryUri = "http://lyncdiscover." + $TargetDomain;
+    $desiredLink = "External/RemotePowerShell";
+    $liveIdUrl = $overrideDiscoveryUri.ToString() + "?Domain=" + $TargetDomain
+
+    $xml = Get-RTCXml -Url $liveIdUrl
+    $root = $xml.AutodiscoverResponse.Root
+
+    $domain = $root.Link | Where-Object -FilterScript { $_.Token -eq 'domain' }
+    if ($null -eq $domain)
+    {
+        $redirect = $root.Link | Where-Object -FilterScript { $_.Token -eq 'redirect' }
+
+        if ($null -eq $redirect)
+        {
+            throw "Could not properly retrieve the Skype for Business service endpoint for $TargetDomain"
+        }
+
+        while ($null -ne $redirect)
+        {
+            $xml = Get-RTCXml -Url $redirect.href
+            $root = $xml.AutodiscoverResponse.Root
+            $domain = $root.Link | Where-Object -FilterScript { $_.Token -eq 'domain' }
+            if ($null -eq $domain)
+            {
+                $redirect = $root.Link | Where-Object -FilterScript { $_.Token -eq 'redirect' }
+            }
+            else
+            {
+                $redirect = $null
+            }
+        }
+    }
+    else
+    {
+        throw "Could not identify the Domain for target {$TargetDomain}"
+    }
+    $xml = Get-RTCXml -Url $domain.href
+    $endpoint = $xml.AutodiscoverResponse.Domain.Link | Where-Object -FilterScript { $_.token -eq $desiredLink }
+    $endpointUrl = $endpoint.href.Replace("/OcsPowershellLiveId", "/OcsPowershellOAuth")
+    return [Uri]::new($endpointUrl)
+}
+
+function Get-RTCXml
+{
+    [CmdletBinding()]
+    [OutputType([Xml])]
+    param(
+        [Parameter(Mandatory = $true)]
+        [System.String]
+        $Url
+    )
+
+    $request = [System.Net.WebRequest]::Create($Url);
+    $request.set_Accept("application/vnd.microsoft.rtc.autodiscover+xml;v=1");
+    $response = $request.GetResponse()
+    $arg = [System.IO.StreamReader]::new($response.GetResponseStream()).ReadToEnd();
+    $xml = [Xml]$arg
+    return $xml
+}
