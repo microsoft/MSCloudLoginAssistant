@@ -25,7 +25,8 @@ function Connect-MSCloudLoginSkypeForBusiness
         if ($null -eq $Global:SkypeModule -and $null -eq (Get-Command Get-CsTeamsClientConfiguration -EA SilentlyContinue))
         {
             Write-Verbose -Message "Creating a new Session to Skype for Business Servers"
-            $Global:SkypeSession = New-CsOnlineSession -Credentials $Global:o365Credential
+            $Global:SkypeSession = New-CsOnlineSession -Credential $Global:o365Credential `
+                -ErrorAction Stop
             $Global:SkypeModule = Import-PSSession $Global:SkypeSession
             $IPMOParameters = @{}
             if ($PSBoundParameters.containskey("Prefix"))
@@ -42,11 +43,12 @@ function Connect-MSCloudLoginSkypeForBusiness
     }
     catch
     {
-        if ($_.Exception -like '*Connecting to remote server*')
+        if ($_.Exception -like '*Connecting to remote server*' -or `
+            $_.Exception -like '*Due to a configuration change made by your*')
         {
             Write-Verbose -Message "The connection requires MFA. Attempting to connect with Multi-Factor."
 
-            $Global:SkypeSession = New-CsOnlineSession -UserName $Global:o365Credential.UserName
+            $Global:SkypeSession = New-CsOnlineSession
             $Global:SkypeModule = Import-PSSession $Global:SkypeSession
             $IPMOParameters = @{}
             if ($PSBoundParameters.containskey("Prefix"))

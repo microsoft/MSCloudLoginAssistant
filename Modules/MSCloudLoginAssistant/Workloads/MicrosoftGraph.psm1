@@ -20,24 +20,27 @@ function Connect-MSCloudLoginMicrosoftGraph
     )
     if ($null -ne $CloudCredential)
     {
-        Connect-MSCloudLoginGraphWithCredentials -CloudCredential $CloudCredential `
+        Connect-MSCloudLoginMSGraphWithUser -CloudCredential $CloudCredential `
             -ApplicationId $ApplicationId
     }
-    try
+    else
     {
-        Write-Verbose $ApplicationId
-        Write-Verbose $TenantId
-        Write-Verbose $CertificateThumbprint
+        try
+        {
+            Write-Verbose $ApplicationId
+            Write-Verbose $TenantId
+            Write-Verbose $CertificateThumbprint
 
-        Import-Module -Name Microsoft.Graph.Authentication -DisableNameChecking -Force | out-null
-        Connect-Graph -ClientId $ApplicationId -TenantId $TenantId `
-          -CertificateThumbprint $CertificateThumbprint | Out-Null
-        Write-Verbose -Message "Connected"
-    }
-    catch
-    {
-        Write-Verbose -Message $_
-        throw $_
+            Import-Module -Name Microsoft.Graph.Authentication -DisableNameChecking -Force | out-null
+            Connect-Graph -ClientId $ApplicationId -TenantId $TenantId `
+            -CertificateThumbprint $CertificateThumbprint | Out-Null
+            Write-Verbose -Message "Connected"
+        }
+        catch
+        {
+            Write-Verbose -Message $_
+            throw $_
+        }
     }
 }
 
@@ -51,8 +54,13 @@ function Connect-MSCloudLoginMSGraphWithUser
 
         [Parameter()]
         [System.String]
-        $ApplicationId = "14d82eec-204b-4c2f-b7e8-296a70dab67e" #PoSh Graph SDK
+        $ApplicationId #PoSh Graph SDK
     )
+
+    if ([System.String]::IsNullOrEmpty($ApplicationId))
+    {
+        $ApplicationId = "14d82eec-204b-4c2f-b7e8-296a70dab67e"
+    }
     if ($null -eq $Global:MSCloudLoginGraphAccessToken)
     {
         $azuretenantADName = $CloudCredential.UserName.Split('@')[1]
@@ -155,8 +163,12 @@ function Invoke-MSCloudLoginMicrosoftGraphAPI
         [System.UInt32]
         $CallCount = 1
     )
-    Connect-MSCloudLoginMSGraphWithUser -CloudCredential $CloudCredential `
-        -ApplicationId $ApplicationId
+    if ($null -eq $Global:MSCloudLoginGraphAccessToken -and `
+        $null -ne $CloudCredential)
+    {
+        Connect-MSCloudLoginMSGraphWithUser -CloudCredential $CloudCredential `
+            -ApplicationId $ApplicationId
+    }
 
     $requestHeaders = @{
         "Authorization" = "Bearer " + $Global:MSCloudLoginGraphAccessToken
@@ -188,7 +200,7 @@ function Invoke-MSCloudLoginMicrosoftGraphAPI
     catch
     {
         Write-Verbose -Message $_
-        if ($_.Exception -like '*The remote server returned an error: (401) Unauthorized.*')
+        if ($_.Exception -like '*The remote server returned an error: (401) Unauthorized.*' -and $null -ne $Global:MSCloudLoginGraphAccessToken)
         {
             if ($CallCount -eq 1)
             {
