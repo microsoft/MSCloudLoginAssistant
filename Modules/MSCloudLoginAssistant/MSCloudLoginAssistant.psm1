@@ -19,7 +19,8 @@ function Test-MSCloudLogin
     param
     (
         [Parameter(Mandatory = $true)]
-        [ValidateSet("Azure", "AzureAD", "SharePointOnline", "ExchangeOnline", `
+        [ValidateSet("Azure", "AzureAD", "AzureInformationProtection", `
+                "SharePointOnline", "ExchangeOnline", `
                 "SecurityComplianceCenter", "MSOnline", "PnP", "PowerPlatforms", `
                 "MicrosoftTeams", "SkypeForBusiness", "MicrosoftGraph")]
         [System.String]
@@ -106,6 +107,10 @@ function Test-MSCloudLogin
                 -ApplicationId $ApplicationId `
                 -TenantId $TenantId `
                 -CertificateThumbprint $CertificateThumbprint
+        }
+        'AzureInformationProtection'
+        {
+            Connect-MSCloudLoginAzureInformationProtection @verboseParameter
         }
         'ExchangeOnline'
         {
