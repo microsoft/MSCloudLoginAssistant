@@ -22,6 +22,7 @@ function Connect-MSCloudLoginSkypeForBusiness
 
     try
     {
+        Import-Module -Name 'MicrosoftTeams' -Force
         if ($null -eq $Global:SkypeModule -and $null -eq (Get-Command Get-CsTeamsClientConfiguration -EA SilentlyContinue))
         {
             Write-Verbose -Message "Creating a new Session to Skype for Business Servers"
