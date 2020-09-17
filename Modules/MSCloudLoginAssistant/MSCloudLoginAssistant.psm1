@@ -136,10 +136,32 @@ function Get-SPOAdminUrl
         return $Global:SPOAdminUrl
     }
 
+    $rootSiteUrl = Get-SPORootSiteUrl -CloudCredential $CloudCredential
+    $adminUrl = $rootSiteUrl.Insert($rootSiteUrl.IndexOf(".sharepoint"), "-admin")    
+    $Global:SPOAdminUrl = $adminUrl
+
+    return $Global:SPOAdminUrl
+}
+
+function Get-SPORootSiteUrl
+{
+    [CmdletBinding()]
+    [OutputType([System.String])]
+    param
+    (
+        [Parameter()]
+        [System.Management.Automation.PSCredential]
+        $CloudCredential
+    )
+
+    if (![string]::IsNullOrEmpty($Global:SPORootSiteUrl))
+    {
+        return $Global:SPORootSiteUrl
+    }
 
     if($Global:UseApplicationIdentity)
     {
-        Write-Verbose -Message "Retrieving SharePoint Online Admin url with MS graph api..."
+        Write-Verbose -Message "Retrieving SharePoint Online root site url with MS graph api..."
         try
         {
             $accessToken = Get-AppIdentityAccessToken -TargetUri "https://graph.microsoft.com"
@@ -160,18 +182,16 @@ function Get-SPOAdminUrl
 
 
         $json = ConvertFrom-Json $response.Content
-        $hostname = $json.siteCollection.hostname
-        $spTenantNameLength = $hostname.IndexOf(".sharepoint", [System.StringComparison]::OrdinalIgnoreCase)
-        $spTenantName = $hostname.Substring(0, $spTenantNameLength)
-        $Global:SPOAdminUrl = "https://$spTenantName-admin" + $hostname.Substring($hostname.IndexOf(".sharepoint", [System.StringComparison]::OrdinalIgnoreCase))
+        $hostname = $json.siteCollection.hostname  
+        $Global:SPORootSiteUrl = "https://" + $hostname
     }
     else
     {
-        Write-Verbose -Message "Connection to Azure AD is required to automatically determine SharePoint Online admin URL..."
+        Write-Verbose -Message "Connection to Azure AD is required to automatically determine SharePoint Online root site URL..."
         Test-MSCloudLogin -Platform AzureAD -CloudCredential $CloudCredential
 
 
-        Write-Verbose -Message "Getting SharePoint Online admin URL..."
+        Write-Verbose -Message "Getting SharePoint Online root site URL..."
         $defaultDomain = Get-AzureADDomain | Where-Object {$_.Name -like "*.onmicrosoft.com" -and $_.IsInitial -eq $true} # We don't use IsDefault here because the default could be a custom domain
 
         if ($null -eq $defaultDomain)
@@ -181,14 +201,14 @@ function Get-SPOAdminUrl
             $tenantName = $defaultDomain[0].Name.Replace($domain, '')
             if ($Global:CloudEnvironment -eq 'Germany')
             {
-                $spoAdminUrl = "https://$tenantName-admin.sharepoint.de"
+                $spoRootSiteUrl = "https://$tenantName.sharepoint.de"
             }
             elseif ($Global:CloudEnvironment -eq 'GCCHigh')
             {
-                $spoAdminUrl = "https://$tenantName-admin.sharepoint.us"
+                $spoRootSiteUrl = "https://$tenantName.sharepoint.us"
             }
-            Write-Verbose -Message "SharePoint Online admin URL is $spoAdminUrl"
-            $Global:SPOAdminUrl = $spoAdminUrl
+            Write-Verbose -Message "SharePoint Online root site URL is $spoRootSiteUrl"
+            $Global:SPORootSiteUrl = $spoRootSiteUrl
         }
         else
         {
@@ -203,12 +223,12 @@ function Get-SPOAdminUrl
             {
                 $extension = 'sharepoint.us'
             }
-            $spoAdminUrl = "https://$tenantName-admin.$extension"
-            Write-Verbose -Message "SharePoint Online admin URL is $spoAdminUrl"
-            $Global:SPOAdminUrl = $spoAdminUrl
+            $spoRootSiteUrl = "https://$tenantName.$extension"
+            Write-Verbose -Message "SharePoint Online root site URL is $spoRootSiteUrl"
+            $Global:SPORootSiteUrl = $spoRootSiteUrl
         }
     }
-    return $Global:SPOAdminUrl
+    return $Global:SPORootSiteUrl
 }
 
 function Get-TenantLoginEndPoint
