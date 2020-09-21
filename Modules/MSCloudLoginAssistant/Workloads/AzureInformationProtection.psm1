@@ -9,5 +9,5 @@ function Connect-MSCloudLoginAzureInformationProtection
     $WarningPreference = 'SilentlyContinue'
     $ProgressPreference = 'SilentlyContinue'
 
-    Connect-AIPService -Credential $CloudCredentials
+    Connect-AIPService -Credential $CloudCredentials | Out-Null
 }
