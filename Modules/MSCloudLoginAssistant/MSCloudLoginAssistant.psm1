@@ -20,7 +20,7 @@ function Test-MSCloudLogin
     (
         [Parameter(Mandatory = $true)]
         [ValidateSet("Azure", "AzureAD", "AzureInformationProtection", `
-                "SharePointOnline", "ExchangeOnline", `
+                "SharePointOnline", "ExchangeOnline", "Intune", `
                 "SecurityComplianceCenter", "MSOnline", "PnP", "PowerPlatforms", `
                 "MicrosoftTeams", "SkypeForBusiness", "MicrosoftGraph")]
         [System.String]
@@ -110,7 +110,7 @@ function Test-MSCloudLogin
         }
         'AzureInformationProtection'
         {
-            Connect-MSCloudLoginAzureInformationProtection @verboseParameter
+            Connect-MSCloudLoginAzureInformationProtection -CloudCredential $CloudCredential @verboseParameter
         }
         'ExchangeOnline'
         {
@@ -120,6 +120,10 @@ function Test-MSCloudLogin
                 -CertificatePath $CertificatePath `
                 -CertificatePassword $CertificatePassword `
                 -SkipModuleReload $SkipModuleReload
+        }
+        'Intune'
+        {
+            Connect-MSCloudLoginIntune @verboseParameter -CloudCredential $CloudCredential
         }
         'MicrosoftGraph'
         {
