@@ -163,16 +163,12 @@ function Invoke-MSCloudLoginMicrosoftGraphAPI
         [System.UInt32]
         $CallCount = 1
     )
-    if ($null -eq $Global:MSCloudLoginGraphAccessToken -and `
-        $null -ne $CloudCredential)
-    {
-        Connect-MSCloudLoginMSGraphWithUser -CloudCredential $CloudCredential `
-            -ApplicationId $ApplicationId
-    }
+    Connect-MSCloudLoginMSGraphWithUser -CloudCredential $CloudCredential `
+        -ApplicationId $ApplicationId
 
     $requestHeaders = @{
         "Authorization" = "Bearer " + $Global:MSCloudLoginGraphAccessToken
-        "Content-Type" = "application/json"
+        "Content-Type" = "application/json;charset=utf-8"
     }
     foreach ($key in $Headers.Keys)
     {
@@ -186,6 +182,7 @@ function Invoke-MSCloudLoginMicrosoftGraphAPI
         Method  = $Method
         Uri     = $Uri
         Headers = $requestHeaders
+        ContentType = "application/json;charset=utf-8"
     }
     if (-not [System.String]::IsNullOrEmpty($Body))
     {
@@ -200,7 +197,7 @@ function Invoke-MSCloudLoginMicrosoftGraphAPI
     catch
     {
         Write-Verbose -Message $_
-        if ($_.Exception -like '*The remote server returned an error: (401) Unauthorized.*' -and $null -ne $Global:MSCloudLoginGraphAccessToken)
+        if ($_.Exception -like '*The remote server returned an error: (401) Unauthorized.*')
         {
             if ($CallCount -eq 1)
             {
@@ -224,7 +221,19 @@ function Invoke-MSCloudLoginMicrosoftGraphAPI
             }
             return (Invoke-MSCloudLoginMicrosoftGraphAPI @PSBoundParameters -CallCount $CallCount)
         }
-        throw $_
+        elseif ($_ -like '*Too many requests*' -and $CallCount -lt 12)
+        {
+            Write-Host "Too many request, waiting $(10*$callCount) seconds" -ForegroundColor Magenta
+            $newSleepTime = 10 * $CallCount
+            Start-Sleep -Seconds $newSleepTime
+            Invoke-MSCloudLoginMicrosoftGraphAPI -Uri $Uri -Body $Body -Headers $Headers -Method $Method -CloudCredential $CloudCredential `
+                -ApplicationId $ApplicationId -CallCount ($CallCount+1)
+        }
+        else
+        {
+            Write-Host "Why here???" -ForegroundColor Cyan
+            throw $_
+        }
     }
     return $result
 }

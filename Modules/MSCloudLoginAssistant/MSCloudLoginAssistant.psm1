@@ -416,27 +416,33 @@ function Get-AccessToken
 
                     [Parameter(Mandatory = $False)]
                     [System.Management.Automation.PSCredential]
-                    $Credentials
+                    $Credentials,
+
+                    [Parameter(Mandatory = $true)]
+                    [System.String]
+                    $AzureADDLL
                 )
-                # Load AAD Assemblies
-                $AzureADDLL = Get-AzureADDLL
-                if ([string]::IsNullOrEmpty($AzureADDLL))
+                try
                 {
-                    throw "Can't find Azure AD DLL"
+                    [System.Reflection.Assembly]::LoadFrom($AzureADDLL) | Out-Null
+
+                    $UserPasswordCreds = [Microsoft.IdentityModel.Clients.ActiveDirectory.UserPasswordCredential]::new($Credentials.UserName, $Credentials.Password)
+                    $context = [Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext]::new($AuthUri, $false, [Microsoft.IdentityModel.Clients.ActiveDirectory.TokenCache]::DefaultShared)
+                    $authResult = $context.AcquireTokenSilentAsync($TargetUri, $ClientId)
+
+                    if ($null -eq $authResult.result)
+                    {
+                        $authResult = [Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContextIntegratedAuthExtensions]::AcquireTokenAsync($context, $targetUri, $ClientId, $UserPasswordCreds)
+                    }
+                    $token = $authResult.result.AccessToken
+                    return $token
                 }
-                [System.Reflection.Assembly]::LoadFrom($AzureADDLL) | Out-Null
-
-                $UserPasswordCreds = [Microsoft.IdentityModel.Clients.ActiveDirectory.UserPasswordCredential]::new($Credentials.UserName, $Credentials.Password)
-                $context = [Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext]::new($AuthUri, $false, [Microsoft.IdentityModel.Clients.ActiveDirectory.TokenCache]::DefaultShared)
-                $authResult = $context.AcquireTokenSilentAsync($TargetUri, $ClientId)
-
-                if ($null -eq $authResult.result)
+                catch
                 {
-                    $authResult = [Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContextIntegratedAuthExtensions]::AcquireTokenAsync($context, $targetUri, $ClientId, $UserPasswordCreds)
+                    Write-Host "Error {Get-AccessToken}: $_"
+                    return $null
                 }
-                $token = $authResult.result.AccessToken
-                return $token
-            } -ArgumentList @($targetUri, $AuthUri, $ClientId, $Credentials) | Out-Null
+            } -ArgumentList @($targetUri, $AuthUri, $ClientId, $Credentials, $AzureADDLL) | Out-Null
             $job = Get-Job | Where-Object -FilterScript {$_.Name -eq $jobName}
             do
             {
