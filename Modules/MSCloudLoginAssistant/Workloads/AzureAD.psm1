@@ -8,7 +8,9 @@ function Connect-MSCloudLoginAzureAD
         {
             if($Global:appIdentityParams.CertificateThumbprint) 
             {
-                Connect-AzureAD -TenantId $Global:appIdentityParams.Tenant -ApplicationId $Global:appIdentityParams.AppId -CertificateThumbprint $Global:appIdentityParams.CertificateThumbprint -ErrorAction Stop | Out-Null            
+                
+                Write-Verbose "Parameters to be used to connect to AzureAD: -TenantId $($Global:appIdentityParams.Tenant) -ApplicationId $($Global:appIdentityParams.AppId) -CertificateThumbprint $($Global:appIdentityParams.CertificateThumbprint)"  
+                Connect-AzureAD -TenantId $Global:appIdentityParams.Tenant -ApplicationId $Global:appIdentityParams.AppId -CertificateThumbprint $Global:appIdentityParams.CertificateThumbprint -ErrorAction Stop | Out-Null         
                 Write-Verbose "Connected to AzureAD using application identity with certificate thumbprint"            
             }
             else
