@@ -163,7 +163,7 @@ function Get-SPORootSiteUrl
     {
         Write-Verbose -Message "Retrieving SharePoint Online root site url with MS graph api..."
 
-        $graphEndpoint = Get-AzureEnvironmentEndpoint -AzureCloudEnvironmentName $Global:appIdentityParams.AzureCloudEnvironmentName -EndpointName ActiveDirectory MsGraphEndpointResourceId
+        $graphEndpoint = Get-AzureEnvironmentEndpoint -AzureCloudEnvironmentName $Global:appIdentityParams.AzureCloudEnvironmentName -EndpointName MsGraphEndpointResourceId
         try
         {
             $accessToken = Get-AppIdentityAccessToken -TargetUri $graphEndpoint
