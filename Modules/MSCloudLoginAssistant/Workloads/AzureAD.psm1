@@ -2,29 +2,33 @@ function Connect-MSCloudLoginAzureAD
 {
     [CmdletBinding()]
     param()
-    try 
+    try
     {
         if ($Global:UseApplicationIdentity)
         {
-            if($Global:appIdentityParams.CertificateThumbprint) 
+            if($Global:appIdentityParams.CertificateThumbprint)
             {
-                
-                Write-Verbose "Parameters to be used to connect to AzureAD: -TenantId $($Global:appIdentityParams.Tenant) -ApplicationId $($Global:appIdentityParams.AppId) -CertificateThumbprint $($Global:appIdentityParams.CertificateThumbprint)"  
-                Connect-AzureAD -TenantId $Global:appIdentityParams.Tenant -ApplicationId $Global:appIdentityParams.AppId -CertificateThumbprint $Global:appIdentityParams.CertificateThumbprint -ErrorAction Stop | Out-Null         
-                Write-Verbose "Connected to AzureAD using application identity with certificate thumbprint"            
+                $envName = Get-PsModuleAzureEnvironmentName -AzureCloudEnvironmentName $Global:appIdentityParams.AzureCloudEnvironmentName -Platform "AzureAD"
+                Write-Verbose "Parameters to be used to connect to AzureAD: -TenantId $($Global:appIdentityParams.Tenant) -ApplicationId $($Global:appIdentityParams.AppId) -CertificateThumbprint $($Global:appIdentityParams.CertificateThumbprint)"
+                Connect-AzureAD -TenantId $Global:appIdentityParams.Tenant `
+                -ApplicationId $Global:appIdentityParams.AppId `
+                -CertificateThumbprint $Global:appIdentityParams.CertificateThumbprint `
+                -AzureEnvironmentName $envName `
+                -ErrorAction Stop | Out-Null
+                Write-Verbose "Connected to AzureAD using application identity with certificate thumbprint"
             }
             else
-            {                
+            {
                 # actually it probably can do so by getting the access token manually, but for now we want it to work with the certificate
                 throw "The AzureAD Platform does not support connecting with application secret"
-            }            
+            }
         }
         else
         {
             Connect-AzureAD -Credential $Global:o365Credential -ErrorAction Stop | Out-Null
             Write-Verbose "Connected to AzureAD using regular authentication"
         }
-        
+
         $Global:IsMFAAuth = $false
     }
     catch
@@ -32,13 +36,13 @@ function Connect-MSCloudLoginAzureAD
         if ($Global:UseApplicationIdentity)
         {
             throw $_
-        }        
+        }
         if ($_.Exception -like '*unknown_user_type: Unknown User Type*')
         {
             try
             {
                 Connect-AzureAD -Credential $Global:o365Credential -AzureEnvironmentName AzureGermanyCloud -ErrorAction Stop| Out-Null
-                $Global:IsMFAAuth = $false                
+                $Global:IsMFAAuth = $false
                 $Global:CloudEnvironment = 'Germany'
             }
             catch
@@ -53,7 +57,7 @@ function Connect-MSCloudLoginAzureAD
                     Connect-MSCloudLoginAzureADMFA
                 }
                 else
-                {                    
+                {
                     throw $_
                 }
             }
@@ -63,7 +67,7 @@ function Connect-MSCloudLoginAzureAD
             Connect-MSCloudLoginAzureADMFA
         }
         else
-        {            
+        {
             throw $_
         }
     }
@@ -90,11 +94,11 @@ function Connect-MSCloudLoginAzureADMFA
                 $EnvironmentName = 'AzureCloud'
             }
             Connect-AzureAD -AccountId $Global:o365Credential.UserName -AzureEnvironmentName $EnvironmentName -ErrorAction Stop | Out-Null
-            $Global:IsMFAAuth = $true            
+            $Global:IsMFAAuth = $true
         }
         else
         {
-            Connect-AzureAD -ErrorAction Stop | Out-Null            
+            Connect-AzureAD -ErrorAction Stop | Out-Null
         }
     }
     catch

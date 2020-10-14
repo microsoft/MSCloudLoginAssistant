@@ -12,6 +12,7 @@ function Connect-MSCloudLoginMicrosoftGraph
 
     if($Global:UseApplicationIdentity)
     {
+        $graphEndpoint = Get-AzureEnvironmentEndpoint -AzureCloudEnvironmentName $Global:appIdentityParams.AzureCloudEnvironmentName -EndpointName ActiveDirectory MsGraphEndpointResourceId
         try
         {
             Enable-AppDomainLoadAnyVersionResolution
@@ -33,7 +34,7 @@ function Connect-MSCloudLoginMicrosoftGraph
                     $request
                 )
 
-                $token = Get-OnBehalfOfAccessToken -TargetUri "https://graph.microsoft.com"
+                $token = Get-OnBehalfOfAccessToken -TargetUri $graphEndpoint
                 $request.Headers.Authorization = [System.Net.Http.Headers.AuthenticationHeaderValue]::new("Bearer", $token)
                 return [System.Threading.Tasks.Task]::CompletedTask
             })
@@ -43,9 +44,9 @@ function Connect-MSCloudLoginMicrosoftGraph
             Disable-AppDomainLoadAnyVersionResolution
         }
 
-        # we will not be using the official Connect-Graph cmdlet. 
+        # we will not be using the official Connect-Graph cmdlet.
         # the auth process has been redirected by the code above
-        # but we do need to fill some static data just in case that Connect-Graph internally does 
+        # but we do need to fill some static data just in case that Connect-Graph internally does
         # Connect-Graph -ClientId $Global:appIdentityParams.AppId -TenantId $Global:appIdentityParams.Tenant `
         #     -CertificateThumbprint $Global:appIdentityParams.CertificateThumbprint
 
@@ -81,11 +82,12 @@ function Connect-MSCloudLoginMSGraphWithUser
     {
         $azuretenantADName = $CloudCredential.UserName.Split('@')[1]
 
+        $loginEndpoint = Get-AzureEnvironmentEndpoint -AzureCloudEnvironmentName $Global:appIdentityParams.AzureCloudEnvironmentName -EndpointName ActiveDirectory
         #Authority to Azure AD Tenant
-        $AzureADAuthority = "https://login.microsoftonline.com/$azuretenantADName/oauth2/v2.0/authorize"
+        $AzureADAuthority = "$($loginEndpoint)$azuretenantADName/oauth2/v2.0/authorize"
 
         #Resource URI to the Microsoft Graph
-        $resourceURL = "https://graph.microsoft.com/"
+        $resourceURL = Get-AzureEnvironmentEndpoint -AzureCloudEnvironmentName $Global:appIdentityParams.AzureCloudEnvironmentName -EndpointName MsGraphEndpointResourceId
 
         # Create UserCredential object
         $accessToken = Get-AccessToken -TargetUri $resourceUrl `
@@ -113,8 +115,11 @@ function Connect-MSCloudLoginMSGraphWithServicePrincipal
         $ApplicationSecret
     )
 
-    $url = "https://login.microsoftonline.com/$TenantId/oauth2/v2.0/token"
-    $body = "client_id=$ApplicationId&scope=https%3A%2F%2Fgraph.microsoft.com%2F.default&client_secret=$ApplicationSecret&grant_type=client_credentials"
+    $loginEndpoint = Get-AzureEnvironmentEndpoint -AzureCloudEnvironmentName $Global:appIdentityParams.AzureCloudEnvironmentName -EndpointName ActiveDirectory
+    $graphEndpoint = Get-AzureEnvironmentEndpoint -AzureCloudEnvironmentName $Global:appIdentityParams.AzureCloudEnvironmentName -EndpointName MsGraphEndpointResourceId
+    $url = "$($loginEndpoint)$TenantId/oauth2/v2.0/token"
+    $escapedGraphEndpoint = [Uri]::EscapeDataString($graphEndpoint)
+    $body = "client_id=$ApplicationId&scope=$escapedGraphEndpoint%2F.default&client_secret=$ApplicationSecret&grant_type=client_credentials"
     $response = Invoke-RestMethod -Method POST -Uri $url -Body $body
     $Global:MSCloudLoginGraphAccessToken = $response.access_token
 }
@@ -140,7 +145,8 @@ function Connect-MSCloudLoginMSGraphWithServicePrincipalDelegated
         $Scope
     )
 
-    $url = "https://login.microsoftonline.com/$TenantId/oauth2/v2.0/authorize?"
+    $loginEndpoint = Get-AzureEnvironmentEndpoint -AzureCloudEnvironmentName $Global:appIdentityParams.AzureCloudEnvironmentName -EndpointName ActiveDirectory
+    $url = "$($loginEndpoint)$TenantId/oauth2/v2.0/authorize?"
     $body = "client_id=$ApplicationId&scope=$scope&client_secret=$ApplicationSecret&response_type=code"
     $response = Invoke-RestMethod -Method GET -Uri ($url + $body)
     $Global:MSCloudLoginGraphAccessToken = $response.access_token
@@ -180,7 +186,8 @@ function Invoke-MSCloudLoginMicrosoftGraphAPI
         $CallCount = 1
     )
 
-    $accessToken = Get-OnBehalfOfAccessToken -TargetUri "https://graph.microsoft.com"
+    $graphEndpoint = Get-AzureEnvironmentEndpoint -AzureCloudEnvironmentName $Global:appIdentityParams.AzureCloudEnvironmentName -EndpointName MsGraphEndpointResourceId
+    $accessToken = Get-OnBehalfOfAccessToken -TargetUri $graphEndpoint
     $requestHeaders = @{
         "Authorization" = "Bearer " + $accessToken
         "Content-Type" = "application/json"

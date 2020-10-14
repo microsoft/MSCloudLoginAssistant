@@ -137,7 +137,7 @@ function Get-SPOAdminUrl
     }
 
     $rootSiteUrl = Get-SPORootSiteUrl -CloudCredential $CloudCredential
-    $adminUrl = $rootSiteUrl.Insert($rootSiteUrl.IndexOf(".sharepoint"), "-admin")    
+    $adminUrl = $rootSiteUrl.Insert($rootSiteUrl.IndexOf(".sharepoint"), "-admin")
     $Global:SPOAdminUrl = $adminUrl
 
     return $Global:SPOAdminUrl
@@ -162,27 +162,29 @@ function Get-SPORootSiteUrl
     if($Global:UseApplicationIdentity)
     {
         Write-Verbose -Message "Retrieving SharePoint Online root site url with MS graph api..."
+
+        $graphEndpoint = Get-AzureEnvironmentEndpoint -AzureCloudEnvironmentName $Global:appIdentityParams.AzureCloudEnvironmentName -EndpointName ActiveDirectory MsGraphEndpointResourceId
         try
         {
-            $accessToken = Get-AppIdentityAccessToken -TargetUri "https://graph.microsoft.com"
+            $accessToken = Get-AppIdentityAccessToken -TargetUri $graphEndpoint
             [Hashtable] $headers = @{}
             $Headers["Authorization"] = "Bearer $accessToken";
             $tenantId = $Global:appIdentityParams.Tenant
-            $response = Invoke-WebRequest -Uri "https://graph.microsoft.com/v1.0/$tenantId/sites/root?`$select=sitecollection" -Headers $headers -Method Get -UseBasicParsing -UserAgent "SysKitTrace"
+            $response = Invoke-WebRequest -Uri "$graphEndpoint/v1.0/$tenantId/sites/root?`$select=sitecollection" -Headers $headers -Method Get -UseBasicParsing -UserAgent "SysKitTrace"
         }
         catch
         {
             #unfortunately, application permissions are not working so we will use our fallback delegated user
-            $accessToken = Get-OnBehalfOfAccessToken -TargetUri "https://graph.microsoft.com"
+            $accessToken = Get-OnBehalfOfAccessToken -TargetUri $graphEndpoint
             [Hashtable] $headers = @{}
             $Headers["Authorization"] = "Bearer $accessToken";
             $tenantId = $Global:appIdentityParams.Tenant
-            $response = Invoke-WebRequest -Uri "https://graph.microsoft.com/v1.0/$tenantId/sites/root?`$select=sitecollection" -Headers $headers -Method Get -UseBasicParsing -UserAgent "SysKitTrace"
+            $response = Invoke-WebRequest -Uri "$graphEndpoint/v1.0/$tenantId/sites/root?`$select=sitecollection" -Headers $headers -Method Get -UseBasicParsing -UserAgent "SysKitTrace"
         }
 
 
         $json = ConvertFrom-Json $response.Content
-        $hostname = $json.siteCollection.hostname  
+        $hostname = $json.siteCollection.hostname
         $Global:SPORootSiteUrl = "https://" + $hostname
     }
     else
@@ -239,20 +241,16 @@ function Get-TenantLoginEndPoint
         [Parameter(Mandatory = $True)]
         [System.String]
         $TenantName,
-        [Parameter(Mandatory = $false)]
+
+        [Parameter()]
         [System.String]
-        [ValidateSet('MicrosoftOnline','EvoSTS')]
-        $LoginSource = "EvoSTS"
+        $AzureCloudEnvironmentName
     )
     $TenantInfo = @{}
-    if ($LoginSource -eq "EvoSTS")
-    {
-        $webrequest = Invoke-WebRequest -Uri https://login.windows.net/$($TenantName)/.well-known/openid-configuration -UseBasicParsing
-    }
-    else
-    {
-        $webrequest = Invoke-WebRequest -Uri https://login.microsoftonline.com/$($TenantName)/.well-known/openid-configuration -UseBasicParsing
-    }
+
+    $loginEndpoint = Get-AzureEnvironmentEndpoint -AzureCloudEnvironmentName $AzureCloudEnvironmentName -EndpointName ActiveDirectory
+    $wellKnownDiscoveryEndpoint = "$($loginEndpoint)$TenantName/.well-known/openid-configuration"
+    $webrequest = Invoke-WebRequest -Uri $wellKnownDiscoveryEndpoint -UseBasicParsing
     if ($webrequest.StatusCode -eq 200)
     {
         $TenantInfo = $webrequest.Content | ConvertFrom-Json
@@ -296,8 +294,11 @@ function Init-ApplicationIdentity
 
         [Parameter()]
         [System.String]
-        $OnBehalfOfUserPrincipalName
+        $OnBehalfOfUserPrincipalName,
 
+        [Parameter()]
+        [System.String]
+        $AzureCloudEnvironmentName
     )
 
     Init-ApplicationIdentityCore -Tenant $Tenant `
@@ -308,6 +309,7 @@ function Init-ApplicationIdentity
      -TokenCacheEntropy $TokenCacheEntropy `
      -TokenCacheDataProtectionScope  $TokenCacheDataProtectionScope `
      -OnBehalfOfUserPrincipalName $OnBehalfOfUserPrincipalName `
+     -AzureCloudEnvironmentName $AzureCloudEnvironmentName `
      -Force
 }
 
@@ -351,7 +353,11 @@ function Init-ApplicationIdentityCore
 
         [Parameter()]
         [System.String]
-        $OnBehalfOfUserPrincipalName
+        $OnBehalfOfUserPrincipalName,
+
+        [Parameter()]
+        [System.String]
+        $AzureCloudEnvironmentName
     )
     if ($null -eq $Global:UseApplicationIdentity -or $Force)
     {
@@ -370,6 +376,11 @@ function Init-ApplicationIdentityCore
             throw "The tenant must be specified when connecting with an application identity"
         }
 
+        if(!$AzureCloudEnvironmentName)
+        {
+            $AzureCloudEnvironmentName = "AzureCloud"
+        }
+
         $Global:appIdentityParams = @{
             AppId = $AppId
             AppSecret = $AppSecret
@@ -379,6 +390,7 @@ function Init-ApplicationIdentityCore
             TokenCacheLocation = $TokenCacheLocation
             TokenCacheEntropy = $TokenCacheEntropy
             TokenCacheDataProtectionScope = $TokenCacheDataProtectionScope
+            AzureCloudEnvironmentName = $AzureCloudEnvironmentName
         }
     }
 
@@ -386,7 +398,7 @@ function Init-ApplicationIdentityCore
     if ($null -eq $Global:ADALAppServicePoint -or $Force)
     {
         Import-Module AzureAD
-        $Global:ADALAppServicePoint = New-ADALServiceInfo -TenantName $Tenant -TokenCacheEntropy $TokenCacheEntropy -TokenCacheLocation $TokenCacheLocation -TokenCacheDataProtectionScope $TokenCacheDataProtectionScope
+        $Global:ADALAppServicePoint = New-ADALServiceInfo -TenantName $Tenant -TokenCacheEntropy $TokenCacheEntropy -TokenCacheLocation $TokenCacheLocation -TokenCacheDataProtectionScope $TokenCacheDataProtectionScope -AzureCloudEnvironmentName $AzureCloudEnvironmentName
     }
 }
 
@@ -446,10 +458,9 @@ function New-ADALServiceInfo
         [System.String]
         $TokenCacheDataProtectionScope,
 
-        [Parameter(Mandatory = $false)]
+        [Parameter()]
         [System.String]
-        [ValidateSet('MicrosoftOnline','EvoSTS')]
-        $LoginSource = "EvoSTS"
+        $AzureCloudEnvironmentName
     )
     $AzureADDLL = Get-AzureADDLL
     if ([string]::IsNullOrEmpty($AzureADDLL))
@@ -463,7 +474,7 @@ function New-ADALServiceInfo
        Add-Type -Path $AzureADDLL | Out-Null
     }
 
-    $TenantInfo = Get-TenantLoginEndPoint -TenantName $TenantName
+    $TenantInfo = Get-TenantLoginEndPoint -TenantName $TenantName -AzureCloudEnvironmentName $AzureCloudEnvironmentName
     if ([string]::IsNullOrEmpty($TenantInfo))
     {
         Throw "Can't find Tenant Login Endpoint"
@@ -912,7 +923,8 @@ function Get-PowerPlatformTokenInfo
         {
             $WarningPreference = 'SilentlyContinue'
             Import-Module -Name 'Microsoft.PowerApps.Administration.PowerShell' -Force
-            $authContext = New-Object Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext("https://login.windows.net/common");
+            $loginEndpoint = Get-AzureEnvironmentEndpoint -AzureCloudEnvironmentName $Global:appIdentityParams.AzureCloudEnvironmentName -EndpointName ActiveDirectory
+            $authContext = New-Object Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext($loginEndpoint+"common");
             $credential = [Microsoft.IdentityModel.Clients.ActiveDirectory.UserCredential]::new($O365Credentials.Username, $O365Credentials.Password)
             $authResult = $authContext.AcquireToken($Audience, "1950a258-227b-4e31-a9cf-717495945fc2", $credential);
 
@@ -1008,3 +1020,73 @@ function Disable-AppDomainLoadAnyVersionResolution
     $Script:anyDllVersionResolutionEnabled = $false
     [System.AppDomain]::CurrentDomain.remove_AssemblyResolve($onAssemblyResolveEventHandler)
 }
+
+
+function Get-AzureEnvironmentEndpoint
+{
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [System.String]
+        $AzureCloudEnvironmentName,
+
+        [Parameter(Mandatory = $true)]
+        [System.String]
+        $EndpointName
+    )
+
+    Ensure-AzureCloudEnvironmentsFromConfigFile
+
+    if(!$Global:AzureCloudEnvironments.$AzureCloudEnvironmentName)
+    {
+        throw "The $AzureCloudEnvironmentName environment is not registered."
+    }
+
+    if(!$Global:AzureCloudEnvironments.$AzureCloudEnvironmentName.Endpoints.$EndpointName)
+    {
+        throw "$AzureCloudEnvironments is not registered for the $EndpointName cloud environment."
+    }
+
+    return $AzureCloudEnvironments.$AzureCloudEnvironmentName.Endpoints.$EndpointName
+}
+
+function Ensure-AzureCloudEnvironmentsFromConfigFile
+{
+    if(!$Global:AzureCloudEnvironments)
+    {
+        $configFilePath = Join-Path -Path $PSScriptRoot -ChildPath "azureEnvironments.json"
+        $Global:AzureCloudEnvironments = Get-Content -Path $configFilePath | ConvertFrom-Json
+    }
+}
+
+function Get-PsModuleAzureEnvironmentName
+{
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [System.String]
+        $AzureCloudEnvironmentName,
+
+        [Parameter(Mandatory=$true)]
+        [ValidateSet("Azure","AzureAD","SharePointOnline","ExchangeOnline", `
+                     "SecurityComplianceCenter","MSOnline","PnP","PowerPlatforms", `
+                     "MicrosoftTeams","SkypeForBusiness", "MicrosoftGraph")]
+        [System.String]
+        $Platform
+    )
+
+    Ensure-AzureCloudEnvironmentsFromConfigFile
+
+    if(!$Global:AzureCloudEnvironments.$AzureCloudEnvironmentName)
+    {
+        throw "The $AzureCloudEnvironmentName environment is not registered."
+    }
+
+    if(!$Global:AzureCloudEnvironments.$AzureCloudEnvironmentName.PsModuleEnvironmentNames.$Platform)
+    {
+        throw "$AzureCloudEnvironments does not have a Ps Module name defined for the $Platform platform."
+    }
+
+    return $Global:AzureCloudEnvironments.$AzureCloudEnvironmentName.PsModuleEnvironmentNames.$Platform
+}
+
