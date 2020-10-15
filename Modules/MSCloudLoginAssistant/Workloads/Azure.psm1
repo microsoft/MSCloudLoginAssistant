@@ -10,14 +10,15 @@ function Connect-MSCloudLoginAzure
         }        
         elseif ($Global:UseApplicationIdentity)
         {
+            $envName = Get-PsModuleAzureEnvironmentName -AzureCloudEnvironmentName $Global:appIdentityParams.AzureCloudEnvironmentName -Platform "Azure";
             if($Global:appIdentityParams.CertificateThumbprint) 
             {
-                Connect-AzAccount -ApplicationId $Global:appIdentityParams.AppId -Tenant $Global:appIdentityParams.Tenant -CertificateThumbprint $Global:appIdentityParams.CertificateThumbprint  -ErrorAction Stop | Out-Null
+                Connect-AzAccount -ApplicationId $Global:appIdentityParams.AppId -Tenant $Global:appIdentityParams.Tenant -CertificateThumbprint $Global:appIdentityParams.CertificateThumbprint  -Environment $envName -ErrorAction Stop | Out-Null
                 Write-Verbose "Connected to Azure using application identity with certificate thumbprint"            
             }
             else
             {
-                Connect-AzAccount -Credential $Global:appIdentityParams.ServicePrincipalCredentials -Tenant $Global:appIdentityParams.Tenant -ServicePrincipal  -ErrorAction Stop | Out-Null
+                Connect-AzAccount -Credential $Global:appIdentityParams.ServicePrincipalCredentials -Tenant $Global:appIdentityParams.Tenant -ServicePrincipal -Environment $envName -ErrorAction Stop | Out-Null
                 Write-Verbose "Connected to Azure using application identity with application secret"            
             }
         }

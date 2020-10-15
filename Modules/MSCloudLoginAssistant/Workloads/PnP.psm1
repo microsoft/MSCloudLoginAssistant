@@ -28,14 +28,15 @@ function Connect-MSCloudLoginPnP
     {
         if($Global:UseApplicationIdentity)
         {
+            $envName = Get-PsModuleAzureEnvironmentName -AzureCloudEnvironmentName $Global:appIdentityParams.AzureCloudEnvironmentName -Platform "PnP"
             if($Global:appIdentityParams.CertificateThumbprint)
             {
-                Connect-PnPOnline -Url $Global:SPOConnectionUrl -Tenant $Global:appIdentityParams.Tenant -ClientId $Global:appIdentityParams.AppId -Thumbprint $Global:appIdentityParams.CertificateThumbprint
+                Connect-PnPOnline -Url $Global:SPOConnectionUrl -Tenant $Global:appIdentityParams.Tenant -ClientId $Global:appIdentityParams.AppId -Thumbprint $Global:appIdentityParams.CertificateThumbprint -AzureEnvironment $envName
                 Write-Verbose "Connected to PnP {$($Global:SPOConnectionUrl) using application identity with certificate thumbprint"
             }
             else
             {
-                Connect-PnPOnline -Url $Global:SPOConnectionUrl -AppId $Global:appIdentityParams.AppId -AppSecret $Global:appIdentityParams.AppSecret
+                Connect-PnPOnline -Url $Global:SPOConnectionUrl -AppId $Global:appIdentityParams.AppId -AppSecret $Global:appIdentityParams.AppSecret -AzureEnvironment $envName
                 Write-Verbose "Connected to PnP {$($Global:SPOConnectionUrl) using application identity with application secret"
             }
         }

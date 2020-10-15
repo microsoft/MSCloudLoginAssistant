@@ -2,7 +2,10 @@
     "AzureCloud": {
       "Name": "AzureCloud",
       "PsModuleEnvironmentNames": {
-        "AzureAD": "AzureCloud"
+        "AzureAD": "AzureCloud",
+        "PnP": "Production",
+        "MicrosoftTeams": " ",
+        "Azure": "AzureCloud"
       },      
       "Endpoints": {
         "ActiveDirectory": "https://login.microsoftonline.com/",
@@ -14,7 +17,10 @@
       }
     },
     "AzureChinaCloud": {
-      "Name": "AzureChinaCloud",      
+      "Name": "AzureChinaCloud",  
+      "PsModuleEnvironmentNames": {
+        "PnP": "China"
+      },
       "Endpoints": {
         "ActiveDirectory": "https://login.chinacloudapi.cn/",
         "ActiveDirectoryServiceEndpointResourceId": "https://management.core.chinacloudapi.cn/",
@@ -23,7 +29,11 @@
       }
     },
     "AzureUSGovernment": {
-      "Name": "AzureUSGovernment",      
+      "Name": "AzureUSGovernment",
+      "PsModuleEnvironmentNames": {
+        "PnP": "UsGovernment",
+        "MicrosoftTeams": "TeamsGCCH"
+      },   
       "Endpoints": {
         "ActiveDirectory": "https://login-us.microsoftonline.com/",
         "ActiveDirectoryServiceEndpointResourceId": "https://management.core.usgovcloudapi.net/",
@@ -32,7 +42,10 @@
       }
     },
     "AzureGermanyCloud": {
-      "Name": "AzureGermanyCloud",      
+      "Name": "AzureGermanyCloud",
+      "PsModuleEnvironmentNames": {
+        "PnP": "Germany"
+      },      
       "Endpoints": {
         "ActiveDirectory": "https://login.microsoftonline.de/",
         "ActiveDirectoryServiceEndpointResourceId": "https://management.core.cloudapi.de/",
@@ -42,6 +55,9 @@
     },
     "AzurePPE": {
       "Name": "AzurePPE",
+      "PsModuleEnvironmentNames": {
+        "PnP": "PPE"
+      },
       "Endpoints": {
         "ActiveDirectory": "",
         "ActiveDirectoryServiceEndpointResourceId": "",
