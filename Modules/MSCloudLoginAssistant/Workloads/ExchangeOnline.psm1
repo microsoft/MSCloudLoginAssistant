@@ -6,7 +6,7 @@ function Connect-MSCloudLoginExchangeOnline
     {
         throw "The Exchange Platform does not support connecting with application identity."
     }
-    
+
     if ($null -eq $Global:o365Credential)
     {
        $Global:o365Credential = Get-Credential -Message "Cloud Credential"
@@ -14,7 +14,7 @@ function Connect-MSCloudLoginExchangeOnline
     $VerbosePreference = 'SilentlyContinue'
     $WarningPreference = "Continue"
     $clientid = "a0c73c16-a7e3-4564-9a95-2bdf47383716";
-    $ResourceURI = "https://outlook.office365.com";
+    $ResourceURI = Get-AzureEnvironmentEndpoint -AzureCloudEnvironmentName $Global:appIdentityParams.AzureCloudEnvironmentName -EndpointName ExchangeResourceId
     $RedirectURI = "urn:ietf:wg:oauth:2.0:oob";
     $ClosedOrBrokenSessions = Get-PSSession -ErrorAction SilentlyContinue | Where-Object -FilterScript { $_.State -ne 'Opened' }
     if ($ClosedOrBrokenSessions)
@@ -60,31 +60,14 @@ function Connect-MSCloudLoginExchangeOnline
                 $Global:ExchangeOnlineSession = $null
             }
 
-            while ($null -eq $Global:ExchangeOnlineSession)
+            if ($null -eq $Global:ExchangeOnlineSession)
             {
                 Write-Verbose -Message "Creating new EXO Session"
-                $TenantName = $Global:o365Credential.UserName.split("@")[1]
-                $TenantInfo = Get-TenantLoginEndPoint -TenantName $TenantName
 
-                if ($TenantInfo -like '*login.microsoftonline.us*')
-                {
-                    $Global:CloudEnvironment = 'USGovernment'
-                    $ResourceURI = 'https://outlook.office365.us'
-                }
-                elseif ($TenantInfo -like '*login.microsoftonline.com*')
-                {
-                    $Global:CloudEnvironment = 'Public'
-                    $ResourceURI = 'https://outlook.office365.com'
-                }
-                elseif ($TenantInfo -like '*login.microsoftonline.de*')
-                {
-                    $Global:CloudEnvironment = 'Germany'
-                    $ResourceURI = 'https://outlook.office.de'
-                }
-
+                $psConnectionUri =  Get-AzureEnvironmentEndpoint -AzureCloudEnvironmentName $Global:appIdentityParams.AzureCloudEnvironmentName -EndpointName ExchangePsConnection
                 try
                 {
-                    $Global:ExchangeOnlineSession = New-PSSession -Name 'ExchangeOnline' -ConfigurationName Microsoft.Exchange -ConnectionUri "$ResourceURI/powershell-liveid/" -Credential $O365Credential -Authentication Basic -AllowRedirection -ErrorAction Stop
+                    $Global:ExchangeOnlineSession = New-PSSession -Name 'ExchangeOnline' -ConfigurationName Microsoft.Exchange -ConnectionUri $psConnectionUri -Credential $O365Credential -Authentication Basic -AllowRedirection -ErrorAction Stop
                     $Global:IsMFAAuth = $false
                 }
                 catch
@@ -103,7 +86,7 @@ function Connect-MSCloudLoginExchangeOnline
                         $Password = ConvertTo-SecureString -AsPlainText $AuthHeader -Force
                         $Ctoken = New-Object System.Management.Automation.PSCredential -ArgumentList $Global:o365Credential.UserName, $Password
                         $Global:ExchangeOnlineSession = New-PSSession -ConfigurationName Microsoft.Exchange `
-                            -ConnectionUri "$ResourceURI/PowerShell-LiveId?BasicAuthToOAuthConversion=true" `
+                            -ConnectionUri " $psConnectionUri?BasicAuthToOAuthConversion=true" `
                             -Credential $Ctoken `
                             -Authentication Basic `
                             -ErrorAction Stop `

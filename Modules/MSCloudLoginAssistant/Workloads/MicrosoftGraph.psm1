@@ -12,7 +12,7 @@ function Connect-MSCloudLoginMicrosoftGraph
 
     if($Global:UseApplicationIdentity)
     {
-        $graphEndpoint = Get-AzureEnvironmentEndpoint -AzureCloudEnvironmentName $Global:appIdentityParams.AzureCloudEnvironmentName -EndpointName ActiveDirectory MsGraphEndpointResourceId
+        $graphEndpoint = Get-AzureEnvironmentEndpoint -AzureCloudEnvironmentName $Global:appIdentityParams.AzureCloudEnvironmentName -EndpointName MsGraphEndpointResourceId
         try
         {
             Enable-AppDomainLoadAnyVersionResolution

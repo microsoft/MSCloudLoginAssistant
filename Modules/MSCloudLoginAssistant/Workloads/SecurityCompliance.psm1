@@ -14,6 +14,7 @@ function Connect-MSCloudLoginSecurityCompliance
     $moduleName = "O365SecurityAndComplianceShell"
     $WarningPreference = 'SilentlyContinue'
     $InformationPreference = 'Continue'
+    $ConnectionUrl = Get-AzureEnvironmentEndpoint -AzureCloudEnvironmentName $Global:appIdentityParams.AzureCloudEnvironmentName -EndpointName SecurityAndCompliancePsConnection
     $Global:SessionSecurityCompliance = Get-PSSession | `
         Where-Object { `
             ($_.ComputerName -like "*ps.compliance.protection.outlook.com" -or `
@@ -22,16 +23,7 @@ function Connect-MSCloudLoginSecurityCompliance
             -and $_.State -eq "Opened"`
         }
 
-    $CloudEnvironment = "Public"
-    $ConnectionUrl = 'https://ps.compliance.protection.outlook.com/powershell-liveid/'
 
-    # If the CloudCredential received matches the pattern '*.onmicrosoft.de' we assume that we are
-    # trying to connect to the Germany cloud.
-    if ($O365Credential.UserName -like '*.onmicrosoft.de')
-    {
-        $CloudEnvironment = "Germany"
-        $ConnectionUrl = 'https://ps.compliance.protection.outlook.de/powershell-liveid/'
-    }
     if ($null -eq $Global:SessionSecurityCompliance)
     {
         try

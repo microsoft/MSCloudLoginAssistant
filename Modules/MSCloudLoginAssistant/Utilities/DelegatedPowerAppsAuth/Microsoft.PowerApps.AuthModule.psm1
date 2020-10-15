@@ -74,55 +74,60 @@ function Add-PowerAppsAccount
                 "prod"      { "api.flow.microsoft.com" }
                 "usgov"     { "gov.api.flow.microsoft.us" }
                 "usgovhigh" { "high.api.flow.microsoft.us" }
+                "dod"       { "api.flow.appsplatform.us" }
                 "preview"   { "preview.api.flow.microsoft.com" }
                 "tip1"      { "tip1.api.flow.microsoft.com"}
                 "tip2"      { "tip2.api.flow.microsoft.com" }
                 default     { throw "Unsupported endpoint '$Endpoint'"}
-            }
+            };
         powerAppsEndpoint = 
             switch ($Endpoint)
             {
                 "prod"      { "api.powerapps.com" }
                 "usgov"     { "gov.api.powerapps.us" }
                 "usgovhigh" { "high.api.powerapps.us" }
+                "dod"       { "api.apps.appsplatform.us" }
                 "preview"   { "preview.api.powerapps.com" }
                 "tip1"      { "tip1.api.powerapps.com"}
                 "tip2"      { "tip2.api.powerapps.com" }
                 default     { throw "Unsupported endpoint '$Endpoint'"}
-            }          
+            };            
         bapEndpoint = 
             switch ($Endpoint)
             {
                 "prod"      { "api.bap.microsoft.com" }
                 "usgov"     { "gov.api.bap.microsoft.us" }
                 "usgovhigh" { "high.api.bap.microsoft.us" }
+                "dod"       { "api.bap.appsplatform.us" }
                 "preview"   { "preview.api.bap.microsoft.com" }
                 "tip1"      { "tip1.api.bap.microsoft.com"}
                 "tip2"      { "tip2.api.bap.microsoft.com" }
                 default     { throw "Unsupported endpoint '$Endpoint'"}
-            }     
+            };      
         graphEndpoint = 
             switch ($Endpoint)
             {
                 "prod"      { "graph.windows.net" }
                 "usgov"     { "graph.windows.net" }
                 "usgovhigh" { "graph.windows.net" }
+                "dod"       { "graph.windows.net" }
                 "preview"   { "graph.windows.net" }
                 "tip1"      { "graph.windows.net"}
                 "tip2"      { "graph.windows.net" }
                 default     { throw "Unsupported endpoint '$Endpoint'"}
-            }
+            };
         cdsOneEndpoint = 
             switch ($Endpoint)
             {
                 "prod"      { "api.cds.microsoft.com" }
                 "usgov"     { "gov.api.cds.microsoft.us" }
                 "usgovhigh" { "high.api.cds.microsoft.us" }
+                "dod"       { "dod.gov.api.cds.microsoft.us" }
                 "preview"   { "preview.api.cds.microsoft.com" }
                 "tip1"      { "tip1.api.cds.microsoft.com"}
                 "tip2"      { "tip2.api.cds.microsoft.com" }
                 default     { throw "Unsupported endpoint '$Endpoint'"}
-            }
+            };
     };
 }
 

@@ -2,10 +2,11 @@
     "AzureCloud": {
       "Name": "AzureCloud",
       "PsModuleEnvironmentNames": {
+        "Azure": "AzureCloud",
         "AzureAD": "AzureCloud",
         "PnP": "Production",
-        "MicrosoftTeams": " ",
-        "Azure": "AzureCloud"
+        "MicrosoftTeams": "TeamsCloud",
+        "PowerPlatforms": "prod"   
       },      
       "Endpoints": {
         "ActiveDirectory": "https://login.microsoftonline.com/",
@@ -13,51 +14,94 @@
         "MsGraphEndpointResourceId": "https://graph.microsoft.com",
         "AadGraphEndpointResourceId": "https://graph.windows.net",
         "SkypeForBusinessPowerShellResourceId": "https://admin4a.online.lync.com/OcsPowershellOAuth",
-        "AzureServiceManagementResourceId": "https://management.azure.com/"
+        "AzureResourceManagerResourceId": "https://management.azure.com/",
+        "ExchangeResourceId": "https://outlook.office365.com",
+        "ExchangePsConnection": "https://outlook.office365.com/PowerShell-LiveID",
+        "SecurityAndCompliancePsConnection": "https://ps.compliance.protection.outlook.com/powershell-liveid"
       }
     },
     "AzureChinaCloud": {
-      "Name": "AzureChinaCloud",  
+      "Name": "AzureChinaCloud",     
       "PsModuleEnvironmentNames": {
-        "PnP": "China"
-      },
+        "Azure": "AzureChinaCloud",
+        "AzureAD": "AzureChinaCloud",
+        "PnP": "China",
+        "MicrosoftTeams": "TeamsCloud",
+        "PowerPlatforms": "prod"         
+      },  
       "Endpoints": {
         "ActiveDirectory": "https://login.chinacloudapi.cn/",
         "ActiveDirectoryServiceEndpointResourceId": "https://management.core.chinacloudapi.cn/",
         "MsGraphEndpointResourceId": "https://microsoftgraph.chinacloudapi.cn",
-        "AadGraphEndpointResourceId": "https://graph.chinacloudapi.cn"
+        "AadGraphEndpointResourceId": "https://graph.chinacloudapi.cn",
+        "ExchangeResourceId": "https://partner.outlook.cn",
+        "ExchangePsConnection": "https://partner.outlook.cn/PowerShell"
+      }
+    },  
+    "AzureUSGovGccHigh": {
+      "Name": "AzureUSGovGccHigh",   
+      "PsModuleEnvironmentNames": {
+        "Azure": "AzureUSGovernment",
+        "AzureAD": "AzureUSGovernment",
+        "PnP": "UsGovernment",
+        "MicrosoftTeams": "TeamsGCCH",
+        "PowerPlatforms": "usgovhigh"   
+      },     
+      "Endpoints": {
+        "ActiveDirectory": "https://login.microsoftonline.us/",
+        "ActiveDirectoryServiceEndpointResourceId": "https://management.core.usgovcloudapi.net/",
+        "MsGraphEndpointResourceId": "https://graph.microsoft.us",
+        "AadGraphEndpointResourceId": "https://graph.windows.net",
+        "ExchangeResourceId": "https://outlook.office365.us",
+        "ExchangePsConnection": "https://outlook.office365.us/powershell-liveid",
+        "SecurityAndCompliancePsConnection": "https://ps.compliance.protection.office365.us/powershell-liveid" 
       }
     },
-    "AzureUSGovernment": {
-      "Name": "AzureUSGovernment",
+    "AzureUSGovDoD": {
+      "Name": "AzureUSGovDoD",   
       "PsModuleEnvironmentNames": {
+        "Azure": "AzureUSGovernment",
+        "AzureAD": "AzureUSGovernment",
         "PnP": "UsGovernment",
-        "MicrosoftTeams": "TeamsGCCH"
-      },   
+        "MicrosoftTeams": "TeamsDOD",
+        "PowerPlatforms": "dod"   
+      },     
       "Endpoints": {
-        "ActiveDirectory": "https://login-us.microsoftonline.com/",
+        "ActiveDirectory": "https://login.microsoftonline.us/",
         "ActiveDirectoryServiceEndpointResourceId": "https://management.core.usgovcloudapi.net/",
-        "MsGraphEndpointResourceId": "https://graph.microsoft.com",
-        "AadGraphEndpointResourceId": "https://graph.windows.net"
+        "MsGraphEndpointResourceId": "https://dod-graph.microsoft.us",
+        "AadGraphEndpointResourceId": "https://graph.windows.net",
+        "ExchangeResourceId": "https://outlook-dod.office365.us",
+        "ExchangePsConnection": "https://webmail.apps.mil/powershell-liveid",
+        "SecurityAndCompliancePsConnection": "https://l5.ps.compliance.protection.office365.us/powershell-liveid"    
       }
     },
     "AzureGermanyCloud": {
-      "Name": "AzureGermanyCloud",
+      "Name": "AzureGermanyCloud",     
       "PsModuleEnvironmentNames": {
-        "PnP": "Germany"
-      },      
+        "Azure": "AzureGermanyCloud",
+        "AzureAD": "AzureGermanyCloud",
+        "PnP": "Germany",
+        "MicrosoftTeams": "TeamsCloud",
+        "PowerPlatforms": "prod"  
+      },   
       "Endpoints": {
         "ActiveDirectory": "https://login.microsoftonline.de/",
         "ActiveDirectoryServiceEndpointResourceId": "https://management.core.cloudapi.de/",
         "MsGraphEndpointResourceId": "https://graph.microsoft.de",
-        "AadGraphEndpointResourceId": "https://graph.cloudapi.de"
+        "AadGraphEndpointResourceId": "https://graph.cloudapi.de",
+        "ExchangeResourceId": "https://outlook.office.de",
+        "ExchangePsConnection": "https://outlook.office.de/PowerShell-LiveID",
+        "SecurityAndCompliancePsConnection": "https://ps.compliance.protection.outlook.de/PowerShell-LiveID"            
       }
     },
     "AzurePPE": {
       "Name": "AzurePPE",
       "PsModuleEnvironmentNames": {
+        "Azure": "AzurePPE",
+        "AzureAD": "AzurePPE",
         "PnP": "PPE"
-      },
+      },   
       "Endpoints": {
         "ActiveDirectory": "",
         "ActiveDirectoryServiceEndpointResourceId": "",
