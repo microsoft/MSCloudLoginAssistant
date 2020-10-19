@@ -1090,3 +1090,28 @@ function Get-PsModuleAzureEnvironmentName
     return $Global:AzureCloudEnvironments.$AzureCloudEnvironmentName.PsModuleEnvironmentNames.$Platform
 }
 
+function Get-MSCloudLoginOrganizationName
+{
+    param(
+        [Parameter(Mandatory = $true)]
+        [System.String]
+        $ApplicationId,
+
+        [Parameter(Mandatory = $true)]
+        [System.String]
+        $TenantId,
+
+        [Parameter(Mandatory = $true)]
+        [System.String]
+        $CertificateThumbprint
+    )
+
+    Test-MSCloudLogin -Platform AzureAD
+
+    $domain = Get-AzureADDomain  | where-object {$_.IsInitial -eq $True} | select Name
+
+    if ($null -ne $domain){
+
+        return $domain.Name
+    }
+}
