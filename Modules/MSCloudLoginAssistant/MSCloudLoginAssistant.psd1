@@ -12,7 +12,7 @@
     RootModule             = 'MSCloudLoginAssistant.psm1'
 
     # Version number of this module.
-    ModuleVersion          = '1.0.41'
+    ModuleVersion          = '1.0.40'
 
     # Supported PSEditions
     # CompatiblePSEditions = @()
@@ -71,6 +71,7 @@
         'Workloads\AzureAD.psm1',
         'Workloads\AzureInformationProtection.psm1',
         'Workloads\ExchangeOnline.psm1',
+        'Workloads\Intune.psm1'
         'Workloads\MicrosoftGraph.psm1',
         'Workloads\PnP.psm1',
         'Workloads\PowerPlatform.psm1',
