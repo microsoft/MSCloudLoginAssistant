@@ -34,6 +34,7 @@ function Connect-MSCloudLoginMicrosoftGraph
             Import-Module -Name Microsoft.Graph.Authentication -DisableNameChecking -Force | out-null
             Connect-Graph -ClientId $ApplicationId -TenantId $TenantId `
                 -CertificateThumbprint $CertificateThumbprint | Out-Null
+            Select-MgProfile 'v1.0' | Out-Null
             Write-Verbose -Message "Connected"
         }
         catch
@@ -224,7 +225,18 @@ function Invoke-MSCloudLoginMicrosoftGraphAPI
             }
             return (Invoke-MSCloudLoginMicrosoftGraphAPI @PSBoundParameters -CallCount $CallCount)
         }
-        throw $_
+        elseif ($_ -like '*Too many requests*' -and $CallCount -lt 12)
+        {
+            Write-Host "Too many request, waiting $(10*$callCount) seconds" -ForegroundColor Magenta
+            $newSleepTime = 10 * $CallCount
+            Start-Sleep -Seconds $newSleepTime
+            Invoke-MSCloudLoginMicrosoftGraphAPI -Uri $Uri -Body $Body -Headers $Headers -Method $Method -CloudCredential $CloudCredential `
+                -ApplicationId $ApplicationId -CallCount ($CallCount+1)
+        }
+        else
+        {
+            throw $_
+        }
     }
     return $result
 }
