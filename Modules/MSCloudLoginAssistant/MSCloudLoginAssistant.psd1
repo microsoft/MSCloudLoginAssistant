@@ -42,7 +42,7 @@
     # PowerShellHostVersion = ''
 
     # Minimum version of Microsoft .NET Framework required by this module. This prerequisite is valid for the PowerShell Desktop edition only.
-    DotNetFrameworkVersion = '4.7.2'
+    #DotNetFrameworkVersion = '4.7.2'
 
     # Minimum version of the common language runtime (CLR) required by this module. This prerequisite is valid for the PowerShell Desktop edition only.
     # CLRVersion = ''
@@ -73,6 +73,7 @@
         'Workloads\ExchangeOnline.psm1',
         'Workloads\Intune.psm1',
         'Workloads\MicrosoftGraph.psm1',
+        'Workloads\MicrosoftGraphBeta.psm1',
         'Workloads\PnP.psm1',
         'Workloads\PowerPlatform.psm1',
         'Workloads\SecurityCompliance.psm1',

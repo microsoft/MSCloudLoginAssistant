@@ -22,7 +22,7 @@ function Test-MSCloudLogin
         [ValidateSet("Azure", "AzureAD", "AzureInformationProtection", `
                 "SharePointOnline", "ExchangeOnline", "Intune", `
                 "SecurityComplianceCenter", "MSOnline", "PnP", "PowerPlatforms", `
-                "MicrosoftTeams", "SkypeForBusiness", "MicrosoftGraph")]
+                "MicrosoftTeams", "SkypeForBusiness", "MicrosoftGraph", "MicrosoftGraphBeta")]
         [System.String]
         $Platform,
 
@@ -128,6 +128,12 @@ function Test-MSCloudLogin
         'MicrosoftGraph'
         {
             Connect-MSCloudLoginMicrosoftGraph @verboseParameter -ApplicationId $ApplicationId `
+                -TenantId $TenantId `
+                -CertificateThumbprint $CertificateThumbprint
+        }
+        'MicrosoftGraphBeta'
+        {
+            Connect-MSCloudLoginMicrosoftGraphBeta @verboseParameter -ApplicationId $ApplicationId `
                 -TenantId $TenantId `
                 -CertificateThumbprint $CertificateThumbprint
         }
