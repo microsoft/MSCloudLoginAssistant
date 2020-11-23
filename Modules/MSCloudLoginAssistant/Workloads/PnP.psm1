@@ -111,11 +111,12 @@ function Connect-MSCloudLoginPnP
             Write-Verbose "Connected to PnP {$($Global:SPOConnectionUrl) using regular authentication"
             $Global:IsMFAAuth = $false
         }
-    }
-    catch
+   }
+catch
     {
         if ($_.Exception -like '*Microsoft.SharePoint.Client.ServerUnauthorizedAccessException*' -or `
-                $_.Exception -like '*The remote server returned an error: (401) Unauthorized.*')
+                $_.Exception -like '*The remote server returned an error: (401) Unauthorized.*' -or `
+                $_.Exception -like '*Object reference not set to an instance of an object*')
         {
             try
             {
@@ -180,5 +181,6 @@ function Connect-MSCloudLoginPnP
             }
         }
     }
+
     return
 }
