@@ -189,6 +189,15 @@ function Get-SPOAdminUrl
     Write-Verbose -Message "Getting SharePoint Online admin URL..."
     $defaultDomain = Get-AzureADDomain | Where-Object { $_.Name -like "*.onmicrosoft.com" -and $_.IsInitial -eq $true } # We don't use IsDefault here because the default could be a custom domain
 
+    $Global:CloudEnvironmentInfo = Get-CloudEnvironmentInfo -Credentials $Global:o365Credential `
+        -ApplicationId $ApplicationId `
+        -TenantId $TenantId `
+        -CertificateThumbprint $CertificateThumbprint
+    if ($Global:CloudEnvironmentInfo.tenant_region_scope -eq 'USGov')
+    {
+        $Global:CloudEnvironment = 'GCCHigh'
+    }
+
     if ($null -eq $defaultDomain)
     {
         $defaultDomain = Get-AzureADDomain | Where-Object { $_.Name -like "*.onmicrosoft.de" -and $_.IsInitial -eq $true }
@@ -230,7 +239,7 @@ function Get-AzureADDLL
     [OutputType([System.String])]
     param(
     )
-    [array]$AzureADModules = Get-Module -ListAvailable | Where-Object { $_.name -eq "AzureADPreview"}
+    [array]$AzureADModules = Get-Module -ListAvailable | Where-Object { $_.name -eq "AzureADPreview" }
 
     if ($AzureADModules.count -eq 0)
     {
@@ -443,7 +452,7 @@ function Get-AccessToken
                     return $null
                 }
             } -ArgumentList @($targetUri, $AuthUri, $ClientId, $Credentials, $AzureADDLL) | Out-Null
-            $job = Get-Job | Where-Object -FilterScript {$_.Name -eq $jobName}
+            $job = Get-Job | Where-Object -FilterScript { $_.Name -eq $jobName }
             do
             {
                 Start-Sleep -Seconds 1
@@ -581,8 +590,8 @@ function Get-CloudEnvironmentInfo
         else
         {
             $tenantName = Get-MSCloudLoginOrganizationName -ApplicationId $ApplicationId `
-               -TenantId $TenantId `
-               -CertificateThumbprint $CertificateThumbprint
+                -TenantId $TenantId `
+                -CertificateThumbprint $CertificateThumbprint
         }
         $response = Invoke-WebRequest -Uri "https://login.microsoftonline.com/$tenantName/v2.0/.well-known/openid-configuration" -Method Get
 
@@ -614,9 +623,10 @@ function Get-TenantDomain
 
     Test-MSCloudLogin -Platform AzureAD -ApplicationId $ApplicationId -TenantId $TenantId -CertificateThumbprint $CertificateThumbprint
 
-    $domain = Get-AzureADDomain  | where-object {$_.IsInitial -eq $True} | select Name
+    $domain = Get-AzureADDomain  | where-object { $_.IsInitial -eq $True } | select Name
 
-    if ($null -ne $domain){
+    if ($null -ne $domain)
+    {
 
         return $domain.Name.split(".")[0]
     }
@@ -640,9 +650,10 @@ function Get-MSCloudLoginOrganizationName
 
     Test-MSCloudLogin -Platform AzureAD -ApplicationId $ApplicationId -TenantId $TenantId -CertificateThumbprint $CertificateThumbprint
 
-    $domain = Get-AzureADDomain  | where-object {$_.IsInitial -eq $True} | select Name
+    $domain = Get-AzureADDomain  | where-object { $_.IsInitial -eq $True } | select Name
 
-    if ($null -ne $domain){
+    if ($null -ne $domain)
+    {
 
         return $domain.Name
     }

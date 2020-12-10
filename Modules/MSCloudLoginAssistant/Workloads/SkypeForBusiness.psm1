@@ -58,6 +58,42 @@ function Connect-MSCloudLoginSkypeForBusiness
             }
             Import-Module $Global:SkypeModule -Global @IPMOParameters | Out-Null
         }
+        if ($_.Exception -like '*unknown_user_type: Unknown User Type*')
+        {
+            $Global:CloudEnvironment = 'GCCHigh'
+
+            try
+            {
+                $Global:SkypeSession = New-CsOnlineSession -TeamsEnvironmentName 'TeamsGCCH'
+                $Global:SkypeModule = Import-PSSession $Global:SkypeSession
+                $IPMOParameters = @{}
+                if ($PSBoundParameters.containskey("Prefix"))
+                {
+                    $IPMOParameters.add("Prefix",$prefix)
+                }
+                Import-Module $Global:SkypeModule -Global @IPMOParameters | Out-Null
+            }
+            catch
+            {
+                try
+                {
+                    $Global:SkypeSession = New-CsOnlineSession -TeamsEnvironmentName 'TeamsDOD'
+                    $Global:SkypeModule = Import-PSSession $Global:SkypeSession
+                    $IPMOParameters = @{}
+                    if ($PSBoundParameters.containskey("Prefix"))
+                    {
+                        $IPMOParameters.add("Prefix",$prefix)
+                    }
+                    Import-Module $Global:SkypeModule -Global @IPMOParameters | Out-Null
+                    $Global:CloudEnvironment = 'DoD'
+                }
+                catch
+                {
+                    Write-Error $_
+                    throw $_
+                }
+            }
+        }
         else
         {
             Write-Error $_
