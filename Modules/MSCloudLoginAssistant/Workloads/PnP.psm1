@@ -74,7 +74,7 @@ function Connect-MSCloudLoginPnP
     }
     Write-Verbose -Message "`$Global:SPOConnectionUrl is $Global:SPOConnectionUrl."
     # Explicitly import the required module(s) in case there is cmdlet ambiguity with other modules e.g. SharePointPnPPowerShell2013
-    Import-Module -Name SharePointPnPPowerShellOnline -DisableNameChecking -Force
+    Import-Module -Name PnP.PowerShell -DisableNameChecking -Force
 
     try
     {
