@@ -74,7 +74,7 @@ function Connect-MSCloudLoginPnP
     }
     Write-Verbose -Message "`$Global:SPOConnectionUrl is $Global:SPOConnectionUrl."
     # Explicitly import the required module(s) in case there is cmdlet ambiguity with other modules e.g. SharePointPnPPowerShell2013
-    Import-Module -Name SharePointPnPPowerShellOnline -DisableNameChecking -Force
+    Import-Module -Name PnP.PowerShell -DisableNameChecking -Force
 
     try
     {
@@ -179,6 +179,10 @@ catch
                     throw $_
                 }
             }
+        }
+        elseif ($_.Exception -like "*AADSTS65001: The user or administrator has not consented to use the application with ID*")
+        {
+            Write-Error "The PnP.PowerShell Azure AD Application has not been granted access for this tenant. Please run 'Register-PnPManagementShellAccess' to grant access and try again after."
         }
     }
 

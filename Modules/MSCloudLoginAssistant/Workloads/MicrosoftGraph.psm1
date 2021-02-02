@@ -34,6 +34,7 @@ function Connect-MSCloudLoginMicrosoftGraph
             Import-Module -Name Microsoft.Graph.Authentication -DisableNameChecking -Force | out-null
             Connect-Graph -ClientId $ApplicationId -TenantId $TenantId `
                 -CertificateThumbprint $CertificateThumbprint | Out-Null
+            Select-MgProfile 'v1.0' | Out-Null
             Write-Verbose -Message "Connected"
         }
         catch
@@ -231,7 +232,6 @@ function Invoke-MSCloudLoginMicrosoftGraphAPI
         }
         else
         {
-            Write-Host "Why here???" -ForegroundColor Cyan
             throw $_
         }
     }
