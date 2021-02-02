@@ -29,6 +29,13 @@ function Connect-MSCloudLoginSecurityCompliance
     $WarningPreference = 'SilentlyContinue'
     $ProgressPreference = 'SilentlyContinue'
     [array]$activeSessions = Get-PSSession | Where-Object -FilterScript {$_.ComputerName -like '*.ps.compliance.protection*' -and $_.State -eq 'Opened'}
+    Write-Verbose "$(Get-Runspace | Out-String)"
+    $opened = Get-Runspace | Where-Object -FilterScript {$_.RunspaceAvailability -eq 'Available'}
+    foreach ($openRun in $opened)
+    {
+        Write-Verbose "Closing runspace $($openRun.Name)"
+        $openRun.Close()
+    }
     if ($activeSessions.Length -ge 1 -and $SkipModuleReload -eq $true)
     {
         Write-Verbose -Message "Found {$($activeSessions.Length)} existing Security and Compliance Session"
@@ -97,7 +104,7 @@ function Connect-MSCloudLoginSecurityCompliance
             Connect-IPPSSession -Credential $Global:o365Credential `
                 -ConnectionUri $ConnectionUrl `
                 -AzureADAuthorizationEndpointUri $AuthorizationUrl `
-                -Verbose:$false | Out-Null
+                -Verbose:$false -ErrorAction Stop | Out-Null
             $VerbosePreference = $CurrentVerbosePreference
             $InformationPreference = $CurrentInformationPreference
             $WarningPreference = $CurrentWarningPreference
