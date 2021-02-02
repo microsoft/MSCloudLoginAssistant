@@ -32,7 +32,7 @@ function Connect-MSCloudLoginSkypeForBusiness
             $IPMOParameters = @{}
             if ($PSBoundParameters.containskey("Prefix"))
             {
-                $IPMOParameters.add("Prefix",$prefix)
+                $IPMOParameters.add("Prefix", $prefix)
             }
             Import-Module $Global:SkypeModule -Global @IPMOParameters | Out-Null
         }
@@ -45,7 +45,7 @@ function Connect-MSCloudLoginSkypeForBusiness
     catch
     {
         if ($_.Exception -like '*Connecting to remote server*' -or `
-            $_.Exception -like '*Due to a configuration change made by your*')
+                $_.Exception -like '*Due to a configuration change made by your*')
         {
             Write-Verbose -Message "The connection requires MFA. Attempting to connect with Multi-Factor."
 
@@ -54,7 +54,7 @@ function Connect-MSCloudLoginSkypeForBusiness
             $IPMOParameters = @{}
             if ($PSBoundParameters.containskey("Prefix"))
             {
-                $IPMOParameters.add("Prefix",$prefix)
+                $IPMOParameters.add("Prefix", $prefix)
             }
             Import-Module $Global:SkypeModule -Global @IPMOParameters | Out-Null
         }
@@ -69,7 +69,7 @@ function Connect-MSCloudLoginSkypeForBusiness
                 $IPMOParameters = @{}
                 if ($PSBoundParameters.containskey("Prefix"))
                 {
-                    $IPMOParameters.add("Prefix",$prefix)
+                    $IPMOParameters.add("Prefix", $prefix)
                 }
                 Import-Module $Global:SkypeModule -Global @IPMOParameters | Out-Null
             }
@@ -82,7 +82,7 @@ function Connect-MSCloudLoginSkypeForBusiness
                     $IPMOParameters = @{}
                     if ($PSBoundParameters.containskey("Prefix"))
                     {
-                        $IPMOParameters.add("Prefix",$prefix)
+                        $IPMOParameters.add("Prefix", $prefix)
                     }
                     Import-Module $Global:SkypeModule -Global @IPMOParameters | Out-Null
                     $Global:CloudEnvironment = 'DoD'
