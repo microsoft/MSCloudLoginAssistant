@@ -106,38 +106,49 @@ function Connect-MSCloudLoginPnP
         }
         else
         {
-            Connect-PnPOnline -Url $Global:SPOConnectionUrl `
-                -Credentials $Global:o365Credential
-            Write-Verbose "Connected to PnP {$($Global:SPOConnectionUrl) using regular authentication"
-            $Global:IsMFAAuth = $false
+            if ($Global:CloudEnvironment -eq 'GCCHigh')
+            {
+                $Global:SPOConnectionUrl = $Global:SPOConnectionUrl.Replace('.com', '.us')
+                Connect-PnPOnline -Url $Global:SPOConnectionUrl -Credentials $Global:o365Credential
+                $Global:IsMFAAuth = $false
+                $Global:CloudEnvironment = 'GCCHigh'
+                Write-Verbose "Connected to PnP {$($Global:SPOConnectionUrl) using regular authentication"
+                $Global:IsMFAAuth = $false
+            }
+            else
+            {
+                Connect-PnPOnline -Url $Global:SPOConnectionUrl `
+                    -Credentials $Global:o365Credential
+                Write-Verbose "Connected to PnP {$($Global:SPOConnectionUrl) using regular authentication"
+                $Global:IsMFAAuth = $false
+            }
         }
-   }
-catch
+    }
+    catch
     {
-        if ($_.Exception -like '*Microsoft.SharePoint.Client.ServerUnauthorizedAccessException*' -or `
-                $_.Exception -like '*The remote server returned an error: (401) Unauthorized.*' -or `
-                $_.Exception -like '*Object reference not set to an instance of an object*')
+        if ($_.Exception -like '*AADSTS50076*')
         {
             try
             {
-                Connect-PnPOnline -Url $Global:SPOConnectionUrl -UseWebLogin
-                $Global:IsMFAAuth = $true
-                $Global:MSCloudLoginAzurePnPConnected = $true
+                if ($Global:CloudEnvironment -eq 'GCCHigh')
+                {
+                    $Global:SPOConnectionUrl = $Global:SPOConnectionUrl.Replace('.com', '.us')
+                    Connect-PnPOnline -Url $Global:SPOConnectionUrl -UseWebLogin
+                    $Global:IsMFAAuth = $true
+                    $Global:MSCloudLoginAzurePnPConnected = $true
+                }
+                else
+                {
+                    Connect-PnPOnline -Url $Global:SPOConnectionUrl -UseWebLogin
+                    $Global:IsMFAAuth = $true
+                    $Global:MSCloudLoginAzurePnPConnected = $true
+                }
             }
             catch
             {
                 $Global:MSCloudLoginAzurePnPConnected = $false
                 throw $_
             }
-        }
-        elseif ($_.Exception -like "*The remote name could not be resolved:*" -and ($Global:CloudEnvironment -eq 'USGovernment' -or `
-                    $Global:CloudEnvironment -eq 'GCCHigh') -and !$Global:IsMFAAuth)
-        {
-            # We are most likely dealing with a GCC High environment, we need to change the connection url to *.us
-            $Global:SPOConnectionUrl = $Global:SPOConnectionUrl.Replace('.com', '.us')
-            Connect-PnPOnline -Url $Global:SPOConnectionUrl -Credentials $Global:o365Credential
-            $Global:IsMFAAuth = $false
-            $Global:CloudEnvironment = 'GCCHigh'
         }
         elseif ($_.Exception -like '*The sign-in name or password does not match one in the Microsoft account system*')
         {
@@ -185,6 +196,5 @@ catch
             Write-Error "The PnP.PowerShell Azure AD Application has not been granted access for this tenant. Please run 'Register-PnPManagementShellAccess' to grant access and try again after."
         }
     }
-
     return
 }
