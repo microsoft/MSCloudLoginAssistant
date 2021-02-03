@@ -26,15 +26,17 @@ function Connect-MSCloudLoginSecurityCompliance
         [System.Boolean]
         $SkipModuleReload = $false
     )
+    $VerbosePreference = "Continue"
     $WarningPreference = 'SilentlyContinue'
     $ProgressPreference = 'SilentlyContinue'
     [array]$activeSessions = Get-PSSession | Where-Object -FilterScript {$_.ComputerName -like '*.ps.compliance.protection*' -and $_.State -eq 'Opened'}
     Write-Verbose "$(Get-Runspace | Out-String)"
-    $opened = Get-Runspace | Where-Object -FilterScript {$_.RunspaceAvailability -eq 'Available'}
-    foreach ($openRun in $opened)
+    [array] $opened = Get-Runspace | Where-Object -FilterScript {$_.RunspaceAvailability -eq 'Available'}
+    for ($i = 1; $i -lt $opened.Length; $i++)
     {
-        Write-Verbose "Closing runspace $($openRun.Name)"
-        $openRun.Close()
+        Write-Verbose "Closing runspace $($opened[$i].Name)"
+        $opened[$i].Close()
+        $opened[$i].Dispose()
     }
     if ($activeSessions.Length -ge 1 -and $SkipModuleReload -eq $true)
     {
