@@ -164,7 +164,7 @@ function Get-SPORootSiteUrl
         Write-Verbose -Message "Retrieving SharePoint Online root site url with MS graph api..."
 
         $graphEndpoint = Get-AzureEnvironmentEndpoint -AzureCloudEnvironmentName $Global:appIdentityParams.AzureCloudEnvironmentName -EndpointName MsGraphEndpointResourceId
-        $spRootUrl = Get-AzureEnvironmentEndpoint -AzureCloudEnvironmentName $Global:appIdentityParams.AzureCloudEnvironmentName -EndpointName SharePointRootUrl
+        $spRootUrl = Get-AzureEnvironmentEndpoint -AzureCloudEnvironmentName $Global:appIdentityParams.AzureCloudEnvironmentName -EndpointName SharePointRootUrl -AllowEmpty
         if (![string]::IsNullOrEmpty($spRootUrl))
         {
             $Global:SPORootSiteUrl = $spRootUrl.TrimEnd('/')
@@ -1052,7 +1052,10 @@ function Get-AzureEnvironmentEndpoint
 
         [Parameter(Mandatory = $true)]
         [System.String]
-        $EndpointName
+        $EndpointName,
+
+        [Switch]
+        $AllowEmpty
     )
 
     Ensure-AzureCloudEnvironmentsFromConfigFile
@@ -1062,7 +1065,7 @@ function Get-AzureEnvironmentEndpoint
         throw "The $AzureCloudEnvironmentName environment is not registered."
     }
 
-    if (!$Global:AzureCloudEnvironments.$AzureCloudEnvironmentName.Endpoints.$EndpointName)
+    if (!$Global:AzureCloudEnvironments.$AzureCloudEnvironmentName.Endpoints.$EndpointName -and !$AllowEmpty)
     {
         throw "$AzureCloudEnvironments is not registered for the $EndpointName cloud environment."
     }
