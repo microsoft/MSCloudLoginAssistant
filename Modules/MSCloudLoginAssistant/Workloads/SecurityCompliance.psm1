@@ -64,15 +64,15 @@ function Connect-MSCloudLoginSecurityCompliance
     {
         "microsoftonline.com" {
             $ConnectionUrl = 'https://ps.compliance.protection.outlook.com/powershell-liveid/'
-            $AuthorizationUrl = 'https://login.microsoftonline.com/common'
+            $AuthorizationUrl = 'https://login.microsoftonline.com/organizations'
         }
         "microsoftonline.us" {
             $ConnectionUrl = 'https://ps.compliance.protection.office365.us/powershell-liveid/'
-            $AuthorizationUrl = 'https://login.microsoftonline.us/common'
+            $AuthorizationUrl = 'https://login.microsoftonline.us/organizations'
         }
         "microsoftonline.de" {
             $ConnectionUrl = 'https://ps.compliance.protection.outlook.de/powershell-liveid/'
-            $AuthorizationUrl = 'https://login.microsoftonline.de/common'
+            $AuthorizationUrl = 'https://login.microsoftonline.de/organizations'
         }
     }
     Write-Verbose -Message "ConnectionUrl = $ConnectionUrl"
