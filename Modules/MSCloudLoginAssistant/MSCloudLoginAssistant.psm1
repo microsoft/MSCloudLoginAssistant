@@ -762,7 +762,7 @@ function Get-SkypeForBusinessServiceEndpoint
         [System.String]
         $OverrideDiscoveryUri
     )
-    if(!$OverrideDiscoveryUri)
+    if (!$OverrideDiscoveryUri)
     {
         $OverrideDiscoveryUri = "http://lyncdiscover." + $TargetDomain;
     }
@@ -770,23 +770,31 @@ function Get-SkypeForBusinessServiceEndpoint
     $liveIdUrl = $OverrideDiscoveryUri.ToString() + "?Domain=" + $TargetDomain
 
     $xml = Get-RTCXml -Url $liveIdUrl
-    if(!$xml)
+    if (!$xml)
     {
         Write-Verbose "Did not find anything @ $OverrideDiscoveryUri, will try with initial domain"
         Test-MSCloudLogin -Platform AzureAD
-        $initialDomain = (Get-AzureADDomain | Where-Object -FilterScript { $_.IsInitial}).Name
+        $tenantDomains = Get-AzureADDomain
+        $initialDomain = ($tenantDomains | Where-Object -FilterScript { $_.IsInitial }).Name
         $OverrideDiscoveryUri = "http://lyncdiscover." + $initialDomain;
-        $desiredLink = "External/RemotePowerShell";
         $liveIdUrl = $OverrideDiscoveryUri.ToString() + "?Domain=" + $initialDomain
         $xml = Get-RTCXml -Url $liveIdUrl
+
+        if (!$xml)
+        {
+            $defaultDomain = ($tenantDomains | Where-Object -FilterScript { $_.IsDefault }).Name
+            $OverrideDiscoveryUri = "http://lyncdiscover." + $defaultDomain;
+            $liveIdUrl = $OverrideDiscoveryUri.ToString() + "?Domain=" + $defaultDomain
+            $xml = Get-RTCXml -Url $liveIdUrl
+        }
     }
 
     $root = $xml.AutodiscoverResponse.Root
 
-    $domain = $root.Link | Where-Object -FilterScript {$_.Token -eq 'domain'}
+    $domain = $root.Link | Where-Object -FilterScript { $_.Token -eq 'domain' }
     if ($null -eq $domain)
     {
-        $redirect = $root.Link | Where-Object -FilterScript {$_.Token -eq 'redirect'}
+        $redirect = $root.Link | Where-Object -FilterScript { $_.Token -eq 'redirect' }
 
         if ($null -eq $redirect)
         {
@@ -797,10 +805,10 @@ function Get-SkypeForBusinessServiceEndpoint
         {
             $xml = Get-RTCXml -Url $redirect.href
             $root = $xml.AutodiscoverResponse.Root
-            $domain = $root.Link | Where-Object -FilterScript {$_.Token -eq 'domain'}
+            $domain = $root.Link | Where-Object -FilterScript { $_.Token -eq 'domain' }
             if ($null -eq $domain)
             {
-                $redirect = $root.Link | Where-Object -FilterScript {$_.Token -eq 'redirect'}
+                $redirect = $root.Link | Where-Object -FilterScript { $_.Token -eq 'redirect' }
             }
             else
             {
@@ -808,15 +816,16 @@ function Get-SkypeForBusinessServiceEndpoint
             }
         }
     }
+
     $xml = Get-RTCXml -Url $domain.href
-    $endpoint = $xml.AutodiscoverResponse.Domain.Link | Where-Object -FilterScript {$_.token -eq $desiredLink}
-    if(!$endpoint)
+    $endpoint = $xml.AutodiscoverResponse.Domain.Link | Where-Object -FilterScript { $_.token -eq $desiredLink }
+    if (!$endpoint)
     {
-        $hybrid = $xml.AutodiscoverResponse.Domain.Link | Where-Object -FilterScript {$_.token -eq 'Hybrid'}
+        $hybrid = $xml.AutodiscoverResponse.Domain.Link | Where-Object -FilterScript { $_.token -eq 'Hybrid' }
         return Get-SkypeForBusinessServiceEndpoint -TargetDomain $TargetDomain -OverrideDiscoveryUri $hybrid.href
     }
 
-    $endpointUrl = $endpoint.href.Replace("/OcsPowershellLiveId","/OcsPowershellOAuth")
+    $endpointUrl = $endpoint.href.Replace("/OcsPowershellLiveId", "/OcsPowershellOAuth")
     return [Uri]::new($endpointUrl)
 }
 
@@ -830,11 +839,19 @@ function Get-RTCXml
         $Url
     )
 
-    $request = [System.Net.WebRequest]::Create($Url);
-    $request.set_Accept("application/vnd.microsoft.rtc.autodiscover+xml;v=1");
-    $response = $request.GetResponse()
-    $arg = [System.IO.StreamReader]::new($response.GetResponseStream()).ReadToEnd();
-    $xml = [Xml]$arg
+    $xml = $null
+    try
+    {
+        $request = [System.Net.WebRequest]::Create($Url);
+        $request.set_Accept("application/vnd.microsoft.rtc.autodiscover+xml;v=1");
+        $response = $request.GetResponse()
+        $arg = [System.IO.StreamReader]::new($response.GetResponseStream()).ReadToEnd();
+        $xml = [Xml]$arg
+    }
+    catch
+    {
+        Write-Verbose $_
+    }
     return $xml
 }
 
