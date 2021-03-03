@@ -58,7 +58,7 @@ function Connect-MSCloudLoginSkypeForBusiness
             }
             Import-Module $Global:SkypeModule -Global @IPMOParameters | Out-Null
         }
-        if ($_.Exception -like '*unknown_user_type: Unknown User Type*')
+        elseif ($_.Exception -like '*unknown_user_type: Unknown User Type*')
         {
             $Global:CloudEnvironment = 'GCCHigh'
 
