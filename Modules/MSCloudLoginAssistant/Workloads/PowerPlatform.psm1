@@ -128,8 +128,9 @@ function Connect-MSCloudLoginPowerPlatformDelegated
         # importing a module from within a module is not really recommended
         # but ours is a special case since we want to override the auth module of the power apps module
         # this is also why we set the -global flag
-        Import-Module "$PSScriptRoot\..\Utilities\DelegatedPowerAppsAuth\Microsoft.PowerApps.AuthModule.psm1" -Force -Global
-        Add-PowerAppsAccount -UserName $userprincipalNameToUse
+        Import-Module "$PSScriptRoot\..\Utilities\DelegatedPowerAppsAuth\Microsoft.PowerApps.AuthModule.psm1" -Force -Global        
+        $env = Get-PsModuleAzureEnvironmentName -AzureCloudEnvironmentName $global:appIdentityParams.AzureCloudEnvironmentName -Platform "PowerPlatforms"
+        Add-PowerAppsAccount -UserName $userprincipalNameToUse -Endpoint $env
     }
     catch
     {

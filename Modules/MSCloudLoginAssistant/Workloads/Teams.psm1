@@ -7,7 +7,34 @@ function Connect-MSCloudLoginTeams
     {    
         if($Global:appIdentityParams.CertificateThumbprint) 
         {
-            Connect-MicrosoftTeams -TenantId $Global:appIdentityParams.Tenant -ApplicationId $Global:appIdentityParams.AppId -CertificateThumbprint $Global:appIdentityParams.CertificateThumbprint -ErrorAction Stop | Out-Null                
+
+            # this monstrosity is required because the Connect-MicrosoftTeams cmdlet only supports the TeamsEnvironment name parameter 
+            # with the user credentials. From the codebase i belive that this is a bug. Until they fix it we work around the issue by 
+            # rewriting the default environment
+            if(!$Global:TeamsEnvironmentRedirected)
+            {          
+                # if (-not ([System.Management.Automation.PSTypeName]'Microsoft.Open.Teams.CommonLibrary.AzureRmProfileProvider').Type)
+                # {
+                #     [array]$MsTeamsModules = Get-Module -ListAvailable | Where-Object {$_.name -eq "MicrosoftTeams"}
+                #     if ($MsTeamsModules.count -eq 0)
+                #     {
+                #         Throw "Can't find MicrosoftTeams DLL. Please Import the module MicrosoftTeams before connecting with MSCloudLoginAssistant"
+                #     }
+                #     $TeamsConnectDDLL= Join-Path (($MsTeamsModules | Sort-Object version -Descending | Select-Object -first 1).Path | split-Path) Microsoft.TeamsCmdlets.PowerShell.Connect.dll
+                #     Add-Type -Path $TeamsConnectDDLL | Out-Null
+                # }
+                
+                # we get the azureAD env name becase that is what is used in the background of the teams module
+                $envName = Get-PsModuleAzureEnvironmentName -AzureCloudEnvironmentName $Global:appIdentityParams.AzureCloudEnvironmentName -Platform "AzureAD";
+                $graphEndpoint = Get-AzureEnvironmentEndpoint -AzureCloudEnvironmentName $Global:appIdentityParams.AzureCloudEnvironmentName -EndpointName "MsGraphEndpointResourceId"
+                $defaultTeamsAzureEnv = [Microsoft.Open.Teams.CommonLibrary.AzureEnvironment+EnvironmentName]::AzureCloud
+                $actualTeamsEnvName = [Microsoft.Open.Teams.CommonLibrary.AzureEnvironment+EnvironmentName]$envName
+                [Microsoft.Open.Teams.CommonLibrary.AzureRmProfileProvider]::Instance.Profile.Environments[$defaultTeamsAzureEnv] = [Microsoft.Open.Teams.CommonLibrary.AzureRmProfileProvider]::Instance.Profile.Environments[$actualTeamsEnvName]
+                [Microsoft.Open.Teams.CommonLibrary.AzureRmProfileProvider]::Instance.Profile.Environments[$defaultTeamsAzureEnv].Endpoints[[Microsoft.Open.Teams.CommonLibrary.Endpoint]::MsGraphEndpointResourceId] = $graphEndpoint
+                $Global:TeamsEnvironmentRedirected = $true
+            }
+                        
+            Connect-MicrosoftTeams -TenantId $Global:appIdentityParams.Tenant -ApplicationId $Global:appIdentityParams.AppId -CertificateThumbprint $Global:appIdentityParams.CertificateThumbprint -ErrorAction Stop | Out-Null
         }
         else
         {
