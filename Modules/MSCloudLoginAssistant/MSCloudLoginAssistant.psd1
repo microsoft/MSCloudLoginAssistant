@@ -57,7 +57,7 @@
         })
 
     # Assemblies that must be loaded prior to importing this module    
-    RequiredAssemblies     = @(".\Utilities\MsGrapgModuleAuthFix\SysKit.MsGraphAuthModulePatching.dll")
+    RequiredAssemblies     = @(".\Utilities\MsGrapgModuleAuthFix\SysKit.MsGraphAuthModulePatching.dll", ".\Utilities\MsGrapgModuleAuthFix\0Harmony.dll")
 
     # Script files (.ps1) that are run in the caller's environment prior to importing this module.
     # ScriptsToProcess = @()
@@ -81,6 +81,7 @@
         'Workloads\SharePointOnline.psm1',
         'Workloads\SkypeForBusiness.psm1',
         'Workloads\Teams.psm1',
+        'Workloads\Intune.psm1',
         'Utilities\Adal.psm1',
         'Utilities\PsSessionRetry.psm1'
     )
