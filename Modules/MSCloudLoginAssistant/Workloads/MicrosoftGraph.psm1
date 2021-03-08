@@ -5,21 +5,20 @@ function Connect-MSCloudLoginMicrosoftGraph
     )
 
 
-    if(!(Get-Module Microsoft.Graph.Authentication))
+    if (!(Get-Module Microsoft.Graph.Authentication))
     {
-        Import-Module -Name Microsoft.Graph.Authentication -DisableNameChecking -Force | out-null
+        Import-Module -Name Microsoft.Graph.Authentication -DisableNameChecking -Force | Out-Null
     }
 
-    if($Global:UseApplicationIdentity)
+    if ($Global:UseApplicationIdentity)
     {
-        $graphEndpoint = Get-AzureEnvironmentEndpoint -AzureCloudEnvironmentName $Global:appIdentityParams.AzureCloudEnvironmentName -EndpointName MsGraphEndpointResourceId
         try
         {
             Enable-AppDomainLoadAnyVersionResolution
-            if(!('Microsoft.Graph.AuthenticateRequestAsyncDelegate' -as [Type]))
+            if (!('Microsoft.Graph.AuthenticateRequestAsyncDelegate' -as [Type]))
             {
                 $rootDir = [System.IO.Path]::GetDirectoryName((Get-Module Microsoft.Graph.Authentication).Path).TrimEnd('\')
-                $graphCoreAssemblyPath  = $rootDir +"\bin\Microsoft.Graph.Core.dll"
+                $graphCoreAssemblyPath = $rootDir + "\bin\Microsoft.Graph.Core.dll"
                 Add-Type -Path $graphCoreAssemblyPath
             }
 
@@ -27,17 +26,18 @@ function Connect-MSCloudLoginMicrosoftGraph
             # and for delegated access it only supports device code auth
             # since we already have the authentication context that we can use to authenticate to graph
             # we redirect it by replacing the auth implementation in runtime
-            [SysKit.MsGraphAuthModulePatching.MsGraphAuthModulePatcher]::DoPatching([Microsoft.Graph.AuthenticateRequestAsyncDelegate]{
-                param(
-                    [Parameter()]
-                    [System.Net.Http.HttpRequestMessage]
-                    $request
-                )
+            [SysKit.MsGraphAuthModulePatching.MsGraphAuthModulePatcher]::DoPatching([Microsoft.Graph.AuthenticateRequestAsyncDelegate] {
+                    param(
+                        [Parameter()]
+                        [System.Net.Http.HttpRequestMessage]
+                        $request
+                    )
+                    $graphEndpoint = Get-AzureEnvironmentEndpoint -AzureCloudEnvironmentName $Global:appIdentityParams.AzureCloudEnvironmentName -EndpointName MsGraphEndpointResourceId
 
-                $token = Get-OnBehalfOfAccessToken -TargetUri $graphEndpoint
-                $request.Headers.Authorization = [System.Net.Http.Headers.AuthenticationHeaderValue]::new("Bearer", $token)
-                return [System.Threading.Tasks.Task]::CompletedTask
-            })
+                    $token = Get-OnBehalfOfAccessToken -TargetUri $graphEndpoint
+                    $request.Headers.Authorization = [System.Net.Http.Headers.AuthenticationHeaderValue]::new("Bearer", $token)
+                    return [System.Threading.Tasks.Task]::CompletedTask
+                })
         }
         finally
         {
@@ -190,7 +190,7 @@ function Invoke-MSCloudLoginMicrosoftGraphAPI
     $accessToken = Get-OnBehalfOfAccessToken -TargetUri $graphEndpoint
     $requestHeaders = @{
         "Authorization" = "Bearer " + $accessToken
-        "Content-Type" = "application/json"
+        "Content-Type"  = "application/json"
     }
     foreach ($key in $Headers.Keys)
     {
@@ -214,8 +214,8 @@ function Invoke-MSCloudLoginMicrosoftGraphAPI
     # In the original MSCloudLogin code there was error handling here that was related to  authentication
     # the error handling with retry makes no sense, maybe retry for transient errors but this was for auth
     # so the code was removed but this comment remains here if anybody wonders why the difference
-    
+
     $Result = Invoke-RestMethod @requestParams
-    
+
     return $result
 }
