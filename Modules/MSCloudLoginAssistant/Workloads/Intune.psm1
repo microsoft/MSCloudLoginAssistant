@@ -22,7 +22,7 @@ function Connect-MSCloudLoginIntune
                 Add-Type -Path $intunePsSdkPath
             }
             
-            # the official Connect-MSGraph cmdlet does not support Application Identity auth, it's not implemented even though there are signs that it was considered
+            # the official Connect-MSGraph cmdlet does not support Application Identity auth with a certificate, it's not implemented even though there are signs that it was considered
             # since we already have our authentication context we can that use to authenticate to graph with the application identity
             # unfortunately there is a bit of hacking involved by dynamically patching some methods in the Intune PowerShell SDK dll
             [SysKit.MsGraphAuthModulePatching.MsGraphIntuneAuthModulePatcher]::DoPatching([SysKit.MsGraphAuthModulePatching.MsGraphIntuneAuthDelegate] {
