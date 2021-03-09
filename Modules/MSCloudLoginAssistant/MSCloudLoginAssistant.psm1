@@ -405,10 +405,15 @@ function Init-ApplicationIdentityCore
     }
 
 
-    if ($null -eq $Global:ADALAppServicePoint -or $Force)
+    if ($null -eq $Global:ADALAppIndentiyServicePoint -or $null -eq $Global:ADALAppOnBehalfServicePoint -or $Force)
     {
         Import-Module AzureAD
-        $Global:ADALAppServicePoint = New-ADALServiceInfo -TenantName $Tenant -TokenCacheEntropy $TokenCacheEntropy -TokenCacheLocation $TokenCacheLocation -TokenCacheDataProtectionScope $TokenCacheDataProtectionScope -AzureCloudEnvironmentName $AzureCloudEnvironmentName
+        
+        # use a persisted token cache for user tokens so we can always have a token for a user and multiple resources based on the refresh token
+        $Global:ADALAppOnBehalfServicePoint = New-ADALServiceInfo -TenantName $Tenant -TokenCacheEntropy $TokenCacheEntropy -TokenCacheLocation $TokenCacheLocation -TokenCacheDataProtectionScope $TokenCacheDataProtectionScope -AzureCloudEnvironmentName $AzureCloudEnvironmentName
+
+        # no need to use a persisted token cache for the app identity tokens
+        $Global:ADALAppIndentiyServicePoint = New-ADALServiceInfo -TenantName $Tenant -AzureCloudEnvironmentName $AzureCloudEnvironmentName
     }
 }
 
@@ -421,7 +426,7 @@ function Grant-OnBehalfConsent
         $UserPrincipalName
     )
 
-    if ($null -eq $Global:ADALAppServicePoint)
+    if ($null -eq $Global:ADALAppOnBehalfServicePoint)
     {
         throw "Please use Init-ApplicationIdentity before using this command"
     }
@@ -438,7 +443,7 @@ function Grant-OnBehalfConsent
     $PromptBehavior = [Microsoft.IdentityModel.Clients.ActiveDirectory.PromptBehavior]::Always
     # i believe we need to use always to prompt for consent
     $platformParams = New-Object "Microsoft.IdentityModel.Clients.ActiveDirectory.PlatformParameters" -ArgumentList $PromptBehavior
-    $authRes = $Global:ADALAppServicePoint.authContext.AcquireTokenAsync($Global:appIdentityParams.Appid, $Global:appIdentityParams.AppId, [Uri]::new("urn:ietf:wg:oauth:2.0:oob"), $platformParams, $userIdentifier)
+    $authRes = $Global:ADALAppOnBehalfServicePoint.authContext.AcquireTokenAsync($Global:appIdentityParams.Appid, $Global:appIdentityParams.AppId, [Uri]::new("urn:ietf:wg:oauth:2.0:oob"), $platformParams, $userIdentifier)
 
     Write-Host $authRes.Result.AccessToken
 }
@@ -580,7 +585,7 @@ function Get-OnBehalfOfAuthResult
         $UserPrincipalName
     )
 
-    if ($null -eq $Global:ADALAppServicePoint)
+    if ($null -eq $Global:ADALAppOnBehalfServicePoint)
     {
         throw "Please use Init-ApplicationIdentity before using this command"
     }
@@ -617,7 +622,7 @@ function Get-OnBehalfOfAuthResult
         throw "Cannot retrieve access token on behalf of no user"
     }
     $certAssertion = [Microsoft.IdentityModel.Clients.ActiveDirectory.ClientAssertionCertificate]::new($Global:appIdentityParams.AppId, $cert)
-    $authResultTask = $Global:ADALAppServicePoint.authContext.AcquireTokenSilentAsync($TargetUri.ToString(), $certAssertion, $userIdentifier)
+    $authResultTask = $Global:ADALAppOnBehalfServicePoint.authContext.AcquireTokenSilentAsync($TargetUri.ToString(), $certAssertion, $userIdentifier)
 
     # will force an exception to be thrown Result unlike C# will not throw an exception
     try
@@ -654,7 +659,7 @@ function Get-AppIdentityAuthResult
         $TargetUri
     )
 
-    if ($null -eq $Global:ADALAppServicePoint)
+    if ($null -eq $Global:ADALAppIndentiyServicePoint)
     {
         throw "Please use Init-ApplicationIdentity before using this command"
     }
@@ -677,7 +682,7 @@ function Get-AppIdentityAuthResult
 
     $cert = Get-ChildItem -path "Cert:\*$thumbprint" -Recurse | Where-Object { $_.HasPrivateKey } | Select-Object -First 1
     $certAssertion = [Microsoft.IdentityModel.Clients.ActiveDirectory.ClientAssertionCertificate]::new($Global:appIdentityParams.AppId, $cert)
-    $authResultTask = $Global:ADALAppServicePoint.authContext.AcquireTokenAsync($TargetUri.ToString(), $certAssertion)
+    $authResultTask = $Global:ADALAppIndentiyServicePoint.authContext.AcquireTokenAsync($TargetUri.ToString(), $certAssertion)
 
     # will force an exception to be thrown Result unlike C# will not throw an exception
     try
