@@ -599,7 +599,7 @@ function Get-CloudEnvironmentInfo
                 -TenantId $TenantId `
                 -CertificateThumbprint $CertificateThumbprint
         }
-        $response = Invoke-WebRequest -Uri "https://login.microsoftonline.com/$tenantName/v2.0/.well-known/openid-configuration" -Method Get
+        $response = Invoke-WebRequest -Uri "https://login.microsoftonline.com/$tenantName/v2.0/.well-known/openid-configuration" -Method Get -UseBasicParsing
 
         $content = $response.Content
         $result = ConvertFrom-Json $content
