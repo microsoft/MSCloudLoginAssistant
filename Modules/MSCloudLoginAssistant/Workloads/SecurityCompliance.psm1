@@ -29,7 +29,7 @@ function Connect-MSCloudLoginSecurityCompliance
     $VerbosePreference = "Continue"
     $WarningPreference = 'SilentlyContinue'
     $ProgressPreference = 'SilentlyContinue'
-    [array]$activeSessions = Get-PSSession | Where-Object -FilterScript { $_.ComputerName -like '*.ps.compliance.protection*' -and $_.State -eq 'Opened' }
+
     Write-Verbose "$(Get-Runspace | Out-String)"
     [array] $opened = Get-Runspace | Where-Object -FilterScript { $_.RunspaceAvailability -eq 'Available' }
     if ($SkipModuleReload -eq $false)
@@ -41,6 +41,7 @@ function Connect-MSCloudLoginSecurityCompliance
             $opened[$i].Dispose()
         }
     }
+    [array]$activeSessions = Get-PSSession | Where-Object -FilterScript {$_.ComputerName -like '*.ps.compliance.protection*' -and $_.State -eq 'Opened'}
     if ($activeSessions.Length -ge 1 -and $SkipModuleReload -eq $true)
     {
         Write-Verbose -Message "Found {$($activeSessions.Length)} existing Security and Compliance Session"
