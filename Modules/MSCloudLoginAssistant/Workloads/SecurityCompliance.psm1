@@ -29,13 +29,17 @@ function Connect-MSCloudLoginSecurityCompliance
     $VerbosePreference = "Continue"
     $WarningPreference = 'SilentlyContinue'
     $ProgressPreference = 'SilentlyContinue'
+
     Write-Verbose "$(Get-Runspace | Out-String)"
-    [array] $opened = Get-Runspace | Where-Object -FilterScript {$_.RunspaceAvailability -eq 'Available'}
-    for ($i = 1; $i -lt $opened.Length; $i++)
+    [array] $opened = Get-Runspace | Where-Object -FilterScript { $_.RunspaceAvailability -eq 'Available' }
+    if ($SkipModuleReload -eq $false)
     {
-        Write-Verbose "Closing runspace $($opened[$i].Name)"
-        $opened[$i].Close()
-        $opened[$i].Dispose()
+        for ($i = 1; $i -lt $opened.Length; $i++)
+        {
+            Write-Verbose "Closing runspace $($opened[$i].Name)"
+            $opened[$i].Close()
+            $opened[$i].Dispose()
+        }
     }
     [array]$activeSessions = Get-PSSession | Where-Object -FilterScript {$_.ComputerName -like '*.ps.compliance.protection*' -and $_.State -eq 'Opened'}
     if ($activeSessions.Length -ge 1 -and $SkipModuleReload -eq $true)
@@ -62,15 +66,18 @@ function Connect-MSCloudLoginSecurityCompliance
 
     switch ($Global:CloudEnvironmentInfo.cloud_instance_name)
     {
-        "microsoftonline.com" {
+        "microsoftonline.com"
+        {
             $ConnectionUrl = 'https://ps.compliance.protection.outlook.com/powershell-liveid/'
             $AuthorizationUrl = 'https://login.microsoftonline.com/common'
         }
-        "microsoftonline.us" {
+        "microsoftonline.us"
+        {
             $ConnectionUrl = 'https://ps.compliance.protection.office365.us/powershell-liveid/'
             $AuthorizationUrl = 'https://login.microsoftonline.us/common'
         }
-        "microsoftonline.de" {
+        "microsoftonline.de"
+        {
             $ConnectionUrl = 'https://ps.compliance.protection.outlook.de/powershell-liveid/'
             $AuthorizationUrl = 'https://login.microsoftonline.de/common'
         }
@@ -80,8 +87,8 @@ function Connect-MSCloudLoginSecurityCompliance
     #endregion
 
     if (-not [String]::IsNullOrEmpty($ApplicationId) -and `
-        -not [String]::IsNullOrEmpty($TenantId) -and `
-        -not [String]::IsNullOrEmpty($CertificateThumbprint))
+            -not [String]::IsNullOrEmpty($TenantId) -and `
+            -not [String]::IsNullOrEmpty($CertificateThumbprint))
     {
         Write-Verbose -Message "Attempting to connect to Security and Compliance using AAD App {$ApplicationID}"
         try
@@ -125,15 +132,15 @@ function Connect-MSCloudLoginSecurityComplianceMFA
 {
     [CmdletBinding()]
     Param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [System.Management.Automation.PSCredential]
         $CloudCredential,
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [System.String]
         $ConnectionUrl,
 
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [System.String]
         $AuthorizationUrl
     )
