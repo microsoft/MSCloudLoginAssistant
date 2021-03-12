@@ -30,23 +30,14 @@ function Connect-MSCloudLoginSecurityCompliance
     $WarningPreference = 'SilentlyContinue'
     $ProgressPreference = 'SilentlyContinue'
 
-    Write-Verbose "$(Get-Runspace | Out-String)"
-    [array] $opened = Get-Runspace | Where-Object -FilterScript { $_.RunspaceAvailability -eq 'Available' }
-    if ($SkipModuleReload -eq $false)
-    {
-        for ($i = 1; $i -lt $opened.Length; $i++)
-        {
-            Write-Verbose "Closing runspace $($opened[$i].Name)"
-            $opened[$i].Close()
-            $opened[$i].Dispose()
-        }
-    }
-    [array]$activeSessions = Get-PSSession | Where-Object -FilterScript {$_.ComputerName -like '*.ps.compliance.protection*' -and $_.State -eq 'Opened'}
-    if ($activeSessions.Length -ge 1 -and $SkipModuleReload -eq $true)
+    # Write-Verbose "$(Get-Runspace | Out-String)"
+    [array]$activeSessions = Get-PSSession | Where-Object -FilterScript { $_.ComputerName -like '*.ps.compliance.protection*' -and $_.State -eq 'Opened' }
+
+    if ($activeSessions.Length -ge 1)
     {
         Write-Verbose -Message "Found {$($activeSessions.Length)} existing Security and Compliance Session"
         $command = Get-Command "Get-ComplianceSearch" -ErrorAction 'SilentlyContinue'
-        if ($null -ne $command)
+        if ($null -ne $command -and $SkipModuleReload -eq $true)
         {
             return
         }
