@@ -26,7 +26,6 @@ function Connect-MSCloudLoginSecurityCompliance
         [System.Boolean]
         $SkipModuleReload = $false
     )
-    $VerbosePreference = "Continue"
     $WarningPreference = 'SilentlyContinue'
     $ProgressPreference = 'SilentlyContinue'
 
