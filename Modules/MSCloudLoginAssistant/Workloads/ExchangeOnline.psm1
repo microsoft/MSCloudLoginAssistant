@@ -62,15 +62,15 @@ function Connect-MSCloudLoginExchangeOnline
     {
         "microsoftonline.com" {
             $ConnectionUrl = 'https://outlook.office365.com/powershell-liveid/'
-            $AuthorizationUrl = 'https://login.microsoftonline.com/common'
+            $AuthorizationUrl = 'https://login.microsoftonline.com/organizations'
         }
         "microsoftonline.us" {
             $ConnectionUrl = 'https://outlook.office365.us/powershell-liveid/'
-            $AuthorizationUrl = 'https://login.microsoftonline.us/common'
+            $AuthorizationUrl = 'https://login.microsoftonline.us/organizations'
         }
         "microsoftonline.de" {
             $ConnectionUrl = 'https://outlook.office.de/powershell-liveid/'
-            $AuthorizationUrl = 'https://login.microsoftonline.de/common'
+            $AuthorizationUrl = 'https://login.microsoftonline.de/organizations'
         }
     }
     #endregion
