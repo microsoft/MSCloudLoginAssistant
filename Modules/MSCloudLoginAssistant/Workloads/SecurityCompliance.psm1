@@ -10,6 +10,7 @@ function Connect-MSCloudLoginSecurityCompliance
     $WarningPreference = 'SilentlyContinue'
     $ProgressPreference = 'SilentlyContinue'
     $InformationPreference = 'Continue'
+
     $authorizationUrl = Get-AzureEnvironmentEndpoint -AzureCloudEnvironmentName $Global:appIdentityParams.AzureCloudEnvironmentName -EndpointName ActiveDirectory
     $authorizationUrl += "common"
     $ConnectionUrl = Get-AzureEnvironmentEndpoint -AzureCloudEnvironmentName $Global:appIdentityParams.AzureCloudEnvironmentName -EndpointName SecurityAndCompliancePsConnection
@@ -39,13 +40,35 @@ function Connect-MSCloudLoginSecurityCompliance
         #     -Verbose:$false -ErrorAction Stop | Out-Null
 
 
+        # there are issues using the official Connect-IPPSSession cmdlet at least when used from Trace, so we do the auth process and connection manually
+        # the issues are most likely because all of the various versions of ADAL(?) between all of the modules used within Trace
+        $pwdCreds = [Microsoft.IdentityModel.Clients.ActiveDirectory.UserPasswordCredential]::new($Global:o365Credential.UserName, $Global:o365Credential.Password)
+        $resourceId = $ConnectionUrl
+        $defaultPsClientId = "fb78d390-0c51-40cd-8e17-fdbfab77341b"
+
+        if ($resourceId -match "ps.compliance.protection")
+        {
+            $uri = [Uri]::new($resourceId)
+            $actualResourceIdHost = $uri.Host -replace "((\w)+\.)?ps.compliance.protection", "ps.compliance.protection"
+            $resourceId = $uri.Scheme + [Uri]::SchemeDelimiter + $actualResourceIdHost
+        }
+
+        $task = [Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContextIntegratedAuthExtensions]::AcquireTokenAsync($Global:ADALAppOnBehalfServicePoint.authContext, $resourceId, $defaultPsClientId, $pwdCreds)
+        $task.Wait()
+        $res = $task.Result
+
+        $authHeader = "Bearer $($res.AccessToken)"
+        $scPwd = [securestring]::new()
+        $authHeader.ToCharArray()  | ForEach-Object { $scPwd.AppendChar($_) }
+        $scOAuthCreds = [PSCredential]::new($Global:o365Credential.UserName, $scPwd)
+
+        $connectionUrl = $connectionUrl + "?BasicAuthToOAuthConversion=True"
         $session = New-PSSession -ConfigurationName "Microsoft.Exchange" `
             -ConnectionUri $ConnectionUrl `
-            -Credential $O365Credential `
+            -Credential $scOAuthCreds `
             -Authentication Basic `
             -ErrorAction Stop `
             -AllowRedirection
-
 
         $module = Import-PSSession $session  `
             -ErrorAction SilentlyContinue `
