@@ -12,7 +12,8 @@ function Connect-MSCloudLoginSkypeForBusiness
         {
             $Global:o365Credential = Get-Credential -Message "Cloud Credential"
         }
-        if ($Global:o365Credential.UserName.Split('@')[1] -like '*.de')
+        $Global:CloudEnvironmentInfo = Get-CloudEnvironmentInfo -Credentials $Global:o365Credential
+        if ($Global:CloudEnvironmentInfo.cloud_instance_name -eq 'microsoftonline.de')
         {
             $Global:CloudEnvironment = 'Germany'
             Write-Warning 'Microsoft Teams is not supported in the Germany Cloud'
