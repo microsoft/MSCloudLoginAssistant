@@ -14,8 +14,10 @@ function Connect-MSCloudLoginTeams
         [System.String]
         $CertificateThumbprint
     )
-    # Explicitly import the required module(s) in case there is cmdlet ambiguity with other modules e.g. SharePointPnPPowerShell2013
-    Import-Module -Name MicrosoftTeams -DisableNameChecking -Force
+    if ($Global:MSCloudLoginTeamsConnected)
+    {
+        return
+    }
     if (-not [String]::IsNullOrEmpty($ApplicationId) -and `
         -not [String]::IsNullOrEmpty($TenantId) -and `
         -not [String]::IsNullOrEmpty($CertificateThumbprint))
@@ -24,6 +26,7 @@ function Connect-MSCloudLoginTeams
         try
         {
             Connect-MicrosoftTeams -ApplicationId $ApplicationId -TenantId $TenantId -CertificateThumbprint $CertificateThumbprint | Out-Null
+            $Global:MSCloudLoginTeamsConnected = $true
         }
         catch
         {
@@ -32,18 +35,18 @@ function Connect-MSCloudLoginTeams
     }
     elseif ($null -ne $Global:o365Credential)
     {
-        $Global:CloudEnvironmentInfo = Get-CloudEnvironmentInfo -Credentials $Global:o365Credential
+        if ($null -eq $Global:CloudEnvironmentInfo)
+        {
+            $Global:CloudEnvironmentInfo = Get-CloudEnvironmentInfo -Credentials $Global:o365Credential
+        }
         if ($Global:CloudEnvironmentInfo.cloud_instance_name -eq 'microsoftonline.de')
         {
             $Global:CloudEnvironment = 'Germany'
             Write-Warning 'Microsoft Teams is not supported in the Germany Cloud'
             return
         }
-        Import-Module -Name 'MicrosoftTeams' -Force
-        Import-Module -Name 'AzureADPreview' -Force
-        Test-MSCloudLogin -Platform AzureAD -CloudCredential $Global:o365Credential
         if ($Global:IsMFAAuth)
-        {
+        {        
             Connect-MSCloudLoginTeamsMFA -EnvironmentName $Global:CloudEnvironment
         }
         try
@@ -100,7 +103,8 @@ function Connect-MSCloudLoginTeams
             $Global:MSCloudLoginTeamsConnected = $false
             throw $_
         }
-    }
+    }    
+    Import-Module MicrosoftTeams -Force -Global
     return
 }
 
