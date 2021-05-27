@@ -14,10 +14,26 @@ function Connect-MSCloudLoginTeams
         [System.String]
         $CertificateThumbprint
     )
+
     if ($Global:MSCloudLoginTeamsConnected)
     {
         return
     }
+
+    # Further test to see if we are connected by calling into a S4BO cmdlet;
+    try
+    {
+        $currentValue = $global:ErrorActionPreference
+        $global:ErrorActionPreference = 'SilentlyContinue'
+        $result = Get-CsApplicationAccessPolicy -ErrorAction Stop -ErrorVariable $nik | Out-Null
+        $global:ErrorActionPreference = $currentValue
+        return
+    }
+    catch
+    {
+        Write-Verbose -Message "No connected to Microsoft Teams"
+    }
+
     if (-not [String]::IsNullOrEmpty($ApplicationId) -and `
         -not [String]::IsNullOrEmpty($TenantId) -and `
         -not [String]::IsNullOrEmpty($CertificateThumbprint))
@@ -46,7 +62,7 @@ function Connect-MSCloudLoginTeams
             return
         }
         if ($Global:IsMFAAuth)
-        {        
+        {
             Connect-MSCloudLoginTeamsMFA -EnvironmentName $Global:CloudEnvironment
         }
         try
@@ -103,7 +119,7 @@ function Connect-MSCloudLoginTeams
             $Global:MSCloudLoginTeamsConnected = $false
             throw $_
         }
-    }    
+    }
     Import-Module MicrosoftTeams -Force -Global
     return
 }
