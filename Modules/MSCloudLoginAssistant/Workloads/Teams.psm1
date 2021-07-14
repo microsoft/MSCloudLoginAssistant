@@ -96,7 +96,7 @@ function Connect-MSCloudLoginTeams
                     }
                 }
             }
-            elseif ($_.Exception -like '*AADSTS50076*')
+            elseif ($_.Exception -like '*AADSTS50076*' -or $_.Exception -eq 'One or more errors occurred.')
             {
                 Connect-MSCloudLoginTeamsMFA -EnvironmentName $Global:CloudEnvironment
             }
