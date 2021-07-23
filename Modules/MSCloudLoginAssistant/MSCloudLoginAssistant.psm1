@@ -206,15 +206,20 @@ function Get-SPOAdminUrl
 
     if ($null -eq $defaultDomain)
     {
-        $defaultDomain = Get-AzureADDomain | Where-Object { $_.Name -like "*.onmicrosoft.de" -and $_.IsInitial -eq $true }
-        $domain = '.onmicrosoft.de'
-        $tenantName = $defaultDomain[0].Name.Replace($domain, '')
+        
+        
         if ($Global:CloudEnvironment -eq 'Germany')
         {
+            $defaultDomain = Get-AzureADDomain | Where-Object { $_.Name -like "*.onmicrosoft.de" -and $_.IsInitial -eq $true }
+            $domain = '.onmicrosoft.de'        
+            $tenantName = $defaultDomain[0].Name.Replace($domain, '')
             $spoAdminUrl = "https://$tenantName-admin.sharepoint.de"
         }
         elseif ($Global:CloudEnvironment -eq 'GCCHigh')
         {
+            $defaultDomain = Get-AzureADDomain | Where-Object { $_.Name -like "*.onmicrosoft.us" -and $_.IsInitial -eq $true }
+            $domain = '.onmicrosoft.us'        
+            $tenantName = $defaultDomain[0].Name.Replace($domain, '')
             $spoAdminUrl = "https://$tenantName-admin.sharepoint.us"
         }
         Write-Verbose -Message "SharePoint Online admin URL is $spoAdminUrl"

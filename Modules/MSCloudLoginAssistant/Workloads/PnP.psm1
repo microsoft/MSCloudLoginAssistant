@@ -57,8 +57,8 @@ function Connect-MSCloudLoginPnP
             {
                 if ($TenantId.Contains("onmicrosoft"))
                 {
-                    $domain = $TenantId.Split(".")[0]
-                    $Global:SPOAdminUrl = "https://$domain-admin.sharepoint.com"
+                    $domain = $TenantId.Replace(".onmicrosoft.", ".sharepoint.")
+                    $Global:SPOAdminUrl = "https://$domain"
                 }
                 else
                 {
@@ -78,6 +78,11 @@ function Connect-MSCloudLoginPnP
 
     try
     {
+        $AzureEnvironment = "Production"
+        if ($Global:CloudEnvironment -eq 'GCCHigh' -or ($Global:SPOAdminUrl -ne $null -and $Global:SPOAdminUrl.EndsWith(".us")))
+        {
+            $AzureEnvironment = "USGovernmentHigh"
+        }
         if (-not [String]::IsNullOrEmpty($ApplicationId) -and `
                 -not [String]::IsNullOrEmpty($TenantId) -and `
                 -not [String]::IsNullOrEmpty($CertificateThumbprint) -and `
@@ -87,7 +92,8 @@ function Connect-MSCloudLoginPnP
             Connect-PnPOnline -Url $Global:SPOConnectionUrl `
                 -ClientId $ApplicationId `
                 -Tenant $tenantId `
-                -Thumbprint $CertificateThumbprint
+                -Thumbprint $CertificateThumbprint `
+                -AzureEnvironment $AzureEnvironment
             Write-Verbose "Connected to PnP {$($Global:SPOConnectionUrl) using application authentication"
             $Global:IsMFAAuth = $false
         }
@@ -100,7 +106,8 @@ function Connect-MSCloudLoginPnP
                 -ClientId $ApplicationId `
                 -Tenant $tenantId `
                 -CertificatePassword $CertificatePassword `
-                -CertificatePath $CertificatePath
+                -CertificatePath $CertificatePath `
+                -AzureEnvironment $AzureEnvironment
             Write-Verbose "Connected to PnP {$($Global:SPOConnectionUrl) using application authentication"
             $Global:IsMFAAuth = $false
         }
@@ -109,7 +116,7 @@ function Connect-MSCloudLoginPnP
             if ($Global:CloudEnvironment -eq 'GCCHigh')
             {
                 $Global:SPOConnectionUrl = $Global:SPOConnectionUrl.Replace('.com', '.us')
-                Connect-PnPOnline -Url $Global:SPOConnectionUrl -Credentials $Global:o365Credential
+                Connect-PnPOnline -Url $Global:SPOConnectionUrl -Credentials $Global:o365Credential -AzureEnvironment USGovernmentHigh
                 $Global:IsMFAAuth = $false
                 $Global:CloudEnvironment = 'GCCHigh'
                 Write-Verbose "Connected to PnP {$($Global:SPOConnectionUrl) using regular authentication"
@@ -133,9 +140,16 @@ function Connect-MSCloudLoginPnP
                 if ($Global:CloudEnvironment -eq 'GCCHigh')
                 {
                     $Global:SPOConnectionUrl = $Global:SPOConnectionUrl.Replace('.com', '.us')
-                    Connect-PnPOnline -Url $Global:SPOConnectionUrl -UseWebLogin
-                    $Global:IsMFAAuth = $true
-                    $Global:MSCloudLoginAzurePnPConnected = $true
+                    try
+                    {
+                        Connect-PnPOnline -Url $Global:SPOConnectionUrl -Credentials $Global:o365Credential -AzureEnvironment USGovernmentHigh
+                    }
+                    catch
+                    {
+                        Connect-PnPOnline -Url $Global:SPOConnectionUrl -UseWebLogin
+                        $Global:IsMFAAuth = $true
+                        $Global:MSCloudLoginAzurePnPConnected = $true
+                    }
                 }
                 else
                 {

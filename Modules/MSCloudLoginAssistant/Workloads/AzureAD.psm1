@@ -45,26 +45,39 @@ function Connect-MSCloudLoginAzureAD
             {
                 try
                 {
-                    Connect-AzureAD -Credential $Global:o365Credential -AzureEnvironmentName AzureGermanyCloud -ErrorAction Stop | Out-Null
+                    Connect-AzureAD -Credential $Global:o365Credential -AzureEnvironmentName AzureUSGovernment -ErrorAction Stop | Out-Null
                     $Global:IsMFAAuth = $false
                     $Global:MSCloudLoginAzureADConnected = $true
-                    $Global:CloudEnvironment = 'Germany'
+                    $Global:CloudEnvironment = 'GCCHigh'
                 }
                 catch
                 {
-                    if ($_.Exception -like '*AADSTS50076*')
+                    if ($_.Exception -like '*unknown_user_type: Unknown User Type*')
                     {
-                        Connect-MSCloudLoginAzureADMFA
-                    }
-                    elseif ($_.Exception -like '*unknown_user_type*')
-                    {
-                        $Global:CloudEnvironment = 'GCCHigh'
-                        Connect-MSCloudLoginAzureADMFA
-                    }
-                    else
-                    {
-                        $Global:MSCloudLoginAzureADConnected = $false
-                        throw $_
+                        try
+                        {
+                            Connect-AzureAD -Credential $Global:o365Credential -AzureEnvironmentName AzureGermanyCloud -ErrorAction Stop | Out-Null
+                            $Global:IsMFAAuth = $false
+                            $Global:MSCloudLoginAzureADConnected = $true
+                            $Global:CloudEnvironment = 'Germany'
+                        }
+                        catch
+                        {                            
+                            if ($_.Exception -like '*AADSTS50076*')
+                            {
+                                Connect-MSCloudLoginAzureADMFA
+                            }
+                            elseif ($_.Exception -like '*unknown_user_type*')
+                            {
+                                $Global:CloudEnvironment = 'GCCHigh'
+                                Connect-MSCloudLoginAzureADMFA
+                            }
+                            else
+                            {
+                                $Global:MSCloudLoginAzureADConnected = $false
+                                throw $_
+                            }
+                        }
                     }
                 }
             }
