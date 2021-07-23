@@ -123,13 +123,17 @@ function Test-MSCloudLogin
         }
         'Intune'
         {
-            Connect-MSCloudLoginIntune @verboseParameter -CloudCredential $CloudCredential
+            Connect-MSCloudLoginIntune @verboseParameter -CloudCredential $CloudCredential `
+                -ApplicationId $ApplicationId `
+                -TenantId $TenantId `
+                -ApplicationSecret $ApplicationSecret
         }
         'MicrosoftGraph'
         {
             Connect-MSCloudLoginMicrosoftGraph @verboseParameter -ApplicationId $ApplicationId `
                 -TenantId $TenantId `
-                -CertificateThumbprint $CertificateThumbprint
+                -CertificateThumbprint $CertificateThumbprint `
+                -CloudCredential $CloudCredential
         }
         'MicrosoftGraphBeta'
         {
@@ -206,19 +210,19 @@ function Get-SPOAdminUrl
 
     if ($null -eq $defaultDomain)
     {
-        
-        
+
+
         if ($Global:CloudEnvironment -eq 'Germany')
         {
             $defaultDomain = Get-AzureADDomain | Where-Object { $_.Name -like "*.onmicrosoft.de" -and $_.IsInitial -eq $true }
-            $domain = '.onmicrosoft.de'        
+            $domain = '.onmicrosoft.de'
             $tenantName = $defaultDomain[0].Name.Replace($domain, '')
             $spoAdminUrl = "https://$tenantName-admin.sharepoint.de"
         }
         elseif ($Global:CloudEnvironment -eq 'GCCHigh')
         {
             $defaultDomain = Get-AzureADDomain | Where-Object { $_.Name -like "*.onmicrosoft.us" -and $_.IsInitial -eq $true }
-            $domain = '.onmicrosoft.us'        
+            $domain = '.onmicrosoft.us'
             $tenantName = $defaultDomain[0].Name.Replace($domain, '')
             $spoAdminUrl = "https://$tenantName-admin.sharepoint.us"
         }

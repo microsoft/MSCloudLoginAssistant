@@ -79,6 +79,7 @@ function Connect-MSCloudLoginMSGraphWithUser
             -Credentials $CloudCredential
         $Global:MSCloudLoginGraphAccessToken = $accessToken
     }
+    Connect-MGGraph -AccessToken $Global:MSCloudLoginGraphAccessToken
 }
 
 function Connect-MSCloudLoginMSGraphWithServicePrincipal
