@@ -16,6 +16,10 @@ function Connect-MSCloudLoginMicrosoftGraph
 
         [Parameter()]
         [System.String]
+        $ApplicationSecret,
+
+        [Parameter()]
+        [System.String]
         $CertificateThumbprint
     )
     if ($null -ne $CloudCredential)
@@ -32,8 +36,29 @@ function Connect-MSCloudLoginMicrosoftGraph
             Write-Verbose $CertificateThumbprint
 
             Import-Module -Name Microsoft.Graph.Authentication -DisableNameChecking -Force | out-null
-            Connect-Graph -ClientId $ApplicationId -TenantId $TenantId `
-                -CertificateThumbprint $CertificateThumbprint | Out-Null
+
+            if ($null -ne $CertificateThumbprint)
+            {
+                Connect-MgGraph -ClientId $ApplicationId -TenantId $TenantId `
+                    -CertificateThumbprint $CertificateThumbprint | Out-Null
+            }
+            else
+            {
+                $url = "https://login.microsoftonline.com/$TenantId/oauth2/v2.0/token"
+                $body = @{
+                    scope = "https://graph.microsoft.com/.default"
+                    grant_type = "client_credentials"
+                    client_secret = $ApplicationSecret
+                    client_info = 1
+                    client_id = $ApplicationId
+                }
+                Write-Verbose -Message "Requesting Access Token for Microsoft Graph"
+                $OAuthReq = Invoke-RestMethod -Uri $url -Method Post -Body $body
+                $AccessToken = $OAuthReq.access_token
+
+                Write-Verbose -Message "Connecting to Microsoft Graph"
+                Connect-MgGraph -AccessToken $AccessToken | Out-Null
+            }
             Select-MgProfile 'v1.0' | Out-Null
             Write-Verbose -Message "Connected"
         }

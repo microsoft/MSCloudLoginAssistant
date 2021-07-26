@@ -133,7 +133,8 @@ function Test-MSCloudLogin
             Connect-MSCloudLoginMicrosoftGraph @verboseParameter -ApplicationId $ApplicationId `
                 -TenantId $TenantId `
                 -CertificateThumbprint $CertificateThumbprint `
-                -CloudCredential $CloudCredential
+                -CloudCredential $CloudCredential `
+                -ApplicationSecret $ApplicationSecret
         }
         'MicrosoftGraphBeta'
         {
