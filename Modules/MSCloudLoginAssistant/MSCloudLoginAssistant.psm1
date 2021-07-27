@@ -65,7 +65,12 @@ function Test-MSCloudLogin
 
         [Parameter()]
         [System.Boolean]
-        $SkipModuleReload = $false
+        $SkipModuleReload = $false,
+
+        [Parameter()]
+        [System.String]
+        [ValidateSet("v1.0", "beta")]
+        $ProfileName = "v1.0"
     )
     if ($VerbosePreference -eq "Continue")
     {
@@ -134,7 +139,8 @@ function Test-MSCloudLogin
                 -TenantId $TenantId `
                 -CertificateThumbprint $CertificateThumbprint `
                 -CloudCredential $CloudCredential `
-                -ApplicationSecret $ApplicationSecret
+                -ApplicationSecret $ApplicationSecret `
+                -ProfileName $ProfileName
         }
         'MicrosoftGraphBeta'
         {

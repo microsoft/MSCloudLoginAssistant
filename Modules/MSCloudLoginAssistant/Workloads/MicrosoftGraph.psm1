@@ -20,8 +20,22 @@ function Connect-MSCloudLoginMicrosoftGraph
 
         [Parameter()]
         [System.String]
-        $CertificateThumbprint
+        $CertificateThumbprint,
+
+        [Parameter()]
+        [System.String]
+        [ValidateSet("v1.0", "beta")]
+        $ProfileName = "v1.0"
     )
+
+    $maxAttempts = 10
+    do
+    {
+        Write-Verbose -Message "Selecting Microsoft Graph Profile {$ProfileName}"
+        Select-MgProfile $ProfileName | Out-Null
+        $maxAttempts--
+    } while((Get-MgProfile).Name -ne $ProfileName -and $maxAttempts -gt 0)
+
     if ($null -ne $CloudCredential)
     {
         Connect-MSCloudLoginMSGraphWithUser -CloudCredential $CloudCredential `
@@ -35,9 +49,7 @@ function Connect-MSCloudLoginMicrosoftGraph
             Write-Verbose $TenantId
             Write-Verbose $CertificateThumbprint
 
-            Import-Module -Name Microsoft.Graph.Authentication -DisableNameChecking -Force | out-null
-
-            if ($null -ne $CertificateThumbprint)
+            if (-not [System.String]::IsNullOrEmpty($CertificateThumbprint))
             {
                 Connect-MgGraph -ClientId $ApplicationId -TenantId $TenantId `
                     -CertificateThumbprint $CertificateThumbprint | Out-Null
@@ -59,7 +71,6 @@ function Connect-MSCloudLoginMicrosoftGraph
                 Write-Verbose -Message "Connecting to Microsoft Graph"
                 Connect-MgGraph -AccessToken $AccessToken | Out-Null
             }
-            Select-MgProfile 'v1.0' | Out-Null
             Write-Verbose -Message "Connected"
         }
         catch
