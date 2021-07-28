@@ -43,6 +43,7 @@ function Connect-MSCloudLoginIntune
     }
     else
     {
+        $WarningPreference = 'SilentlyContinue'
         Update-MSGraphEnvironment -AppID $ApplicationId `
             -AuthUrl "https://login.microsoftonline.com/oauth2/v2.0/token/$tenantId" | Out-Null
         Connect-MSGraph -ClientSecret $ApplicationSecret | Out-Null
