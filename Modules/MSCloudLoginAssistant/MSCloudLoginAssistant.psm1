@@ -12,7 +12,6 @@
 .LINK
     https://github.com/Microsoft/MSCloudLoginAssistant
 #>
-
 function Test-MSCloudLogin
 {
     [CmdletBinding()]
@@ -72,6 +71,77 @@ function Test-MSCloudLogin
         [ValidateSet("v1.0", "beta")]
         $ProfileName = "v1.0"
     )
+    $parametersToPass = $PSBoundParameters
+    $parametersToPass.Add("Workload", $Platform)
+    $parametersToPass.Remove("Platform") | Out-Null
+
+    $parametersToPass.Add("Credential", $CloudCredential)
+    $parametersToPass.Remove("CloudCredential") | Out-Null
+
+    $parametersToPass.Add("Url", $ConnectionUrl)
+    $parametersToPass.Remove("ConnectionUrl") | Out-Null
+
+    Connect-M365Tenant @parametersToPass
+}
+function Connect-M365Tenant
+{
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [ValidateSet("Azure", "AzureAD", "AzureInformationProtection", `
+                "SharePointOnline", "ExchangeOnline", "Intune", `
+                "SecurityComplianceCenter", "MSOnline", "PnP", "PowerPlatforms", `
+                "MicrosoftTeams", "SkypeForBusiness", "MicrosoftGraph", "MicrosoftGraphBeta")]
+        [System.String]
+        $Workload,
+
+        [Parameter()]
+        [System.String]
+        $Url,
+
+        [Parameter()]
+        [Alias("o365Credential")]
+        [System.Management.Automation.PSCredential]
+        $Credential,
+
+        [Parameter()]
+        [System.String]
+        $ApplicationId,
+
+        [Parameter()]
+        [System.String]
+        $TenantId,
+
+        [Parameter()]
+        [System.String]
+        $ApplicationSecret,
+
+        [Parameter()]
+        [System.String]
+        $CertificateThumbprint,
+
+        [Parameter()]
+        [Switch]
+        $UseModernAuth,
+
+        [Parameter()]
+        [SecureString]
+        $CertificatePassword,
+
+        [Parameter()]
+        [System.String]
+        $CertificatePath,
+
+        [Parameter()]
+        [System.Boolean]
+        $SkipModuleReload = $false,
+
+        [Parameter()]
+        [System.String]
+        [ValidateSet("v1.0", "beta")]
+        $ProfileName = "v1.0"
+    )
     if ($VerbosePreference -eq "Continue")
     {
         $verboseParameter = @{Verbose = $true }
@@ -82,9 +152,9 @@ function Test-MSCloudLogin
     }
 
     # If we specified the CloudCredential parameter then set the global o365Credential object to its value
-    if ($null -ne $CloudCredential)
+    if ($null -ne $Credential)
     {
-        $Global:o365Credential = $CloudCredential
+        $Global:o365Credential = $Credential
         $Global:DomainName = $Global:o365Credential.UserName.Split('@')[1]
     }
 
@@ -99,8 +169,8 @@ function Test-MSCloudLogin
         $Global:UseModernAuth = $UseModernAuth.IsPresent
     }
 
-    Write-Verbose -Message "Trying to connect to platform {$Platform}"
-    switch ($Platform)
+    Write-Verbose -Message "Trying to connect to platform {$Workload}"
+    switch ($Workload)
     {
         'Azure'
         {
@@ -115,7 +185,7 @@ function Test-MSCloudLogin
         }
         'AzureInformationProtection'
         {
-            Connect-MSCloudLoginAzureInformationProtection -CloudCredential $CloudCredential @verboseParameter
+            Connect-MSCloudLoginAzureInformationProtection -Credential $Credential @verboseParameter
         }
         'ExchangeOnline'
         {
@@ -128,7 +198,7 @@ function Test-MSCloudLogin
         }
         'Intune'
         {
-            Connect-MSCloudLoginIntune @verboseParameter -CloudCredential $CloudCredential `
+            Connect-MSCloudLoginIntune @verboseParameter -Credential $Credential `
                 -ApplicationId $ApplicationId `
                 -TenantId $TenantId `
                 -ApplicationSecret $ApplicationSecret
@@ -138,7 +208,7 @@ function Test-MSCloudLogin
             Connect-MSCloudLoginMicrosoftGraph @verboseParameter -ApplicationId $ApplicationId `
                 -TenantId $TenantId `
                 -CertificateThumbprint $CertificateThumbprint `
-                -CloudCredential $CloudCredential `
+                -Credential $Credential `
                 -ApplicationSecret $ApplicationSecret `
                 -ProfileName $ProfileName
         }
@@ -156,9 +226,10 @@ function Test-MSCloudLogin
         }
         'PnP'
         {
-            Connect-MSCloudLoginPnP -ConnectionUrl $ConnectionUrl @verboseParameter `
+            Connect-MSCloudLoginPnP -Url $Url @verboseParameter `
                 -ApplicationId $ApplicationId `
                 -TenantId $TenantId `
+                -ApplicationSecret $ApplicationSecret `
                 -CertificateThumbprint $CertificateThumbprint `
                 -CertificatePassword $CertificatePassword `
                 -CertificatePath $CertificatePath
@@ -198,11 +269,11 @@ function Get-SPOAdminUrl
     (
         [Parameter()]
         [System.Management.Automation.PSCredential]
-        $CloudCredential
+        $Credential
     )
 
     Write-Verbose -Message "Connection to Azure AD is required to automatically determine SharePoint Online admin URL..."
-    Test-MSCloudLogin -Platform AzureAD -CloudCredential $CloudCredential
+    Test-MSCloudLogin -Platform AzureAD -CloudCredential $Credential
     Write-Verbose -Message "Getting SharePoint Online admin URL..."
     $defaultDomain = Get-AzureADDomain | Where-Object { $_.Name -like "*.onmicrosoft.com" -and $_.IsInitial -eq $true } # We don't use IsDefault here because the default could be a custom domain
 
@@ -217,8 +288,6 @@ function Get-SPOAdminUrl
 
     if ($null -eq $defaultDomain)
     {
-
-
         if ($Global:CloudEnvironment -eq 'Germany')
         {
             $defaultDomain = Get-AzureADDomain | Where-Object { $_.Name -like "*.onmicrosoft.de" -and $_.IsInitial -eq $true }
@@ -680,4 +749,3 @@ function Get-MSCloudLoginOrganizationName
         return $domain.Name
     }
 }
-

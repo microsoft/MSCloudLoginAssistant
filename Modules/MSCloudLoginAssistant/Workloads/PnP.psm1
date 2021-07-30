@@ -4,7 +4,7 @@ function Connect-MSCloudLoginPnP
     param(
         [Parameter(Mandatory = $False)]
         [System.String]
-        $ConnectionUrl,
+        $Url,
 
         [Parameter()]
         [System.String]
@@ -13,6 +13,10 @@ function Connect-MSCloudLoginPnP
         [Parameter()]
         [System.String]
         $TenantId,
+
+        [Parameter()]
+        [System.String]
+        $ApplicationSecret,
 
         [Parameter()]
         [System.String]
@@ -41,7 +45,7 @@ function Connect-MSCloudLoginPnP
         $Global:o365Credential = Get-Credential -Message "Cloud Credential"
     }
 
-    if ([string]::IsNullOrEmpty($ConnectionUrl))
+    if ([string]::IsNullOrEmpty($Url))
     {
         if (-not [string]::IsNullOrEmpty($Global:SPOAdminUrl))
         {
@@ -57,7 +61,7 @@ function Connect-MSCloudLoginPnP
             {
                 if ($TenantId.Contains("onmicrosoft"))
                 {
-                    $domain = $TenantId.Replace(".onmicrosoft.", ".sharepoint.")
+                    $domain = $TenantId.Replace(".onmicrosoft.", "-admin.sharepoint.")
                     $Global:SPOAdminUrl = "https://$domain"
                 }
                 else
@@ -70,7 +74,7 @@ function Connect-MSCloudLoginPnP
     }
     else
     {
-        $Global:SPOConnectionUrl = $ConnectionUrl
+        $Global:SPOConnectionUrl = $Url
     }
     Write-Verbose -Message "`$Global:SPOConnectionUrl is $Global:SPOConnectionUrl."
     # Explicitly import the required module(s) in case there is cmdlet ambiguity with other modules e.g. SharePointPnPPowerShell2013
@@ -108,6 +112,18 @@ function Connect-MSCloudLoginPnP
                 -CertificatePassword $CertificatePassword `
                 -CertificatePath $CertificatePath `
                 -AzureEnvironment $AzureEnvironment
+            Write-Verbose "Connected to PnP {$($Global:SPOConnectionUrl) using application authentication"
+            $Global:IsMFAAuth = $false
+        }
+        elseif (-not [String]::IsNullOrEmpty($ApplicationId) -and `
+                -not [String]::IsNullOrEmpty($TenantId) -and `
+                -not [String]::IsNullOrEmpty($ApplicationSecret))
+        {
+            Connect-PnPOnline -Url $Global:SPOConnectionUrl `
+                -ClientId $ApplicationId `
+                -ClientSecret $ApplicationSecret `
+                -AzureEnvironment $AzureEnvironment `
+                -WarningAction 'Ignore'
             Write-Verbose "Connected to PnP {$($Global:SPOConnectionUrl) using application authentication"
             $Global:IsMFAAuth = $false
         }
@@ -207,7 +223,7 @@ function Connect-MSCloudLoginPnP
         }
         elseif ($_.Exception -like "*AADSTS65001: The user or administrator has not consented to use the application with ID*")
         {
-            Write-Error "The PnP.PowerShell Azure AD Application has not been granted access for this tenant. Please run 'Register-PnPManagementShellAccess' to grant access and try again after."
+            throw "The PnP.PowerShell Azure AD Application has not been granted access for this tenant. Please run 'Register-PnPManagementShellAccess' to grant access and try again after."
         }
         else
         {

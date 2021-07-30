@@ -30,7 +30,7 @@ function Connect-MSCloudLoginSecurityCompliance
     $ProgressPreference = 'SilentlyContinue'
 
     # Write-Verbose "$(Get-Runspace | Out-String)"
-    [array]$activeSessions = Get-PSSession | Where-Object -FilterScript { $_.ComputerName -like '*.ps.compliance.protection*' -and $_.State -eq 'Opened' }
+    [array]$activeSessions = Get-PSSession | Where-Object -FilterScript { $_.ComputerName -like '*ps.compliance.protection*' -and $_.State -eq 'Opened' }
 
     if ($activeSessions.Length -ge 1)
     {
@@ -124,7 +124,7 @@ function Connect-MSCloudLoginSecurityComplianceMFA
     Param(
         [Parameter(Mandatory = $true)]
         [System.Management.Automation.PSCredential]
-        $CloudCredential,
+        $Credential,
 
         [Parameter(Mandatory = $true)]
         [System.String]
@@ -143,7 +143,7 @@ function Connect-MSCloudLoginSecurityComplianceMFA
         $VerbosePreference = "SilentlyContinue"
         $InformationPreference = "SilentlyContinue"
         $WarningPreference = "SilentlyContinue"
-        Connect-IPPSSession -UserPrincipalName $CloudCredential.UserName `
+        Connect-IPPSSession -UserPrincipalName $Credential.UserName `
             -ConnectionUri $ConnectionUrl `
             -AzureADAuthorizationEndpointUri $AuthorizationUrl -Verbose:$false | Out-Null
         $VerbosePreference = $CurrentVerbosePreference

@@ -61,13 +61,25 @@ function Connect-MSCloudLoginTeams
             Write-Warning 'Microsoft Teams is not supported in the Germany Cloud'
             return
         }
+        elseif ($Global:CloudEnvironmentInfo.cloud_instance_name -eq 'microsoftonline.us')
+        {
+            $Global:CloudEnvironment = 'GCCHigh'
+        }
         if ($Global:IsMFAAuth)
         {
             Connect-MSCloudLoginTeamsMFA -EnvironmentName $Global:CloudEnvironment
         }
         try
         {
-            Connect-MicrosoftTeams -Credential $Global:o365Credential -ErrorAction Stop | Out-Null
+            if ($Global:CloudEnvironment -eq 'GccHigh')
+            {
+                Connect-MicrosoftTeams -Credential $Global:o365Credential `
+                    -TeamsEnvironmentNam 'TeamsGCCH' -ErrorAction Stop | Out-Null
+            }
+            else
+            {
+                Connect-MicrosoftTeams -Credential $Global:o365Credential -ErrorAction Stop | Out-Null
+            }
             $Global:MSCloudLoginTeamsConnected = $true
         }
         catch
@@ -78,14 +90,16 @@ function Connect-MSCloudLoginTeams
 
                 try
                 {
-                    Connect-MicrosoftTeams -TeamsEnvironmentName 'TeamsGCCH' -Credential $Global:o365Credential -ErrorAction Stop | Out-Null
+                    Connect-MicrosoftTeams -TeamsEnvironmentName 'TeamsGCCH' `
+                        -Credential $Global:o365Credential -ErrorAction Stop | Out-Null
                     $Global:MSCloudLoginTeamsConnected = $true
                 }
                 catch
                 {
                     try
                     {
-                        Connect-MicrosoftTeams -TeamsEnvironmentName 'TeamsDOD' -Credential $Global:o365Credential -ErrorAction Stop | Out-Null
+                        Connect-MicrosoftTeams -TeamsEnvironmentName 'TeamsDOD' `
+                            -Credential $Global:o365Credential -ErrorAction Stop | Out-Null
                         $Global:MSCloudLoginTeamsConnected = $true
                         $Global:CloudEnvironment = 'DoD'
                     }
@@ -137,7 +151,8 @@ function Connect-MSCloudLoginTeamsMFA
     {
         if ($EnvironmentName -eq 'GCCHigh')
         {
-            Connect-MicrosoftTeams -AccountId $Global:o365Credential.UserName -TeamsEnvironmentName 'TeamsGCCH' -ErrorAction Stop | Out-Null
+            Connect-MicrosoftTeams -AccountId $Global:o365Credential.UserName `
+                -TeamsEnvironmentName 'TeamsGCCH' -ErrorAction Stop | Out-Null
         }
         elseif ($Environment -eq 'DoD')
         {

@@ -4,7 +4,7 @@ function Connect-MSCloudLoginMicrosoftGraph
     param(
         [Parameter()]
         [System.Management.Automation.PsCredential]
-        $CloudCredential,
+        $Credential,
 
         [Parameter()]
         [System.String]
@@ -36,9 +36,9 @@ function Connect-MSCloudLoginMicrosoftGraph
         $maxAttempts--
     } while((Get-MgProfile).Name -ne $ProfileName -and $maxAttempts -gt 0)
 
-    if ($null -ne $CloudCredential)
+    if ($null -ne $Credential)
     {
-        Connect-MSCloudLoginMSGraphWithUser -CloudCredential $CloudCredential `
+        Connect-MSCloudLoginMSGraphWithUser -CloudCredential $Credential `
             -ApplicationId $ApplicationId
     }
     else
@@ -87,7 +87,7 @@ function Connect-MSCloudLoginMSGraphWithUser
     Param(
         [Parameter(Mandatory = $true)]
         [System.Management.Automation.PSCredential]
-        $CloudCredential,
+        $Credential,
 
         [Parameter()]
         [System.String]
@@ -100,7 +100,7 @@ function Connect-MSCloudLoginMSGraphWithUser
     }
     if ($null -eq $Global:MSCloudLoginGraphAccessToken)
     {
-        $azuretenantADName = $CloudCredential.UserName.Split('@')[1]
+        $azuretenantADName = $Credential.UserName.Split('@')[1]
 
         #Authority to Azure AD Tenant
         $AzureADAuthority = "https://login.microsoftonline.com/$azuretenantADName/oauth2/v2.0/authorize"
@@ -112,7 +112,7 @@ function Connect-MSCloudLoginMSGraphWithUser
         $accessToken = Get-AccessToken -TargetUri $resourceUrl `
             -AuthUri $AzureADAuthority `
             -ClientId $ApplicationId `
-            -Credentials $CloudCredential
+            -Credentials $Credential
         $Global:MSCloudLoginGraphAccessToken = $accessToken
     }
     Connect-MGGraph -AccessToken $Global:MSCloudLoginGraphAccessToken
@@ -191,7 +191,7 @@ function Invoke-MSCloudLoginMicrosoftGraphAPI
 
         [Parameter()]
         [System.Management.Automation.PSCredential]
-        $CloudCredential,
+        $Credential,
 
         [Parameter()]
         [System.String]
@@ -201,7 +201,7 @@ function Invoke-MSCloudLoginMicrosoftGraphAPI
         [System.UInt32]
         $CallCount = 1
     )
-    Connect-MSCloudLoginMSGraphWithUser -CloudCredential $CloudCredential `
+    Connect-MSCloudLoginMSGraphWithUser -CloudCredential $Credential `
         -ApplicationId $ApplicationId
 
     $requestHeaders = @{
@@ -264,7 +264,7 @@ function Invoke-MSCloudLoginMicrosoftGraphAPI
             Write-Host "Too many request, waiting $(10*$callCount) seconds" -ForegroundColor Magenta
             $newSleepTime = 10 * $CallCount
             Start-Sleep -Seconds $newSleepTime
-            Invoke-MSCloudLoginMicrosoftGraphAPI -Uri $Uri -Body $Body -Headers $Headers -Method $Method -CloudCredential $CloudCredential `
+            Invoke-MSCloudLoginMicrosoftGraphAPI -Uri $Uri -Body $Body -Headers $Headers -Method $Method -Credential $Credential `
                 -ApplicationId $ApplicationId -CallCount ($CallCount+1)
         }
         else

@@ -6,16 +6,16 @@ function Connect-MSCloudLoginAzure
         [Parameter()]
         [Alias("o365Credential")]
         [System.Management.Automation.PSCredential]
-        $CloudCredential,
+        $Credential,
 
         [Parameter()]
         [Switch]
         $UseModernAuth
     )
     # If we specified the CloudCredential parameter then set the global o365Credential object to its value
-    if ($null -ne $CloudCredential)
+    if ($null -ne $Credential)
     {
-        $Global:o365Credential = $CloudCredential
+        $Global:o365Credential = $Credential
     }
 
     if ($null -eq $Global:UseModernAuth)
