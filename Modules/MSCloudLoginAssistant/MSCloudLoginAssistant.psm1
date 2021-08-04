@@ -273,7 +273,7 @@ function Get-SPOAdminUrl
     )
 
     Write-Verbose -Message "Connection to Azure AD is required to automatically determine SharePoint Online admin URL..."
-    Connect-M365Tenant WOrkload 'AzureAD' -Credential $Credential
+    Connect-M365Tenant -Workload 'AzureAD' -Credential $Credential
     Write-Verbose -Message "Getting SharePoint Online admin URL..."
     $defaultDomain = Get-AzureADDomain | Where-Object { $_.Name -like "*.onmicrosoft.com" -and $_.IsInitial -eq $true } # We don't use IsDefault here because the default could be a custom domain
 
