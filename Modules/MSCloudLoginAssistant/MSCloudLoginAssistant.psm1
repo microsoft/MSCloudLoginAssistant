@@ -151,7 +151,7 @@ function Connect-M365Tenant
         $verboseParameter = @{ }
     }
 
-    # If we specified the CloudCredential parameter then set the global o365Credential object to its value
+    # If we specified the Credential parameter then set the global o365Credential object to its value
     if ($null -ne $Credential)
     {
         $Global:o365Credential = $Credential
@@ -273,7 +273,7 @@ function Get-SPOAdminUrl
     )
 
     Write-Verbose -Message "Connection to Azure AD is required to automatically determine SharePoint Online admin URL..."
-    Test-MSCloudLogin -Platform AzureAD -CloudCredential $Credential
+    Connect-M365Tenant WOrkload 'AzureAD' -Credential $Credential
     Write-Verbose -Message "Getting SharePoint Online admin URL..."
     $defaultDomain = Get-AzureADDomain | Where-Object { $_.Name -like "*.onmicrosoft.com" -and $_.IsInitial -eq $true } # We don't use IsDefault here because the default could be a custom domain
 

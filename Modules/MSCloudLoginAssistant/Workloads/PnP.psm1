@@ -55,7 +55,7 @@ function Connect-MSCloudLoginPnP
         {
             if ($null -ne $Global:o365Credential)
             {
-                $Global:SPOAdminUrl = Get-SPOAdminUrl -CloudCredential $Global:o365Credential
+                $Global:SPOAdminUrl = Get-SPOAdminUrl -Credential $Global:o365Credential
             }
             else
             {
@@ -187,7 +187,7 @@ function Connect-MSCloudLoginPnP
             {
                 if ($null -eq $Global:SPOAdminUrl)
                 {
-                    $Global:SPOAdminUrl = Get-SPOAdminUrl -CloudCredential $Global:o365Credential
+                    $Global:SPOAdminUrl = Get-SPOAdminUrl -Credential $Global:o365Credential
                 }
                 Write-Verbose "Trying to acquire AccessToken"
                 $AuthHeader = Get-AuthHeader -UserPrincipalName $Global:o365Credential.UserName `
