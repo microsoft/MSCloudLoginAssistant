@@ -111,7 +111,7 @@ function Connect-MSCloudLoginSecurityCompliance
         catch
         {
             Write-Verbose -Message "Could not connect connect IPPSSession with Credentials: {$($_.Exception)}"
-            Connect-MSCloudLoginSecurityComplianceMFA -CloudCredential $Global:o365Credential `
+            Connect-MSCloudLoginSecurityComplianceMFA -Credential $Global:o365Credential `
                 -ConnectionUrl $ConnectionUrl `
                 -AuthorizationUrl $AuthorizationUrl
         }
