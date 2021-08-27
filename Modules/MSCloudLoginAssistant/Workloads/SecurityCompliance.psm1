@@ -111,7 +111,7 @@ function Connect-MSCloudLoginSecurityCompliance
         catch
         {
             Write-Verbose -Message "Could not connect connect IPPSSession with Credentials: {$($_.Exception)}"
-            Connect-MSCloudLoginSecurityComplianceMFA -CloudCredential $Global:o365Credential `
+            Connect-MSCloudLoginSecurityComplianceMFA -Credential $Global:o365Credential `
                 -ConnectionUrl $ConnectionUrl `
                 -AuthorizationUrl $AuthorizationUrl
         }
@@ -143,9 +143,17 @@ function Connect-MSCloudLoginSecurityComplianceMFA
         $VerbosePreference = "SilentlyContinue"
         $InformationPreference = "SilentlyContinue"
         $WarningPreference = "SilentlyContinue"
-        Connect-IPPSSession -UserPrincipalName $Credential.UserName `
-            -ConnectionUri $ConnectionUrl `
-            -AzureADAuthorizationEndpointUri $AuthorizationUrl -Verbose:$false | Out-Null
+        if ($Global:CloudEnvironmentInfo.cloud_instance_name -eq "microsoftonline.com")
+        {
+            Connect-IPPSSession -UserPrincipalName $Credential.UserName `
+                 -Verbose:$false | Out-Null
+        }
+        else
+        {
+            Connect-IPPSSession -UserPrincipalName $Credential.UserName `
+                -ConnectionUri $ConnectionUrl `
+                -Verbose:$false | Out-Null
+        }
         $VerbosePreference = $CurrentVerbosePreference
         $InformationPreference = $CurrentInformationPreference
         $WarningPreference = $CurrentWarningPreference
