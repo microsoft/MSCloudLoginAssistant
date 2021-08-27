@@ -46,7 +46,18 @@ function Connect-MSCloudLoginIntune
                 Update-MSGraphEnvironment -AuthUrl "https://login.microsoftonline.us/common/oauth/v2.0/authorize/$tenantId" `
                     -GraphResourceId "https://graph.microsoft.us/" `
                     -GraphBaseUrl "https://graph.microsoft.us"
-                Connect-MSGraph -Credential $Credential | Out-Null
+                try
+                {
+                    Connect-MSGraph -Credential $Credential | Out-Null
+                }
+                catch
+                {
+                    if ($_.Exception -like '*AADSTS50076: Due to a configuration change made by your administrator*')
+                    {
+                        # The account has MFA
+                        Connect-MSGraph | Out-Null
+                    }
+                }
             }
         }
     }

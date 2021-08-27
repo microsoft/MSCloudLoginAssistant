@@ -78,6 +78,15 @@ function Connect-MSCloudLoginAzureAD
                                 throw $_
                             }
                         }
+                    }                                      
+                    elseif ($_.Exception -like '*AADSTS50079*' -or $_.Exception -like '*AADSTS50076*' -or $_.Exception -like '*unknown_user_type*')
+                    {
+                        $Global:CloudEnvironment = 'GCCHigh'
+                        Connect-MSCloudLoginAzureADMFA
+                    }
+                    else
+                    {
+                        throw $_
                     }
                 }
             }
@@ -110,7 +119,7 @@ function Connect-MSCloudLoginAzureADMFA
                 $EnvironmentName = 'AzureGermanyCloud'
                 $Global:CloudEnvironment = 'Germany'
             }
-            else
+            elseif ($null -eq $Global:CloudEnvironment)
             {
                 $EnvironmentName = 'AzureCloud'
             }
