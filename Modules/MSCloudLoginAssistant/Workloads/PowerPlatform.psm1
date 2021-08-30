@@ -1,49 +1,51 @@
 function Connect-MSCloudLoginPowerPlatform
 {
     [CmdletBinding()]
-    param(
-        [Parameter()]
-        [System.String]
-        $ApplicationId,
+    param()
 
-        [Parameter()]
-        [System.String]
-        $TenantId,
+    $VerbosePreference = 'SilentlyContinue'
+    $WarningPreference = 'SilentlyContinue'
 
-        [Parameter()]
-        [System.String]
-        $CertificateThumbprint
-    )
+    if($Global:MSCloudLoginConnectionProfile.PowerPlatform.Connected)
+    {
+        return
+    }
+
     try
     {
-        if (-not [String]::IsNullOrEmpty($ApplicationId) -and `
-        -not [String]::IsNullOrEmpty($TenantId) -and `
-        -not [String]::IsNullOrEmpty($CertificateThumbprint))
+        if ($Global:MSCloudLoginConnectionProfile.PowerPlatform.EnvironmentName -eq 'AzureGermany')
         {
-            if ($TenantId -like '*.de')
-            {
-                $Global:CloudEnvironment = 'Germany'
-                Write-Warning 'Microsoft PowerPlatform is not supported in the Germany Cloud'
-                return
+            Write-Warning 'Microsoft PowerPlatform is not supported in the Germany Cloud'
+            return
+        }
+
+        switch ($Global:MSCloudLoginConnectionProfile.PowerPlatform.EnvironmentName)
+        {
+            'AzureUSGovernment'{
+                $Global:MSCloudLoginConnectionProfile.PowerPlatform.Endpoint = 'usgovhigh'
             }
-            Add-PowerAppsAccount -ApplicationId $ApplicationId `
-                -TenantId $TenantId `
-                -CertificateThumbprint $CertificateThumbprint `
+        }
+
+        if ($Global:MSCloudLoginConnectionProfile.PowerPlatform.AuthenticationType -eq 'ServicePrincipalWithThumbprint')
+        {
+            Add-PowerAppsAccount -ApplicationId $Global:MSCloudLoginConnectionProfile.PowerPlatform.ApplicationId `
+                -TenantId $Global:MSCloudLoginConnectionProfile.PowerPlatform.TenantId `
+                -CertificateThumbprint $Global:MSCloudLoginConnectionProfile.PowerPlatform.CertificateThumbprint `
+                -Endpoint $Global:MSCloudLoginConnectionProfile.PowerPlatform.Endpoint `
                 -ErrorAction Stop | Out-Null
-            $Global:MSCloudLoginPowerPlatformConnected = $true
+            $Global:MSCloudLoginConnectionProfile.PowerPlatform.ConnectedDateTime         = [System.DateTime]::Now.ToString()
+            $Global:MSCloudLoginConnectionProfile.PowerPlatform.MultiFactorAuthentication = $false
+            $Global:MSCloudLoginConnectionProfile.PowerPlatform.Connected                 = $true
         }
         else
         {
-            if ($Global:o365Credential.UserName.Split('@')[1] -like '*.de')
-            {
-                $Global:CloudEnvironment = 'Germany'
-                Write-Warning 'Microsoft PowerPlatform is not supported in the Germany Cloud'
-                return
-            }
-            Add-PowerAppsAccount -UserName $Global:o365credential.UserName `
-                -Password $Global:o365Credential.Password `
+            Add-PowerAppsAccount -UserName $Global:MSCloudLoginConnectionProfile.PowerPlatform.Credentials.UserName `
+                -Password $Global:MSCloudLoginConnectionProfile.PowerPlatform.Credentials.Password `
+                -Endpoint $Global:MSCloudLoginConnectionProfile.PowerPlatform.Endpoint `
                 -ErrorAction Stop | Out-Null
-            $Global:MSCloudLoginPowerPlatformConnected = $true
+            $Global:MSCloudLoginConnectionProfile.PowerPlatform.ConnectedDateTime         = [System.DateTime]::Now.ToString()
+            $Global:MSCloudLoginConnectionProfile.PowerPlatform.MultiFactorAuthentication = $false
+            $Global:MSCloudLoginConnectionProfile.PowerPlatform.Connected                 = $true
         }
     }
     catch
@@ -52,79 +54,32 @@ function Connect-MSCloudLoginPowerPlatform
         {
             try
             {
-                if (-not [String]::IsNullOrEmpty($ApplicationId) -and `
-                -not [String]::IsNullOrEmpty($TenantId) -and `
-                -not [String]::IsNullOrEmpty($CertificateThumbprint))
+                if ($Global:MSCloudLoginConnectionProfile.PowerPlatform.AuthenticationType -eq 'ServicePrincipalWithThumbprint')
                 {
-                    Add-PowerAppsAccount -ApplicationId $ApplicationId `
-                        -TenantId $TenantId `
-                        -CertificateThumbprint $CertificateThumbprint `
-                        -EndPoint 'usgov' `
+                    Add-PowerAppsAccount -ApplicationId $Global:MSCloudLoginConnectionProfile.PowerPlatform.ApplicationId `
+                        -TenantId Global:MSCloudLoginConnectionProfile.PowerPlatform.$TenantId `
+                        -CertificateThumbprint $Global:MSCloudLoginConnectionProfile.PowerPlatform.CertificateThumbprint `
+                        -EndPoint 'preview' `
                         -ErrorAction Stop | Out-Null
-                    $Global:MSCloudLoginPowerPlatformConnected = $true
+                    $Global:MSCloudLoginConnectionProfile.PowerPlatform.ConnectedDateTime         = [System.DateTime]::Now.ToString()
+                    $Global:MSCloudLoginConnectionProfile.PowerPlatform.MultiFactorAuthentication = $false
+                    $Global:MSCloudLoginConnectionProfile.PowerPlatform.Connected                 = $true
                 }
                 else
                 {
-                    Add-PowerAppsAccount -UserName $Global:o365credential.UserName `
-                        -Password $Global:o365Credential.Password `
-                        -EndPoint 'usgov' `
+                    Add-PowerAppsAccount -UserName $Global:MSCloudLoginConnectionProfile.PowerPlatform.Credentials.UserName `
+                        -Password $Global:MSCloudLoginConnectionProfile.PowerPlatform.Credentials.Password `
+                        -EndPoint 'preview' `
                         -ErrorAction Stop | Out-Null
-                    $Global:MSCloudLoginPowerPlatformConnected = $true
+
+                    $Global:MSCloudLoginConnectionProfile.PowerPlatform.ConnectedDateTime         = [System.DateTime]::Now.ToString()
+                    $Global:MSCloudLoginConnectionProfile.PowerPlatform.MultiFactorAuthentication = $false
+                    $Global:MSCloudLoginConnectionProfile.PowerPlatform.Connected                 = $true
                 }
             }
             catch
             {
-                try
-                {
-                    if (-not [String]::IsNullOrEmpty($ApplicationId) -and `
-                    -not [String]::IsNullOrEmpty($TenantId) -and `
-                    -not [String]::IsNullOrEmpty($CertificateThumbprint))
-                    {
-                        Add-PowerAppsAccount -ApplicationId $ApplicationId `
-                            -TenantId $TenantId `
-                            -CertificateThumbprint $CertificateThumbprint `
-                            -EndPoint 'usgovhigh' `
-                            -ErrorAction Stop | Out-Null
-                        $Global:MSCloudLoginPowerPlatformConnected = $true
-                    }
-                    else
-                    {
-                        Add-PowerAppsAccount -UserName $Global:o365credential.UserName `
-                            -Password $Global:o365Credential.Password `
-                            -EndPoint 'usgovhigh' `
-                            -ErrorAction Stop | Out-Null
-                        $Global:MSCloudLoginPowerPlatformConnected = $true
-                    }
-                }
-                catch
-                {
-                    try
-                    {
-                        if (-not [String]::IsNullOrEmpty($ApplicationId) -and `
-                        -not [String]::IsNullOrEmpty($TenantId) -and `
-                        -not [String]::IsNullOrEmpty($CertificateThumbprint))
-                        {
-                            Add-PowerAppsAccount -ApplicationId $ApplicationId `
-                                -TenantId $TenantId `
-                                -CertificateThumbprint $CertificateThumbprint `
-                                -EndPoint 'preview' `
-                                -ErrorAction Stop | Out-Null
-                            $Global:MSCloudLoginPowerPlatformConnected = $true
-                        }
-                        else
-                        {
-                            Add-PowerAppsAccount -UserName $Global:o365credential.UserName `
-                                -Password $Global:o365Credential.Password `
-                                -EndPoint 'preview' `
-                                -ErrorAction Stop | Out-Null
-                            $Global:MSCloudLoginPowerPlatformConnected = $true
-                        }
-                    }
-                    catch
-                    {
-                        Connect-MSCloudLoginPowerPlatformMFA
-                    }
-                }
+                Connect-MSCloudLoginPowerPlatformMFA
             }
         }
         elseif ($_.Exception -like '*AADSTS50076: Due to a configuration change made by your administrator*')
@@ -137,7 +92,7 @@ function Connect-MSCloudLoginPowerPlatform
         }
         else
         {
-            $Global:MSCloudLoginPowerPlatformConnected = $false
+            $Global:MSCloudLoginConnectionProfile.PowerPlatform.Connected = $false
             throw $_
         }
     }
@@ -151,11 +106,14 @@ function Connect-MSCloudLoginPowerPlatformMFA
     try
     {
         Test-PowerAppsAccount
-        $Global:MSCloudLoginPowerPlatformConnected = $true
+
+        $Global:MSCloudLoginConnectionProfile.PowerPlatform.ConnectedDateTime         = [System.DateTime]::Now.ToString()
+        $Global:MSCloudLoginConnectionProfile.PowerPlatform.MultiFactorAuthentication = $true
+        $Global:MSCloudLoginConnectionProfile.PowerPlatform.Connected                 = $true
     }
     catch
     {
-        $Global:MSCloudLoginPowerPlatformConnected = $false
+        $Global:MSCloudLoginConnectionProfile.PowerPlatform.Connected = $false
         throw $_
     }
     return

@@ -18,10 +18,10 @@ function Test-MSCloudLogin
     param
     (
         [Parameter(Mandatory = $true)]
-        [ValidateSet("Azure", "AzureAD", "AzureInformationProtection", `
+        [ValidateSet("Azure", "AzureAD", `
                 "SharePointOnline", "ExchangeOnline", "Intune", `
                 "SecurityComplianceCenter", "MSOnline", "PnP", "PowerPlatforms", `
-                "MicrosoftTeams", "SkypeForBusiness", "MicrosoftGraph", "MicrosoftGraphBeta")]
+                "MicrosoftTeams", "SkypeForBusiness", "MicrosoftGraph")]
         [System.String]
         $Platform,
 
@@ -89,10 +89,10 @@ function Connect-M365Tenant
     param
     (
         [Parameter(Mandatory = $true)]
-        [ValidateSet("Azure", "AzureAD", "AzureInformationProtection", `
+        [ValidateSet("Azure", "AzureAD", `
                 "SharePointOnline", "ExchangeOnline", "Intune", `
                 "SecurityComplianceCenter", "MSOnline", "PnP", "PowerPlatforms", `
-                "MicrosoftTeams", "SkypeForBusiness", "MicrosoftGraph", "MicrosoftGraphBeta")]
+                "MicrosoftTeams", "SkypeForBusiness", "MicrosoftGraph")]
         [System.String]
         $Workload,
 
@@ -151,6 +151,11 @@ function Connect-M365Tenant
         $verboseParameter = @{ }
     }
 
+    if ($null -eq $Global:MSCloudLoginConnectionProfile)
+    {
+        $Global:MSCloudLoginConnectionProfile = New-Object MSCloudLoginConnectionProfile
+    }
+
     # If we specified the Credential parameter then set the global o365Credential object to its value
     if ($null -ne $Credential)
     {
@@ -174,89 +179,92 @@ function Connect-M365Tenant
     {
         'Azure'
         {
-            Connect-MSCloudLoginAzure @verboseParameter
+            $Global:MSCloudLoginConnectionProfile.Azure.Credentials           = $Global:o365Credential
+            $Global:MSCloudLoginConnectionProfile.Azure.ApplicationId         = $ApplicationId
+            $Global:MSCloudLoginConnectionProfile.Azure.ApplicationSecret     = $ApplicationSecret
+            $Global:MSCloudLoginConnectionProfile.Azure.TenantId              = $TenantId
+            $Global:MSCloudLoginConnectionProfile.Azure.CertificateThumbprint = $CertificateThumbprint
+            $Global:MSCloudLoginConnectionProfile.Azure.Connect()
         }
         'AzureAD'
         {
-            Connect-MSCloudLoginAzureAD @verboseParameter `
-                -ApplicationId $ApplicationId `
-                -TenantId $TenantId `
-                -CertificateThumbprint $CertificateThumbprint
-        }
-        'AzureInformationProtection'
-        {
-            Connect-MSCloudLoginAzureInformationProtection -Credential $Credential @verboseParameter
+            $Global:MSCloudLoginConnectionProfile.AzureAD.Credentials           = $Global:o365Credential
+            $Global:MSCloudLoginConnectionProfile.AzureAD.ApplicationId         = $ApplicationId
+            $Global:MSCloudLoginConnectionProfile.AzureAD.ApplicationSecret     = $ApplicationSecret
+            $Global:MSCloudLoginConnectionProfile.AzureAD.TenantId              = $TenantId
+            $Global:MSCloudLoginConnectionProfile.AzureAD.CertificateThumbprint = $CertificateThumbprint
+            $Global:MSCloudLoginConnectionProfile.AzureAD.Connect()
         }
         'ExchangeOnline'
         {
-            Connect-MSCloudLoginExchangeOnline @verboseParameter -ApplicationId $ApplicationId `
-                -TenantId $TenantId `
-                -CertificateThumbprint $CertificateThumbprint `
-                -CertificatePath $CertificatePath `
-                -CertificatePassword $CertificatePassword `
-                -SkipModuleReload $SkipModuleReload
+            $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Credentials           = $Global:o365Credential
+            $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ApplicationId         = $ApplicationId
+            $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ApplicationSecret     = $ApplicationSecret
+            $Global:MSCloudLoginConnectionProfile.ExchangeOnline.TenantId              = $TenantId
+            $Global:MSCloudLoginConnectionProfile.ExchangeOnline.CertificateThumbprint = $CertificateThumbprint
+            $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connect()
         }
         'Intune'
         {
-            Connect-MSCloudLoginIntune @verboseParameter -Credential $Credential `
-                -ApplicationId $ApplicationId `
-                -TenantId $TenantId `
-                -ApplicationSecret $ApplicationSecret
+            $Global:MSCloudLoginConnectionProfile.Intune.Credentials           = $Global:o365Credential
+            $Global:MSCloudLoginConnectionProfile.Intune.ApplicationId         = $ApplicationId
+            $Global:MSCloudLoginConnectionProfile.Intune.ApplicationSecret     = $ApplicationSecret
+            $Global:MSCloudLoginConnectionProfile.Intune.TenantId              = $TenantId
+            $Global:MSCloudLoginConnectionProfile.Intune.CertificateThumbprint = $CertificateThumbprint
+            $Global:MSCloudLoginConnectionProfile.Intune.Connect()
         }
         'MicrosoftGraph'
         {
-            Connect-MSCloudLoginMicrosoftGraph @verboseParameter -ApplicationId $ApplicationId `
-                -TenantId $TenantId `
-                -CertificateThumbprint $CertificateThumbprint `
-                -Credential $Credential `
-                -ApplicationSecret $ApplicationSecret `
-                -ProfileName $ProfileName
-        }
-        'MicrosoftGraphBeta'
-        {
-            Connect-MSCloudLoginMicrosoftGraphBeta @verboseParameter -ApplicationId $ApplicationId `
-                -TenantId $TenantId `
-                -CertificateThumbprint $CertificateThumbprint
+            $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Credentials           = $Global:o365Credential
+            $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationId         = $ApplicationId
+            $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationSecret     = $ApplicationSecret
+            $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.TenantId              = $TenantId
+            $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.CertificateThumbprint = $CertificateThumbprint
+            $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ProfileName           = $ProfileName
+            $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connect()
         }
         'MicrosoftTeams'
         {
-            Connect-MSCloudLoginTeams @verboseParameter -ApplicationId $ApplicationId `
-                -TenantId $TenantId `
-                -CertificateThumbprint $CertificateThumbprint
+            $Global:MSCloudLoginConnectionProfile.Teams.Credentials           = $Global:o365Credential
+            $Global:MSCloudLoginConnectionProfile.Teams.ApplicationId         = $ApplicationId
+            $Global:MSCloudLoginConnectionProfile.Teams.ApplicationSecret     = $ApplicationSecret
+            $Global:MSCloudLoginConnectionProfile.Teams.TenantId              = $TenantId
+            $Global:MSCloudLoginConnectionProfile.Teams.CertificateThumbprint = $CertificateThumbprint
+            $Global:MSCloudLoginConnectionProfile.Teams.CertificatePath       = $CertificatePath
+            $Global:MSCloudLoginConnectionProfile.Teams.CertificatePassword   = $CertificatePassword
+            $Global:MSCloudLoginConnectionProfile.Teams.Connect()
         }
         'PnP'
         {
-            Connect-MSCloudLoginPnP -Url $Url @verboseParameter `
-                -ApplicationId $ApplicationId `
-                -TenantId $TenantId `
-                -ApplicationSecret $ApplicationSecret `
-                -CertificateThumbprint $CertificateThumbprint `
-                -CertificatePassword $CertificatePassword `
-                -CertificatePath $CertificatePath
+            $Global:MSCloudLoginConnectionProfile.PnP.Credentials           = $Global:o365Credential
+            $Global:MSCloudLoginConnectionProfile.PnP.ApplicationId         = $ApplicationId
+            $Global:MSCloudLoginConnectionProfile.PnP.ApplicationSecret     = $ApplicationSecret
+            $Global:MSCloudLoginConnectionProfile.PnP.TenantId              = $TenantId
+            $Global:MSCloudLoginConnectionProfile.PnP.CertificateThumbprint = $CertificateThumbprint
+            $Global:MSCloudLoginConnectionProfile.PnP.CertificatePath       = $CertificatePath
+            $Global:MSCloudLoginConnectionProfile.PnP.CertificatePassword   = $CertificatePassword
+            $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl         = $ConnectionUrl
+            $Global:MSCloudLoginConnectionProfile.PnP.Connect()
         }
         'PowerPlatforms'
         {
-            Connect-MSCloudLoginPowerPlatform @verboseParameter -ApplicationId $ApplicationId `
-                -TenantId $TenantId `
-                -CertificateThumbprint $CertificateThumbprint
+            $Global:MSCloudLoginConnectionProfile.PowerPlatform.Credentials           = $Global:o365Credential
+            $Global:MSCloudLoginConnectionProfile.PowerPlatform.ApplicationId         = $ApplicationId
+            $Global:MSCloudLoginConnectionProfile.PowerPlatform.TenantId              = $TenantId
+            $Global:MSCloudLoginConnectionProfile.PowerPlatform.CertificateThumbprint = $CertificateThumbprint
+            $Global:MSCloudLoginConnectionProfile.PowerPlatform.Connect()
         }
         'SecurityComplianceCenter'
         {
-            Connect-MSCloudLoginSecurityCompliance @verboseParameter `
-                -ApplicationId $ApplicationId `
-                -TenantId $TenantId `
-                -CertificateThumbprint $CertificateThumbprint `
-                -CertificatePath $CertificatePath `
-                -CertificatePassword $CertificatePassword `
-                -SkipModuleReload $SkipModuleReload
-        }
-        'SharePointOnline'
-        {
-            Connect-MSCloudLoginSharePointOnline @verboseParameter
-        }
-        'SkypeForBusiness'
-        {
-            Connect-MSCloudLoginSkypeForBusiness @verboseParameter
+            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Credentials           = $Global:o365Credential
+            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ApplicationId         = $ApplicationId
+            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ApplicationSecret     = $ApplicationSecret
+            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.TenantId              = $TenantId
+            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.CertificateThumbprint = $CertificateThumbprint
+            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.CertificatePath       = $CertificatePath
+            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.CertificatePassword   = $CertificatePassword
+            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.SkipModuleReload      = $true
+            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Connect()
         }
     }
 }
@@ -556,6 +564,7 @@ function Get-AccessToken
     catch
     {
         Write-Verbose $_
+        throw $_
     }
 }
 

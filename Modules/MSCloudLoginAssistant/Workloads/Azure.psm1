@@ -12,21 +12,12 @@ function Connect-MSCloudLoginAzure
         [Switch]
         $UseModernAuth
     )
-    # If we specified the CloudCredential parameter then set the global o365Credential object to its value
-    if ($null -ne $Credential)
-    {
-        $Global:o365Credential = $Credential
-    }
 
+    $exceptionStringMFA = "AADSTS"
     if ($null -eq $Global:UseModernAuth)
     {
         $Global:UseModernAuth = $UseModernAuth.IsPresent
     }
-    $exceptionStringMFA = "AADSTS";
-    $clientid = "1950a258-227b-4e31-a9cf-717495945fc2";
-    $ResourceURI = "https://management.core.windows.net";
-    $RedirectURI = "urn:ietf:wg:oauth:2.0:oob";
-    ##$connectCmdlet = "Connect-AzAccount";
 
     # Explicitly import the required module(s) in case there is cmdlet ambiguity with other modules e.g. SharePointPnPPowerShell2013
     Import-Module -Name Az -DisableNameChecking -Force

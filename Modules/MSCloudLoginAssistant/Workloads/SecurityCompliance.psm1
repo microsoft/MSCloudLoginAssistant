@@ -1,33 +1,17 @@
 function Connect-MSCloudLoginSecurityCompliance
 {
     [CmdletBinding()]
-    param(
-        [Parameter()]
-        [System.String]
-        $ApplicationId,
+    param()
 
-        [Parameter()]
-        [System.String]
-        $TenantId,
+    $WarningPreference     = 'SilentlyContinue'
+    $ProgressPreference    = 'SilentlyContinue'
+    $InformationPreference = 'SilentlyContinue'
+    $ProgressPreference    = 'SilentlyContinue'
 
-        [Parameter()]
-        [System.String]
-        $CertificateThumbprint,
-
-        [Parameter()]
-        [SecureString]
-        $CertificatePassword,
-
-        [Parameter()]
-        [System.String]
-        $CertificatePath,
-
-        [Parameter()]
-        [System.Boolean]
-        $SkipModuleReload = $false
-    )
-    $WarningPreference = 'SilentlyContinue'
-    $ProgressPreference = 'SilentlyContinue'
+    if ($Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Connected)
+    {
+        return
+    }
 
     # Write-Verbose "$(Get-Runspace | Out-String)"
     [array]$activeSessions = Get-PSSession | Where-Object -FilterScript { $_.ComputerName -like '*ps.compliance.protection*' -and $_.State -eq 'Opened' }
@@ -36,7 +20,7 @@ function Connect-MSCloudLoginSecurityCompliance
     {
         Write-Verbose -Message "Found {$($activeSessions.Length)} existing Security and Compliance Session"
         $command = Get-Command "Get-ComplianceSearch" -ErrorAction 'SilentlyContinue'
-        if ($null -ne $command -and $SkipModuleReload -eq $true)
+        if ($null -ne $command -and $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.SkipModuleReload -eq $true)
         {
             return
         }
@@ -44,49 +28,19 @@ function Connect-MSCloudLoginSecurityCompliance
         Import-Module $SCModule -Global | Out-Null
         return
     }
-
-    #region Get Connection Info
-    if ($null -eq $Global:CloudEnvironmentInfo)
-    {
-        $Global:CloudEnvironmentInfo = Get-CloudEnvironmentInfo -Credentials $Global:o365Credential `
-            -ApplicationId $ApplicationId `
-            -TenantId $TenantId `
-            -CertificateThumbprint $CertificateThumbprint
-    }
-
-    switch ($Global:CloudEnvironmentInfo.cloud_instance_name)
-    {
-        "microsoftonline.com"
-        {
-            $ConnectionUrl = 'https://ps.compliance.protection.outlook.com/powershell-liveid/'
-            $AuthorizationUrl = 'https://login.microsoftonline.com/organizations'
-        }
-        "microsoftonline.us"
-        {
-            $ConnectionUrl = 'https://ps.compliance.protection.office365.us/powershell-liveid/'
-            $AuthorizationUrl = 'https://login.microsoftonline.us/organizations'
-        }
-        "microsoftonline.de"
-        {
-            $ConnectionUrl = 'https://ps.compliance.protection.outlook.de/powershell-liveid/'
-            $AuthorizationUrl = 'https://login.microsoftonline.de/organizations'
-        }
-    }
-    Write-Verbose -Message "ConnectionUrl = $ConnectionUrl"
-    Write-Verbose -Message "AuthorizationUrl = $AuthorizationUrl"
     #endregion
 
-    if (-not [String]::IsNullOrEmpty($ApplicationId) -and `
-            -not [String]::IsNullOrEmpty($TenantId) -and `
-            -not [String]::IsNullOrEmpty($CertificateThumbprint))
+    if ($Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.AuthenticationType -eq 'ServicePrincipalWithThumbprint')
     {
-        Write-Verbose -Message "Attempting to connect to Security and Compliance using AAD App {$ApplicationID}"
+        Write-Verbose -Message "Attempting to connect to Security and Compliance using AAD App {$($Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ApplicationID)}"
         try
         {
-            # TODO - When Security & COmpliance supports CBA
+            # TODO - When Security & Compliance supports CBA
+            throw "Security and COmpliance doesn't yet support authenticating with a Service Principal"
         }
         catch
         {
+            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Connected = $false
             throw $_
         }
     }
@@ -94,26 +48,18 @@ function Connect-MSCloudLoginSecurityCompliance
     {
         try
         {
-            $CurrentVerbosePreference = $VerbosePreference
-            $CurrentInformationPreference = $InformationPreference
-            $CurrentWarningPreference = $WarningPreference
-            $VerbosePreference = "SilentlyContinue"
-            $InformationPreference = "SilentlyContinue"
-            $WarningPreference = "SilentlyContinue"
-            Connect-IPPSSession -Credential $Global:o365Credential `
-                -ConnectionUri $ConnectionUrl `
-                -AzureADAuthorizationEndpointUri $AuthorizationUrl `
+            Connect-IPPSSession -Credential $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Credentials `
+                -ConnectionUri $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ConnectionUrl `
+                -AzureADAuthorizationEndpointUri $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.AuthorizationUrl `
                 -Verbose:$false -ErrorAction Stop | Out-Null
-            $VerbosePreference = $CurrentVerbosePreference
-            $InformationPreference = $CurrentInformationPreference
-            $WarningPreference = $CurrentWarningPreference
+            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ConnectedDateTime         = [System.DateTime]::Now.TOString()
+            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.MultiFactorAuthentication = $false
+            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Connected                 = $true
         }
         catch
         {
             Write-Verbose -Message "Could not connect connect IPPSSession with Credentials: {$($_.Exception)}"
-            Connect-MSCloudLoginSecurityComplianceMFA -Credential $Global:o365Credential `
-                -ConnectionUrl $ConnectionUrl `
-                -AuthorizationUrl $AuthorizationUrl
+            Connect-MSCloudLoginSecurityComplianceMFA
         }
     }
 }
@@ -121,47 +67,33 @@ function Connect-MSCloudLoginSecurityCompliance
 function Connect-MSCloudLoginSecurityComplianceMFA
 {
     [CmdletBinding()]
-    Param(
-        [Parameter(Mandatory = $true)]
-        [System.Management.Automation.PSCredential]
-        $Credential,
+    param()
 
-        [Parameter(Mandatory = $true)]
-        [System.String]
-        $ConnectionUrl,
-
-        [Parameter(Mandatory = $true)]
-        [System.String]
-        $AuthorizationUrl
-    )
+    $WarningPreference     = 'SilentlyContinue'
+    $ProgressPreference    = 'SilentlyContinue'
+    $InformationPreference = 'SilentlyContinue'
     try
     {
         Write-Verbose -Message "Creating a new Security and Compliance Session using MFA"
-        $CurrentVerbosePreference = $VerbosePreference
-        $CurrentInformationPreference = $InformationPreference
-        $CurrentWarningPreference = $WarningPreference
-        $VerbosePreference = "SilentlyContinue"
-        $InformationPreference = "SilentlyContinue"
-        $WarningPreference = "SilentlyContinue"
-        if ($Global:CloudEnvironmentInfo.cloud_instance_name -eq "microsoftonline.com")
+        if ($Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.EnvironmentName -eq 'AzureCloud')
         {
-            Connect-IPPSSession -UserPrincipalName $Credential.UserName `
+            Connect-IPPSSession -UserPrincipalName $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Credentials.UserName `
                  -Verbose:$false | Out-Null
         }
         else
         {
-            Connect-IPPSSession -UserPrincipalName $Credential.UserName `
-                -ConnectionUri $ConnectionUrl `
+            Connect-IPPSSession -UserPrincipalName $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Credentials.UserName `
+                -ConnectionUri $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ConnectionUrl `
                 -Verbose:$false | Out-Null
         }
-        $VerbosePreference = $CurrentVerbosePreference
-        $InformationPreference = $CurrentInformationPreference
-        $WarningPreference = $CurrentWarningPreference
         Write-Verbose -Message "New Session with MFA created successfully"
-        $Global:MSCloudLoginSCConnected = $true
+        $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ConnectedDateTime         = [System.DateTime]::Now.TOString()
+        $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.MultiFactorAuthentication = $false
+        $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Connected                 = $true
     }
     catch
     {
+        $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Connected = $false
         throw $_
     }
 }

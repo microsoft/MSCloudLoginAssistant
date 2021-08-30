@@ -67,18 +67,15 @@
 
     # Modules to import as nested modules of the module specified in RootModule/ModuleToProcess
     NestedModules          = @(
+        'ConnectionProfile.psm1',
         'Workloads\Azure.psm1',
         'Workloads\AzureAD.psm1',
-        'Workloads\AzureInformationProtection.psm1',
         'Workloads\ExchangeOnline.psm1',
         'Workloads\Intune.psm1',
         'Workloads\MicrosoftGraph.psm1',
-        'Workloads\MicrosoftGraphBeta.psm1',
         'Workloads\PnP.psm1',
         'Workloads\PowerPlatform.psm1',
         'Workloads\SecurityCompliance.psm1',
-        'Workloads\SharePointOnline.psm1',
-        'Workloads\SkypeForBusiness.psm1',
         'Workloads\Teams.psm1'
     )
 

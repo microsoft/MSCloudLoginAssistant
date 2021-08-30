@@ -1,75 +1,51 @@
 function Connect-MSCloudLoginMicrosoftGraph
 {
     [CmdletBinding()]
-    param(
-        [Parameter()]
-        [System.Management.Automation.PsCredential]
-        $Credential,
+    param()
 
-        [Parameter()]
-        [System.String]
-        $ApplicationId,
-
-        [Parameter()]
-        [System.String]
-        $TenantId,
-
-        [Parameter()]
-        [System.String]
-        $ApplicationSecret,
-
-        [Parameter()]
-        [System.String]
-        $CertificateThumbprint,
-
-        [Parameter()]
-        [System.String]
-        [ValidateSet("v1.0", "beta")]
-        $ProfileName = "v1.0"
-    )
-
-    $maxAttempts = 10
-    do
+    if ($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected)
     {
-        Write-Verbose -Message "Selecting Microsoft Graph Profile {$ProfileName}"
-        Select-MgProfile $ProfileName | Out-Null
-        $maxAttempts--
-    } while((Get-MgProfile).Name -ne $ProfileName -and $maxAttempts -gt 0)
+        return
+    }
 
-    if ($null -ne $Credential)
+    Select-MgProfile $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ProfileName | Out-Null
+
+    if ($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AuthenticationType -eq 'CredentialsWithApplicationId')
     {
-        Connect-MSCloudLoginMSGraphWithUser -CloudCredential $Credential `
-            -ApplicationId $ApplicationId
+        Connect-MSCloudLoginMSGraphWithUser
     }
     else
     {
         try
         {
-            Write-Verbose $ApplicationId
-            Write-Verbose $TenantId
-            Write-Verbose $CertificateThumbprint
-
-            if (-not [System.String]::IsNullOrEmpty($CertificateThumbprint))
+            if ($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AuthenticationType -eq 'ServicePrincipalWithThumbprint')
             {
-                Connect-MgGraph -ClientId $ApplicationId -TenantId $TenantId `
-                    -CertificateThumbprint $CertificateThumbprint | Out-Null
+                Connect-MgGraph -ClientId $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationId `
+                    -TenantId $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.TenantId `
+                    -CertificateThumbprint $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.CertificateThumbprint | Out-Null
+                $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime         = [Sytem.DateTime]::Now.ToString()
+                $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.MultiFactorAuthentication = $false
+                $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected                 = $true
             }
             else
             {
-                $url = "https://login.microsoftonline.com/$TenantId/oauth2/v2.0/token"
                 $body = @{
-                    scope = "https://graph.microsoft.com/.default"
+                    scope = $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Scope
                     grant_type = "client_credentials"
-                    client_secret = $ApplicationSecret
+                    client_secret = $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationSecret
                     client_info = 1
-                    client_id = $ApplicationId
+                    client_id = $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationId
                 }
                 Write-Verbose -Message "Requesting Access Token for Microsoft Graph"
-                $OAuthReq = Invoke-RestMethod -Uri $url -Method Post -Body $body
-                $AccessToken = $OAuthReq.access_token
+                $OAuthReq = Invoke-RestMethod -Uri $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.TokenUrl `
+                    -Method Post -Body $body
+                $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AccessToken = $OAuthReq.access_token
 
                 Write-Verbose -Message "Connecting to Microsoft Graph"
-                Connect-MgGraph -AccessToken $AccessToken | Out-Null
+                Connect-MgGraph -AccessToken $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AccessToken | Out-Null
+                $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime         = [Sytem.DateTime]::Now.ToString()
+                $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.MultiFactorAuthentication = $false
+                $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected                 = $true
             }
             Write-Verbose -Message "Connected"
         }
@@ -84,88 +60,23 @@ function Connect-MSCloudLoginMicrosoftGraph
 function Connect-MSCloudLoginMSGraphWithUser
 {
     [CmdletBinding()]
-    Param(
-        [Parameter(Mandatory = $true)]
-        [System.Management.Automation.PSCredential]
-        $Credential,
+    Param()
 
-        [Parameter()]
-        [System.String]
-        $ApplicationId #PoSh Graph SDK
-    )
-
-    if ([System.String]::IsNullOrEmpty($ApplicationId))
+    if ([System.String]::IsNullOrEmpty($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationId))
     {
-        $ApplicationId = "14d82eec-204b-4c2f-b7e8-296a70dab67e"
+        $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationId = "14d82eec-204b-4c2f-b7e8-296a70dab67e"
     }
-    if ($null -eq $Global:MSCloudLoginGraphAccessToken)
-    {
-        $azuretenantADName = $Credential.UserName.Split('@')[1]
 
-        #Authority to Azure AD Tenant
-        $AzureADAuthority = "https://login.microsoftonline.com/$azuretenantADName/oauth2/v2.0/authorize"
+    $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AccessToken = Get-AccessToken `
+        -TargetUri $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ResourceUrl `
+        -AuthUri $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.UserTokenUrl `
+        -ClientId $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationId `
+        -Credentials $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Credentials
 
-        #Resource URI to the Microsoft Graph
-        $resourceURL = "https://graph.microsoft.com/"
-
-        # Create UserCredential object
-        $accessToken = Get-AccessToken -TargetUri $resourceUrl `
-            -AuthUri $AzureADAuthority `
-            -ClientId $ApplicationId `
-            -Credentials $Credential
-        $Global:MSCloudLoginGraphAccessToken = $accessToken
-    }
-    Connect-MGGraph -AccessToken $Global:MSCloudLoginGraphAccessToken
-}
-
-function Connect-MSCloudLoginMSGraphWithServicePrincipal
-{
-    [CmdletBinding()]
-    Param(
-        [Parameter(Mandatory = $true)]
-        [System.String]
-        $ApplicationId,
-
-        [Parameter(Mandatory = $true)]
-        [System.String]
-        $TenantId,
-
-        [Parameter(Mandatory = $true)]
-        [System.String]
-        $ApplicationSecret
-    )
-
-    $url = "https://login.microsoftonline.com/$TenantId/oauth2/v2.0/token"
-    $body = "client_id=$ApplicationId&scope=https%3A%2F%2Fgraph.microsoft.com%2F.default&client_secret=$ApplicationSecret&grant_type=client_credentials"
-    $response = Invoke-RestMethod -Method POST -Uri $url -Body $body
-    $Global:MSCloudLoginGraphAccessToken = $response.access_token
-}
-
-function Connect-MSCloudLoginMSGraphWithServicePrincipalDelegated
-{
-    [CmdletBinding()]
-    Param(
-        [Parameter(Mandatory = $true)]
-        [System.String]
-        $ApplicationId,
-
-        [Parameter(Mandatory = $true)]
-        [System.String]
-        $TenantId,
-
-        [Parameter(Mandatory = $true)]
-        [System.String]
-        $ApplicationSecret,
-
-        [Parameter(Mandatory = $true)]
-        [System.String]
-        $Scope
-    )
-
-    $url = "https://login.microsoftonline.com/$TenantId/oauth2/v2.0/authorize?"
-    $body = "client_id=$ApplicationId&scope=$scope&client_secret=$ApplicationSecret&response_type=code"
-    $response = Invoke-RestMethod -Method GET -Uri ($url + $body)
-    $Global:MSCloudLoginGraphAccessToken = $response.access_token
+    Connect-MGGraph -AccessToken $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AccessToken | Out-Null
+    $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime         = [System.DateTime]::Now.ToString()
+    $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.MultiFactorAuthentication = $false
+    $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected                 = $true
 }
 
 function Invoke-MSCloudLoginMicrosoftGraphAPI
@@ -201,8 +112,7 @@ function Invoke-MSCloudLoginMicrosoftGraphAPI
         [System.UInt32]
         $CallCount = 1
     )
-    Connect-MSCloudLoginMSGraphWithUser -CloudCredential $Credential `
-        -ApplicationId $ApplicationId
+    Connect-MSCloudLoginMSGraphWithUser
 
     $requestHeaders = @{
         "Authorization" = "Bearer " + $Global:MSCloudLoginGraphAccessToken
