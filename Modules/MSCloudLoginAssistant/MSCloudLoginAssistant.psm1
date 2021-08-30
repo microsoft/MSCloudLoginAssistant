@@ -19,9 +19,9 @@ function Test-MSCloudLogin
     (
         [Parameter(Mandatory = $true)]
         [ValidateSet("Azure", "AzureAD", `
-                "SharePointOnline", "ExchangeOnline", "Intune", `
-                "SecurityComplianceCenter", "MSOnline", "PnP", "PowerPlatforms", `
-                "MicrosoftTeams", "SkypeForBusiness", "MicrosoftGraph")]
+                "ExchangeOnline", "Intune", `
+                "SecurityComplianceCenter", "PnP", "PowerPlatforms", `
+                "MicrosoftTeams", "MicrosoftGraph")]
         [System.String]
         $Platform,
 
@@ -90,9 +90,9 @@ function Connect-M365Tenant
     (
         [Parameter(Mandatory = $true)]
         [ValidateSet("Azure", "AzureAD", `
-                "SharePointOnline", "ExchangeOnline", "Intune", `
-                "SecurityComplianceCenter", "MSOnline", "PnP", "PowerPlatforms", `
-                "MicrosoftTeams", "SkypeForBusiness", "MicrosoftGraph")]
+                "ExchangeOnline", "Intune", `
+                "SecurityComplianceCenter", "PnP", "PowerPlatforms", `
+                "MicrosoftTeams", "MicrosoftGraph")]
         [System.String]
         $Workload,
 
@@ -184,6 +184,11 @@ function Connect-M365Tenant
             $Global:MSCloudLoginConnectionProfile.Azure.ApplicationSecret     = $ApplicationSecret
             $Global:MSCloudLoginConnectionProfile.Azure.TenantId              = $TenantId
             $Global:MSCloudLoginConnectionProfile.Azure.CertificateThumbprint = $CertificateThumbprint
+
+            if ($null -eq $UseModernAuth)
+            {
+                $Global:MSCloudLoginConnectionProfile.Azure.UseModernAuthentication = $UseModernAuth.IsPresent
+            }
             $Global:MSCloudLoginConnectionProfile.Azure.Connect()
         }
         'AzureAD'
@@ -243,8 +248,15 @@ function Connect-M365Tenant
             $Global:MSCloudLoginConnectionProfile.PnP.CertificateThumbprint = $CertificateThumbprint
             $Global:MSCloudLoginConnectionProfile.PnP.CertificatePath       = $CertificatePath
             $Global:MSCloudLoginConnectionProfile.PnP.CertificatePassword   = $CertificatePassword
-            $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl         = $ConnectionUrl
-            $Global:MSCloudLoginConnectionProfile.PnP.Connect()
+
+            # Mark as disconnected if we are trying to connect to a different url then we previously connected to.
+            if ($Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl -ne $Url -or `
+                $null -eq $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl)
+            {
+                $Global:MSCloudLoginConnectionProfile.PnP.Connected     = $false
+                $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl = $Url
+                $Global:MSCloudLoginConnectionProfile.PnP.Connect()
+            }
         }
         'PowerPlatforms'
         {
@@ -748,9 +760,9 @@ function Get-MSCloudLoginOrganizationName
         $CertificateThumbprint
     )
 
-    Test-MSCloudLogin -Platform AzureAD -ApplicationId $ApplicationId -TenantId $TenantId -CertificateThumbprint $CertificateThumbprint
+    Connect-M365Tenant -Workload AzureAD -ApplicationId $ApplicationId -TenantId $TenantId -CertificateThumbprint $CertificateThumbprint
 
-    $domain = Get-AzureADDomain  | where-object { $_.IsInitial -eq $True } | select Name
+    $domain = Get-AzureADDomain  | where-object { $_.IsInitial -eq $True } | Select-Object Name
 
     if ($null -ne $domain)
     {

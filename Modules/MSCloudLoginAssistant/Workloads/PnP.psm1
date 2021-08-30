@@ -48,7 +48,7 @@ function Connect-MSCloudLoginPnP
                 -ClientId $Global:MSCloudLoginConnectionProfile.PnP.ApplicationId `
                 -Tenant $Global:MSCloudLoginConnectionProfile.PnP.TenantId `
                 -Thumbprint $Global:MSCloudLoginConnectionProfile.PnP.CertificateThumbprint `
-                -AzureEnvironment $Global:MSCloudLoginConnectionProfile.PnP.EnvironmentName | Out-Null
+                -AzureEnvironment $Global:MSCloudLoginConnectionProfile.PnP.PnPAzureEnvironment | Out-Null
 
             Write-Verbose "Connected to PnP {$($Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl) using application authentication"
             $Global:MSCloudLoginConnectionProfile.PnP.ConnectedDateTime         = [System.DateTime]::Now.ToString()
@@ -62,7 +62,7 @@ function Connect-MSCloudLoginPnP
                 -Tenant $Global:MSCloudLoginConnectionProfile.PnP.TenantId `
                 -CertificatePassword $Global:MSCloudLoginConnectionProfile.PnP.CertificatePassword `
                 -CertificatePath $Global:MSCloudLoginConnectionProfile.PnP.CertificatePath `
-                -AzureEnvironment $Global:MSCloudLoginConnectionProfile.PnP.EnvironmentName
+                -AzureEnvironment $Global:MSCloudLoginConnectionProfile.PnP.PnPAzureEnvironment
 
             Write-Verbose "Connected to PnP {$($Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl) using application authentication"
             $Global:MSCloudLoginConnectionProfile.PnP.ConnectedDateTime         = [System.DateTime]::Now.ToString()
@@ -74,7 +74,7 @@ function Connect-MSCloudLoginPnP
             Connect-PnPOnline -Url $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl `
                 -ClientId $Global:MSCloudLoginConnectionProfile.PnP.ApplicationId `
                 -ClientSecret $Global:MSCloudLoginConnectionProfile.PnP.ApplicationSecret `
-                -AzureEnvironment $Global:MSCloudLoginConnectionProfile.PnP.EnvironmentName `
+                -AzureEnvironment $Global:MSCloudLoginConnectionProfile.PnP.PnPAzureEnvironment `
                 -WarningAction 'Ignore'
             Write-Verbose "Connected to PnP {$($Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl) using application authentication"
             $Global:MSCloudLoginConnectionProfile.PnP.ConnectedDateTime         = [System.DateTime]::Now.ToString()
@@ -85,7 +85,7 @@ function Connect-MSCloudLoginPnP
         {
             Connect-PnPOnline -Url $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl `
                 -Credentials $Global:MSCloudLoginConnectionProfile.PnP.Credentials `
-                -AzureEnvironment $Global:MSCloudLoginConnectionProfile.PnP.EnvironmentName
+                -AzureEnvironment $Global:MSCloudLoginConnectionProfile.PnP.PnPAzureEnvironment
 
             Write-Verbose "Connected to PnP {$($Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl) using regular authentication"
             $Global:MSCloudLoginConnectionProfile.PnP.ConnectedDateTime         = [System.DateTime]::Now.ToString()

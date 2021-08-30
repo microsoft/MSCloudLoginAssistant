@@ -6,6 +6,9 @@ class MSCloudLoginConnectionProfile
     [string]
     $OrganizationName
 
+    [Azure]
+    $Azure
+
     [AzureAD]
     $AzureAD
 
@@ -35,6 +38,7 @@ class MSCloudLoginConnectionProfile
         $this.CreatedTime = [System.DateTime]::Now.ToString()
 
         # Workloads Object Creation
+        $this.Azure                    = New-Object Azure
         $this.AzureAD                  = New-Object AzureAD
         $this.ExchangeOnline           = New-Object ExchangeOnline
         $this.Intune                   = New-Object Intune
@@ -62,7 +66,7 @@ class Workload
     $Credentials
 
     [string]
-    [ValidateSet('AzureCloud', 'AzureChinaCloud', 'AzureGermanyCloud', 'AzureUSGovernment', 'Production', 'USGovernmentHigh', 'Germany')]
+    [ValidateSet('AzureCloud', 'AzureChinaCloud', 'AzureGermanyCloud', 'AzureUSGovernment')]
     $EnvironmentName
 
     [boolean]
@@ -89,13 +93,30 @@ class Workload
     Setup()
     {
         # Determine the environment name based on email
-        if ($null -ne $this.Credentials)
+        if ($null -eq $this.EnvironmentName)
         {
-            if ($this.Credentials.UserName.Split('@')[1] -like '*.de')
+            $domain = $null
+            if ($null -ne $this.Credentials)
+            {
+                $domain = $this.Credentials.UserName.Split('@')[1]
+            }
+            elseif ($null -ne $this.ApplicationID)
+            {
+                if ($null -eq $Global:AttemptedToGetOrganizationName)
+                {
+                    $Global:AttemptedToGetOrganizationName = $true
+                    $domain = Get-MSCloudLoginOrganizationName `
+                            -ApplicationId $this.ApplicationId `
+                            -TenantId $this.TenantId `
+                            -CertificateThumbprint $this.CertificateThumbprint
+                }
+            }
+
+            if ($domain -like '*.de')
             {
                 $this.EnvironmentName = 'AzureGermanyCloud'
             }
-            elseif ($this.Credentials.UserName.Split('@')[1] -like '*.us')
+            elseif ($domain -like '*.us')
             {
                 $this.EnvironmentName = 'AzureUSGovernment'
             }
@@ -132,13 +153,16 @@ class Workload
 class Azure:Workload
 {
     [string]
-    $clientid = "1950a258-227b-4e31-a9cf-717495945fc2"
+    $ClientID = "1950a258-227b-4e31-a9cf-717495945fc2"
 
     [string]
     $ResourceURI = "https://management.core.windows.net"
 
     [string]
     $RedirectURI = "urn:ietf:wg:oauth:2.0:oob";
+
+    [switch]
+    $UseModernAuthentication
 
     Azure()
     {}
@@ -163,10 +187,8 @@ class AzureAD:Workload
 class ExchangeOnline:Workload
 {
     [string]
-    $ConnectionUrl
-
-    [string]
-    $AuthorizationUrl
+    [ValidateSet('O365Default', 'O365GermanyCloud', 'O365China', 'O365USGovGCCHigh', 'O365USGovDod')]
+    $ExchangeEnvironmentName = 'O365Default'
 
     ExchangeOnline()
     {}
@@ -177,16 +199,13 @@ class ExchangeOnline:Workload
         switch ($this.EnvironmentName)
         {
             "AzureCloud" {
-                $this.ConnectionUrl    = 'https://outlook.office365.com/powershell-liveid/'
-                $this.AuthorizationUrl = 'https://login.microsoftonline.com/organizations'
+                $this.ExchangeEnvironmentName    = 'O365Default'
             }
             "AzureGermanyCloud" {
-                $this.ConnectionUrl    = 'https://outlook.office.de/powershell-liveid/'
-                $this.AuthorizationUrl = 'https://login.microsoftonline.de/organizations'
+                $this.ConnectionUrl    = 'O365GermanyCloud'
             }
             "AzureUSGovernment" {
-                $this.ConnectionUrl    = 'https://outlook.office365.us/powershell-liveid/'
-                $this.AuthorizationUrl = 'https://login.microsoftonline.us/organizations'
+                $this.ConnectionUrl    = 'O365USGovGCCHigh'
             }
         }
 
@@ -303,6 +322,10 @@ class PnP:Workload
     [string]
     $AccessToken
 
+    [string]
+    [ValidateSet('Production', 'PPE', 'China', 'Germany', 'USGovernment', 'USGovernmentHigh', 'USGovernmentDoD')]
+    $PnPAzureEnvironment
+
     PnP()
     {
         if (-not [String]::IsNullOrEmpty($this.CertificateThumbprint) -and (-not[String]::IsNullOrEmpty($this.CertificatePassword) -or
@@ -319,15 +342,15 @@ class PnP:Workload
         # PnP uses Production instead of AzureCloud to designate the Public Azure Cloud * AzureUSGovernment to USGovernmentHigh
         if ($this.EnvironmentName -eq 'AzureCloud')
         {
-            $this.EnvironmentName = 'Production'
+            $this.PnPAzureEnvironment = 'Production'
         }
         elseif ($this.EnvironmentName -eq 'AzureUSGovernment')
         {
-            $this.EnvironmentName = 'USGovernmentHigh'
+            $this.PnPAzureEnvironment = 'USGovernmentHigh'
         }
         elseif ($this.EnvironmentName -eq 'AzureGermany')
         {
-            $this.EnvironmentName = 'Germany'
+            $this.PnPAzureEnvironment = 'Germany'
         }
 
         Connect-MSCloudLoginPnP

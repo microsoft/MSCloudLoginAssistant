@@ -2,110 +2,85 @@ function Connect-MSCloudLoginAzure
 {
     [CmdletBinding()]
     param
-    (
-        [Parameter()]
-        [Alias("o365Credential")]
-        [System.Management.Automation.PSCredential]
-        $Credential,
+    ()
+    $WarningPreference = 'SilentlyContinue'
 
-        [Parameter()]
-        [Switch]
-        $UseModernAuth
-    )
-
-    $exceptionStringMFA = "AADSTS"
-    if ($null -eq $Global:UseModernAuth)
-    {
-        $Global:UseModernAuth = $UseModernAuth.IsPresent
-    }
 
     # Explicitly import the required module(s) in case there is cmdlet ambiguity with other modules e.g. SharePointPnPPowerShell2013
-    Import-Module -Name Az -DisableNameChecking -Force
+    Import-Module -Name Az.Accounts -DisableNameChecking -Force
 
-    $global:azLoginSucceeded = $false
+    if ($Global:MSCloudLoginConnectionProfile.Azure.Connected)
+    {
+        return
+    }
+    else
+    {
+        Get-AzContext | Remove-AzContext -Force | Out-Null
+    }
+
     try
     {
-        Write-Verbose -Message "Checking Azure login..."
-        # Run a simple command to check if we are logged in
-        Get-AzResource -ErrorAction Stop -WarningAction SilentlyContinue | Out-Null
-        if ($? -eq $false)
+        if ($Global:MSCloudLoginConnectionProfile.Azure.AuthenticationType -eq 'Credentials')
         {
-            throw
+            Connect-AzAccount -Credential $Global:MSCloudLoginConnectionProfile.Azure.Credentials `
+                -Environment $Global:MSCloudLoginConnectionProfile.Azure.EnvironmentName `
+                -ErrorAction Stop | Out-Null
+            $Global:MSCloudLoginConnectionProfile.Azure.ConnectedDateTime         = [System.DateTime]::Now.ToString()
+            $Global:MSCloudLoginConnectionProfile.Azure.MultiFactorAuthentication = $false
+            $Global:MSCloudLoginConnectionProfile.Azure.Connected                 = $true
         }
-        else
+        elseif ($Global:MSCloudLoginConnectionProfile.Azure.AuthenticationType -eq 'ServicePrincipalWithThumbprint')
         {
-            Write-Verbose -Message "You are already logged in to Azure."
+            Connect-AzAccount -ApplicationId $Global:MSCloudLoginConnectionProfile.Azure.ApplicationId `
+                -Tenant $Global:MSCloudLoginConnectionProfile.Azure.TenantId `
+                -CertificateThumbprint $Global:MSCloudLoginConnectionProfile.Azure.CertificateThumbprint `
+                -Environment $Global:MSCloudLoginConnectionProfile.Azure.EnvironmentName `
+                -ErrorAction Stop | Out-Null
+            $Global:MSCloudLoginConnectionProfile.Azure.ConnectedDateTime         = [System.DateTime]::Now.ToString()
+            $Global:MSCloudLoginConnectionProfile.Azure.MultiFactorAuthentication = $false
+            $Global:MSCloudLoginConnectionProfile.Azure.Connected                 = $true
         }
     }
     catch
     {
-        if ($_.Exception -like "*Connect-AzAccount*" -or $_.Exception -like "*The access token expiry*" -or `
-            $_.Exception -like "*Authentication_ExpiredToken*")
+        Write-Debug -Message "Login using 'Connect-AzAccount' failed on initial attempt."
+        if ($_.Exception -like "*User canceled authentication*")
         {
-            Write-Debug -Message "Running 'Get-AzResource' failed on initial attempt."
+            $Global:MSCloudLoginConnectionProfile.Azure.Connected = $false
+            throw "User canceled authentication"
+        }
+        elseif ($_.Exception -like "*The user name or password is incorrect*" -or $_.Exception -like "*ID3242*")
+        {
+            $Global:MSCloudLoginConnectionProfile.Azure.Connected = $false
+            throw  "Bad credentials were supplied"
+        }
+        elseif (($_.Exception -like "*AADSTS*") -or `
+                ($_.Exception -like "*Sequence contains no elements*") -or `
+                ($_.Exception -like "*The access token expiry*") -or `
+                ($_.Exception -like '*You must use multi-factor authentication*'))
+        {
+            Write-Verbose -Message "The specified account is configured for Multi-Factor Authentication. Please re-enter your credentials."
+
             try
             {
-                # Prompt for Windows-style credentials if we don't already have a credential object and not logging into Azure
-                if ($_.Exception -like "*The access token expiry*")
-                {
-                    throw
-                }
-                if ($Global:UseModernAuth -eq $True)
-                {
-                    throw
-                }
-                Write-Verbose -Message "Running 'Connect-AzAccount -ErrorAction Stop -ErrorVariable `$err | Out-Null'"
-                Connect-AzAccount -ErrorAction Stop -ErrorVariable `$err | Out-Null
-                if ($? -eq $false -or $err)
-                {
-                    throw
-                }
-                else
-                {
-                    $global:azLoginSucceeded = $true
-                }
+                $AuthHeader = Get-AuthHeader -UserPrincipalName $Global:MSCloudLoginConnectionProfile.Azure.Credentials.UserName `
+                    -ResourceURI $Global:MSCloudLoginConnectionProfile.Azure.ResourceURI `
+                    -ClientID $Global:MSCloudLoginConnectionProfile.Azure.ClientId `
+                    -RedirectURI $Global:MSCloudLoginConnectionProfile.Azure.RedirectURI
+                $AuthToken = $AuthHeader.split(" ")[1]
+                Connect-AzAccount -ErrorAction Stop -AccessToken $AuthToken `
+                    -AccountId $Global:MSCloudLoginConnectionProfile.Azure.Credentials.UserName | Out-Null
+
+                $Global:MSCloudLoginConnectionProfile.Azure.ConnectedDateTime         = [System.DateTime]::Now.ToString()
+                $Global:MSCloudLoginConnectionProfile.Azure.MultiFactorAuthentication = $true
+                $Global:MSCloudLoginConnectionProfile.Azure.Connected                 = $true
             }
             catch
             {
-                Write-Debug -Message "Login using 'Connect-AzAccount' failed on initial attempt."
-                if ($_.Exception -like "*User canceled authentication*")
-                {
-                    throw "User canceled authentication"
-                }
-                elseif ($_.Exception -like "*The user name or password is incorrect*" -or $_.Exception -like "*ID3242*")
-                {
-                    throw  "Bad credentials were supplied"
-                }
-                elseif (($_.Exception -like "*$exceptionStringMFA*") -or `
-                        ($_.Exception -like "*Sequence contains no elements*") -or `
-                        ($_.Exception -like "*The access token expiry*") ##-or `
-                        ##$Global:UseModernAuth -eq $True
-                        )
-                {
-                    Write-Verbose -Message "The specified account is configured for Multi-Factor Authentication. Please re-enter your credentials."
-
-                    try
-                    {
-                        $AuthHeader = Get-AuthHeader -UserPrincipalName $Global:o365Credential.UserName -ResourceURI $ResourceURI -clientID $clientID -RedirectURI $RedirectURI
-                        $AuthToken = $AuthHeader.split(" ")[1]
-                        Connect-AzAccount -ErrorAction Stop -AccessToken $AuthToken -AccountId $global:o365Credential.UserName | Out-Null
-                        if ($? -eq $false)
-                        {
-                            throw
-                        }
-                        else
-                        {
-                            $global:azLoginSucceeded = $true
-                            $Global:UseModernAuth = $True
-                        }
-                    }
-                    catch
-                    {
-                        Write-Debug -Message "Login using 'Connect-AzAccount' and '-AccessToken $AuthToken -AccountId $($global:o365Credential.UserName)' failed."
-                        Write-Host -ForegroundColor Red $_.Exception
-                        throw $_
-                    }
-                }
+                Write-Debug -Message "Login using 'Connect-AzAccount' and '-AccessToken $AuthToken -AccountId $($global:o365Credential.UserName)' failed."
+                Write-Host -ForegroundColor Red $_.Exception
+                $Global:MSCloudLoginConnectionProfile.Azure.Connected = $false
+                throw $_
             }
         }
         elseif ($_.Exception -like "*Unable to acquire token for tenant*")
@@ -119,10 +94,12 @@ function Connect-MSCloudLoginAzure
         elseif ($_.Exception -like "*Get-AzResource*")
         {
             # If the exception contains the name of the cmdlet we're trying to run, we probably don't have the required module installed yet
+            $Global:MSCloudLoginConnectionProfile.Azure.Connected = $false
             throw "It appears you don't have the module for Azure installed, or it isn't loaded.`nPlease install/load the module and try again. `nYou can quickly and easily install the 'Az' module with: `n`"Install-Module -Name Az`""
         }
         elseif ($_.Exception -like "*this.Client.SubscriptionId*")
         {
+            $Global:MSCloudLoginConnectionProfile.Azure.Connected = $false
             throw "It appears there are no Azure subscriptions associated with the account '$($Global:o365Credential.UserName)'."
         }
         else
@@ -132,7 +109,7 @@ function Connect-MSCloudLoginAzure
     }
     finally
     {
-        if ($global:azLoginSucceeded)
+        if ($Global:MSCloudLoginConnectionProfile.Azure.Connected)
         {
             Write-Verbose -Message " - Successfully logged in to Azure."
             # Needed when we're logging into Azure - in case we have multiple subs we need to prompt for one

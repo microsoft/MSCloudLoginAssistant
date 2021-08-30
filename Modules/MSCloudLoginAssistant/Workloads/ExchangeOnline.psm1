@@ -30,23 +30,25 @@ function Connect-MSCloudLoginExchangeOnline
     #endregion
     Write-Verbose -Message "ConnectionUrl = $ConnectionUrl"
     Write-Verbose -Message "AuthorizationUrl = $AuthorizationUrl"
-    if ($Global:MSCloudLoginConnectionProfile.ExchangeOnline.$AuthenticationType -eq 'ServicePrincipalWithThumbprint')
+    if ($Global:MSCloudLoginConnectionProfile.ExchangeOnline.AuthenticationType -eq 'ServicePrincipalWithThumbprint')
     {
         Write-Verbose -Message "Attempting to connect to Exchange Online using AAD App {$ApplicationID}"
         try
         {
-            $Global:MSCloudLoginConnectionProfile.OrganizationName = Get-MSCloudLoginOrganizationName `
-                -ApplicationId $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ApplicationId `
-                -TenantId $Global:MSCloudLoginConnectionProfile.ExchangeOnline.TenantId `
-                -CertificateThumbprint $Global:MSCloudLoginConnectionProfile.ExchangeOnline.CertificateThumbprint
+            if ($NULL -eq $Global:MSCloudLoginConnectionProfile.OrganizationName)
+            {
+                $Global:MSCloudLoginConnectionProfile.OrganizationName = Get-MSCloudLoginOrganizationName `
+                    -ApplicationId $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ApplicationId `
+                    -TenantId $Global:MSCloudLoginConnectionProfile.ExchangeOnline.TenantId `
+                    -CertificateThumbprint $Global:MSCloudLoginConnectionProfile.ExchangeOnline.CertificateThumbprint
+            }
 
             Connect-ExchangeOnline -AppId $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ApplicationId `
-                -Organization $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Organization `
+                -Organization $Global:MSCloudLoginConnectionProfile.OrganizationName `
                 -CertificateThumbprint $Global:MSCloudLoginConnectionProfile.ExchangeOnline.CertificateThumbprint `
                 -ShowBanner:$false `
                 -ShowProgress:$false `
-                -ConnectionUri $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ConnectionUrl `
-                -AzureADAuthorizationEndpointUri $Global:MSCloudLoginConnectionProfile.ExchangeOnline.AuthorizationUrl `
+                -ExchangeEnvironmentName $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ExchangeEnvironmentName `
                 -Verbose:$false | Out-Null
 
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ConnectedDateTime         = [System.DateTime]::Now.ToString()
@@ -68,8 +70,7 @@ function Connect-MSCloudLoginExchangeOnline
             Connect-ExchangeOnline -Credential $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Credentials `
                 -ShowProgress:$false `
                 -ShowBanner:$false `
-                -ConnectionUri $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ConnectionUrl `
-                -AzureADAuthorizationEndpointUri $Global:MSCloudLoginConnectionProfile.ExchangeOnline.AuthorizationUrl `
+                -ExchangeEnvironmentName $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ExchangeEnvironmentName `
                 -Verbose:$false -ErrorAction Stop | Out-Null
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ConnectedDateTime         = [System.DateTime]::Now.ToString()
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connected                 = $true
@@ -113,8 +114,7 @@ function Connect-MSCloudLoginExchangeOnlineMFA
         Connect-ExchangeOnline -UserPrincipalName $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Credentials.UserName `
             -ShowBanner:$false `
             -ShowProgress:$false `
-            -ConnectionUri $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ConnectionUrl `
-            -AzureADAuthorizationEndpointUri $Global:MSCloudLoginConnectionProfile.ExchangeOnline.AuthorizationUrl `
+            -ExchangeEnvironmentName $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ExchangeEnvironmentName `
             -Verbose:$false | Out-Null
 
         $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ConnectedDateTime         = [System.DateTime]::Now.ToString()
