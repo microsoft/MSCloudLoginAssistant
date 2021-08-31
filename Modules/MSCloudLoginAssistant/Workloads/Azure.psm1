@@ -5,7 +5,6 @@ function Connect-MSCloudLoginAzure
     ()
     $WarningPreference = 'SilentlyContinue'
 
-
     # Explicitly import the required module(s) in case there is cmdlet ambiguity with other modules e.g. SharePointPnPPowerShell2013
     Import-Module -Name Az.Accounts -DisableNameChecking -Force
 
@@ -15,6 +14,20 @@ function Connect-MSCloudLoginAzure
     }
     else
     {
+        try
+        {
+            $method = Get-AzSubscription -ErrorAction stop
+            if ($null -ne $method)
+            {
+                $Global:MSCloudLoginConnectionProfile.Azure.Connected = $true
+                $Global:MSCloudLoginConnectionProfile.Azure.ConnectedDateTime = [System.DateTime]::Now.ToString()
+                return
+            }
+        }
+        catch
+        {
+            Write-Verbose "Could not find existing connection to Azure"
+        }
         Get-AzContext | Remove-AzContext -Force | Out-Null
     }
 
@@ -38,6 +51,12 @@ function Connect-MSCloudLoginAzure
                 -ErrorAction Stop | Out-Null
             $Global:MSCloudLoginConnectionProfile.Azure.ConnectedDateTime         = [System.DateTime]::Now.ToString()
             $Global:MSCloudLoginConnectionProfile.Azure.MultiFactorAuthentication = $false
+            $Global:MSCloudLoginConnectionProfile.Azure.Connected                 = $true
+        }
+        elseif ($Global:MSCloudLoginConnectionProfile.Azure.AuthenticationType -eq 'Interactive')
+        {
+            Connect-AzAccount -ErrorAction Stop | Out-Null
+            $Global:MSCloudLoginConnectionProfile.Azure.ConnectedDateTime         = [System.DateTime]::Now.ToString()
             $Global:MSCloudLoginConnectionProfile.Azure.Connected                 = $true
         }
     }

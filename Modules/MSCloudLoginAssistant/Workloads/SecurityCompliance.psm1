@@ -6,9 +6,8 @@ function Connect-MSCloudLoginSecurityCompliance
     $WarningPreference     = 'SilentlyContinue'
     $ProgressPreference    = 'SilentlyContinue'
     $InformationPreference = 'SilentlyContinue'
-    $ProgressPreference    = 'SilentlyContinue'
 
-    if ($Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Connected)
+    if ($Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Connected -and $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.SkipModuleReload)
     {
         return
     }
@@ -22,10 +21,12 @@ function Connect-MSCloudLoginSecurityCompliance
         $command = Get-Command "Get-ComplianceSearch" -ErrorAction 'SilentlyContinue'
         if ($null -ne $command -and $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.SkipModuleReload -eq $true)
         {
+            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Connected = $true
             return
         }
         $SCModule = Import-PSSession $activeSessions[0] -DisableNameChecking -AllowClobber
         Import-Module $SCModule -Global | Out-Null
+        $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Connected = $true
         return
     }
     #endregion

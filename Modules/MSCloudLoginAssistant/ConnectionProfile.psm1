@@ -53,7 +53,7 @@ class MSCloudLoginConnectionProfile
 class Workload
 {
     [string]
-    [ValidateSet('Credentials', 'CredentialsWithApplicationId', 'ServicePrincipalWithSecret', 'ServicePrincipalWithThumbprint', 'ServicePrincipalWithPath')]
+    [ValidateSet('Credentials', 'CredentialsWithApplicationId', 'ServicePrincipalWithSecret', 'ServicePrincipalWithThumbprint', 'ServicePrincipalWithPath', 'Interactive')]
     $AuthenticationType
 
     [boolean]
@@ -100,7 +100,7 @@ class Workload
             {
                 $domain = $this.Credentials.UserName.Split('@')[1]
             }
-            elseif ($null -ne $this.ApplicationID)
+            elseif ($this.ApplicationID)
             {
                 if ($null -eq $Global:AttemptedToGetOrganizationName)
                 {
@@ -147,6 +147,10 @@ class Workload
         {
             $this.AuthenticationType = 'Credentials'
         }
+        else
+        {
+            $this.AuthenticationType = 'Interactive'
+        }
     }
 }
 
@@ -189,6 +193,9 @@ class ExchangeOnline:Workload
     [string]
     [ValidateSet('O365Default', 'O365GermanyCloud', 'O365China', 'O365USGovGCCHigh', 'O365USGovDod')]
     $ExchangeEnvironmentName = 'O365Default'
+
+    [boolean]
+    $SkipModuleReload = $false
 
     ExchangeOnline()
     {}

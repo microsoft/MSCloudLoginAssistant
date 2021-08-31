@@ -3,10 +3,11 @@ function Connect-MSCloudLoginExchangeOnline
     [CmdletBinding()]
     param()
 
-    $WarningPreference  = 'SilentlyContinue'
-    $ProgressPreference = 'SilentlyContinue'
+    $WarningPreference     = 'SilentlyContinue'
+    $InformationPreference = 'SilentlyContinue'
+    $ProgressPreference    = 'SilentlyContinue'
 
-    if ($Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connected)
+    if ($Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connected -and $Global:MSCloudLoginConnectionProfile.ExchangeOnline.SkipModuleReload)
     {
         return
     }
@@ -16,20 +17,20 @@ function Connect-MSCloudLoginExchangeOnline
     {
         Write-Verbose -Message "Found {$($activeSessions.Length)} existing Exchange Online Session"
         $command = Get-Command "Get-AcceptedDomain" -ErrorAction 'SilentlyContinue'
-        if ($null -ne $command)
+        if ($null -ne $command -and $Global:MSCloudLoginConnectionProfile.ExchangeOnline.SkipModuleReload)
         {
+            Write-Verbose "Not Reloading the Exchange Module due to SkipModuleReload being set to true"
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connected = $true
             return
         }
         $EXOModule = Import-PSSession $activeSessions[0] -DisableNameChecking -AllowClobber
         Import-Module $EXOModule -Global | Out-Null
+        $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connected = $true
+        Write-Verbose "Reloaded the Exchange Module"
         return
     }
     Write-Verbose -Message "No active Exchange Online session found."
 
-    #endregion
-    Write-Verbose -Message "ConnectionUrl = $ConnectionUrl"
-    Write-Verbose -Message "AuthorizationUrl = $AuthorizationUrl"
     if ($Global:MSCloudLoginConnectionProfile.ExchangeOnline.AuthenticationType -eq 'ServicePrincipalWithThumbprint')
     {
         Write-Verbose -Message "Attempting to connect to Exchange Online using AAD App {$ApplicationID}"

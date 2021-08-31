@@ -207,6 +207,7 @@ function Connect-M365Tenant
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ApplicationSecret     = $ApplicationSecret
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.TenantId              = $TenantId
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.CertificateThumbprint = $CertificateThumbprint
+            $Global:MSCloudLoginConnectionProfile.ExchangeOnline.SkipModuleReload      = $SkipModuleReload
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connect()
         }
         'Intune'
@@ -275,7 +276,7 @@ function Connect-M365Tenant
             $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.CertificateThumbprint = $CertificateThumbprint
             $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.CertificatePath       = $CertificatePath
             $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.CertificatePassword   = $CertificatePassword
-            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.SkipModuleReload      = $true
+            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.SkipModuleReload      = $SkipModuleReload
             $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Connect()
         }
     }
