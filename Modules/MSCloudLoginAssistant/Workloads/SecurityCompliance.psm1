@@ -4,31 +4,57 @@ function Connect-MSCloudLoginSecurityCompliance
     param()
 
     $WarningPreference     = 'SilentlyContinue'
-    $ProgressPreference    = 'SilentlyContinue'
     $InformationPreference = 'SilentlyContinue'
+    $ProgressPreference    = 'SilentlyContinue'
+    $VerbosePreference     = 'SilentlyContinue'
 
-    if ($Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Connected -and $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.SkipModuleReload)
+    Write-Verbose -Message "Trying to get the Get-ComplianceSearch command from within MSCloudLoginAssistant"
+    try
+    {
+        Get-ComplianceSearch -ErrorAction Stop
+        Write-Verbose -Message "Succeeded"
+        $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Connected = $true
+        return
+    }
+    catch
+    {
+        Write-Verbose -Message "Failed"
+    }
+
+    Write-Verbose -Message "Connection Profile: $($Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter | Out-String)"
+    if ($Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Connected -and `
+        $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.SkipModuleReload)
     {
         return
     }
 
-    # Write-Verbose "$(Get-Runspace | Out-String)"
+    $loadedModules = Get-Module
+    Write-Verbose -Message "The following modules are already loaded: $loadedModules"
+
+    $AlreadyLoadedSCProxyModules = $loadedModules | Where-Object -FilterScript {$_.ExportedCommands.Keys.Contains('Get-ComplianceSearch')}
+    foreach ($loadedModule in $AlreadyLoadedSCProxyModules)
+    {
+        Write-Verbose -Message "Removing module {$($loadedModule.Name)} from current S+C session"
+        Remove-Module $loadedModule.Name -Force -Verbose:$false | Out-Null
+    }
+
     [array]$activeSessions = Get-PSSession | Where-Object -FilterScript { $_.ComputerName -like '*ps.compliance.protection*' -and $_.State -eq 'Opened' }
 
     if ($activeSessions.Length -ge 1)
     {
         Write-Verbose -Message "Found {$($activeSessions.Length)} existing Security and Compliance Session"
-        $command = Get-Command "Get-ComplianceSearch" -ErrorAction 'SilentlyContinue'
-        if ($null -ne $command -and $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.SkipModuleReload -eq $true)
-        {
-            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Connected = $true
-            return
-        }
-        $SCModule = Import-PSSession $activeSessions[0] -DisableNameChecking -AllowClobber
-        Import-Module $SCModule -Global | Out-Null
+        $ProxyModule = Import-PSSession $activeSessions[0] `
+                -DisableNameChecking `
+                -AllowClobber `
+                -Verbose:$false
+        Write-Verbose -Message "Imported session into $ProxyModule"
+        Import-Module $ProxyModule -Global `
+            -Verbose:$false| Out-Null
         $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Connected = $true
+        Write-Verbose "Reloaded the Security & Compliance Module"
         return
     }
+    Write-Verbose -Message 'No Active Connections to Security & Compliance were found.'
     #endregion
 
     if ($Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.AuthenticationType -eq 'ServicePrincipalWithThumbprint')
@@ -49,6 +75,7 @@ function Connect-MSCloudLoginSecurityCompliance
     {
         try
         {
+            Write-Verbose -Message "Connecting to Security & Compliance with Credentials"
             Connect-IPPSSession -Credential $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Credentials `
                 -ConnectionUri $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ConnectionUrl `
                 -AzureADAuthorizationEndpointUri $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.AuthorizationUrl `

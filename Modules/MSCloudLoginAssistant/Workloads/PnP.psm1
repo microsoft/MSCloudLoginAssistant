@@ -1,11 +1,34 @@
 function Connect-MSCloudLoginPnP
 {
     [CmdletBinding()]
-    param()
+    param(
+        [boolean]
+        $ForceRefreshConnection = $false
+    )
+
+    $ProgressPreference = 'SilentlyContinue'
+    $WarningPreference  = 'SilentlyContinue'
+    $VerbosePreference  = 'SilentlyContinue'
 
     if ($Global:MSCloudLoginConnectionProfile.PnP.Connected)
     {
+        Write-Verbose 'Already connected to PnP, not attempting to authenticate.'
         return
+    }
+
+    if (-not $ForceRefreshConnection)
+    {
+        try
+        {
+            $commandResult = Get-PnPAlert -ErrorAction 'Stop'
+            Write-Verbose -Message "Retrieved results from the command. Not re-connecting to PnP."
+            $Global:MSCloudLoginConnectionProfile.PnP.Connected = $true
+            return
+        }
+        catch
+        {
+            Write-Verbose -Message "Couldn't get results back from the command"
+        }
     }
 
     if ([string]::IsNullOrEmpty($Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl))
@@ -36,9 +59,6 @@ function Connect-MSCloudLoginPnP
             }
         }
     }
-
-    # Explicitly import the required module(s) in case there is cmdlet ambiguity with other modules e.g. SharePointPnPPowerShell2013
-    Import-Module -Name PnP.PowerShell -DisableNameChecking -Force
 
     try
     {

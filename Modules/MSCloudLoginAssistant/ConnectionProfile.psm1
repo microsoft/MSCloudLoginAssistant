@@ -343,7 +343,7 @@ class PnP:Workload
         }
     }
 
-    [void] Connect() {
+    [void] Connect([boolean]$ForceRefresh) {
         ([Workload]$this).Setup()
 
         # PnP uses Production instead of AzureCloud to designate the Public Azure Cloud * AzureUSGovernment to USGovernmentHigh
@@ -360,7 +360,7 @@ class PnP:Workload
             $this.PnPAzureEnvironment = 'Germany'
         }
 
-        Connect-MSCloudLoginPnP
+        Connect-MSCloudLoginPnP -ForceRefreshConnection $ForceRefresh
     }
 }
 

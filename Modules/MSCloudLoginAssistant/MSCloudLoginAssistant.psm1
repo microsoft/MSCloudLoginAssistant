@@ -142,36 +142,12 @@ function Connect-M365Tenant
         [ValidateSet("v1.0", "beta")]
         $ProfileName = "v1.0"
     )
-    if ($VerbosePreference -eq "Continue")
-    {
-        $verboseParameter = @{Verbose = $true }
-    }
-    else
-    {
-        $verboseParameter = @{ }
-    }
+
+    $VerbosePreference = 'SilentlyContinue'
 
     if ($null -eq $Global:MSCloudLoginConnectionProfile)
     {
         $Global:MSCloudLoginConnectionProfile = New-Object MSCloudLoginConnectionProfile
-    }
-
-    # If we specified the Credential parameter then set the global o365Credential object to its value
-    if ($null -ne $Credential)
-    {
-        $Global:o365Credential = $Credential
-        $Global:DomainName = $Global:o365Credential.UserName.Split('@')[1]
-    }
-
-    if ($null -ne $Global:o365Credential)
-    {
-        # Required because of Connect-AzAccount which clears the password otherwise;
-        $Global:o365Credential.Password.MakeReadOnly()
-    }
-
-    if ($null -eq $Global:UseModernAuth)
-    {
-        $Global:UseModernAuth = $UseModernAuth.IsPresent
     }
 
     Write-Verbose -Message "Trying to connect to platform {$Workload}"
@@ -179,7 +155,7 @@ function Connect-M365Tenant
     {
         'Azure'
         {
-            $Global:MSCloudLoginConnectionProfile.Azure.Credentials           = $Global:o365Credential
+            $Global:MSCloudLoginConnectionProfile.Azure.Credentials           = $Credential
             $Global:MSCloudLoginConnectionProfile.Azure.ApplicationId         = $ApplicationId
             $Global:MSCloudLoginConnectionProfile.Azure.ApplicationSecret     = $ApplicationSecret
             $Global:MSCloudLoginConnectionProfile.Azure.TenantId              = $TenantId
@@ -193,7 +169,7 @@ function Connect-M365Tenant
         }
         'AzureAD'
         {
-            $Global:MSCloudLoginConnectionProfile.AzureAD.Credentials           = $Global:o365Credential
+            $Global:MSCloudLoginConnectionProfile.AzureAD.Credentials           = $Credential
             $Global:MSCloudLoginConnectionProfile.AzureAD.ApplicationId         = $ApplicationId
             $Global:MSCloudLoginConnectionProfile.AzureAD.ApplicationSecret     = $ApplicationSecret
             $Global:MSCloudLoginConnectionProfile.AzureAD.TenantId              = $TenantId
@@ -202,7 +178,7 @@ function Connect-M365Tenant
         }
         'ExchangeOnline'
         {
-            $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Credentials           = $Global:o365Credential
+            $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Credentials           = $Credential
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ApplicationId         = $ApplicationId
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ApplicationSecret     = $ApplicationSecret
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.TenantId              = $TenantId
@@ -212,7 +188,7 @@ function Connect-M365Tenant
         }
         'Intune'
         {
-            $Global:MSCloudLoginConnectionProfile.Intune.Credentials           = $Global:o365Credential
+            $Global:MSCloudLoginConnectionProfile.Intune.Credentials           = $Credential
             $Global:MSCloudLoginConnectionProfile.Intune.ApplicationId         = $ApplicationId
             $Global:MSCloudLoginConnectionProfile.Intune.ApplicationSecret     = $ApplicationSecret
             $Global:MSCloudLoginConnectionProfile.Intune.TenantId              = $TenantId
@@ -221,7 +197,7 @@ function Connect-M365Tenant
         }
         'MicrosoftGraph'
         {
-            $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Credentials           = $Global:o365Credential
+            $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Credentials           = $Credential
             $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationId         = $ApplicationId
             $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationSecret     = $ApplicationSecret
             $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.TenantId              = $TenantId
@@ -231,7 +207,7 @@ function Connect-M365Tenant
         }
         'MicrosoftTeams'
         {
-            $Global:MSCloudLoginConnectionProfile.Teams.Credentials           = $Global:o365Credential
+            $Global:MSCloudLoginConnectionProfile.Teams.Credentials           = $Credential
             $Global:MSCloudLoginConnectionProfile.Teams.ApplicationId         = $ApplicationId
             $Global:MSCloudLoginConnectionProfile.Teams.ApplicationSecret     = $ApplicationSecret
             $Global:MSCloudLoginConnectionProfile.Teams.TenantId              = $TenantId
@@ -242,7 +218,7 @@ function Connect-M365Tenant
         }
         'PnP'
         {
-            $Global:MSCloudLoginConnectionProfile.PnP.Credentials           = $Global:o365Credential
+            $Global:MSCloudLoginConnectionProfile.PnP.Credentials           = $Credential
             $Global:MSCloudLoginConnectionProfile.PnP.ApplicationId         = $ApplicationId
             $Global:MSCloudLoginConnectionProfile.PnP.ApplicationSecret     = $ApplicationSecret
             $Global:MSCloudLoginConnectionProfile.PnP.TenantId              = $TenantId
@@ -254,14 +230,19 @@ function Connect-M365Tenant
             if ($Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl -ne $Url -or `
                 $null -eq $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl)
             {
+                $ForceRefresh = $false
+                if ($Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl -ne $Url)
+                {
+                    $ForceRefresh = $true
+                }
                 $Global:MSCloudLoginConnectionProfile.PnP.Connected     = $false
                 $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl = $Url
-                $Global:MSCloudLoginConnectionProfile.PnP.Connect()
+                $Global:MSCloudLoginConnectionProfile.PnP.Connect($ForceRefresh)
             }
         }
         'PowerPlatforms'
         {
-            $Global:MSCloudLoginConnectionProfile.PowerPlatform.Credentials           = $Global:o365Credential
+            $Global:MSCloudLoginConnectionProfile.PowerPlatform.Credentials           = $Credential
             $Global:MSCloudLoginConnectionProfile.PowerPlatform.ApplicationId         = $ApplicationId
             $Global:MSCloudLoginConnectionProfile.PowerPlatform.TenantId              = $TenantId
             $Global:MSCloudLoginConnectionProfile.PowerPlatform.CertificateThumbprint = $CertificateThumbprint
@@ -269,7 +250,7 @@ function Connect-M365Tenant
         }
         'SecurityComplianceCenter'
         {
-            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Credentials           = $Global:o365Credential
+            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Credentials           = $Credential
             $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ApplicationId         = $ApplicationId
             $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ApplicationSecret     = $ApplicationSecret
             $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.TenantId              = $TenantId
@@ -298,7 +279,7 @@ function Get-SPOAdminUrl
     Write-Verbose -Message "Getting SharePoint Online admin URL..."
     $defaultDomain = Get-AzureADDomain | Where-Object { $_.Name -like "*.onmicrosoft.com" -and $_.IsInitial -eq $true } # We don't use IsDefault here because the default could be a custom domain
 
-    $Global:CloudEnvironmentInfo = Get-CloudEnvironmentInfo -Credentials $Global:o365Credential `
+    $Global:CloudEnvironmentInfo = Get-CloudEnvironmentInfo -Credentials $Credential `
         -ApplicationId $ApplicationId `
         -TenantId $TenantId `
         -CertificateThumbprint $CertificateThumbprint

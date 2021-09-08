@@ -3,7 +3,9 @@ function Connect-MSCloudLoginIntune
     [CmdletBinding()]
     param()
 
-    $WarningPreference = 'SilentlyContinue'
+    $ProgressPreference = 'SilentlyContinue'
+    $WarningPreference  = 'SilentlyContinue'
+    $VerbosePreference  = 'SilentlyContinue'
 
     if ($Global:MSCloudLoginConnectionProfile.Intune.Connected)
     {

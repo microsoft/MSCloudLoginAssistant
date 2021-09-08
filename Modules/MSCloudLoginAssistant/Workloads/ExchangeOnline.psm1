@@ -6,25 +6,48 @@ function Connect-MSCloudLoginExchangeOnline
     $WarningPreference     = 'SilentlyContinue'
     $InformationPreference = 'SilentlyContinue'
     $ProgressPreference    = 'SilentlyContinue'
+    $VerbosePreference     = 'SilentlyContinue'
 
-    if ($Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connected -and $Global:MSCloudLoginConnectionProfile.ExchangeOnline.SkipModuleReload)
+    Write-Verbose -Message "Trying to get the Get-AcceptedDomain command from within MSCloudLoginAssistant"
+    try
     {
+        Get-AcceptedDomain -ErrorAction Stop
+        Write-Verbose -Message "Succeeded"
+        $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connected = $true
+        return
+    }
+    catch
+    {
+        Write-Verbose -Message "Failed"
+    }
+
+    if ($Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connected -and `
+        $Global:MSCloudLoginConnectionProfile.ExchangeOnline.SkipModuleReload)
+    {
+        $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connected = $true
         return
     }
 
+    Write-Verbose -Message "Loaded Modules: $(Get-Module | Select-Object Name)"
+    $loadedModules = Get-Module
+    $AlreadyLoadedEXOProxyModules = $loadedModules | Where-Object -FilterScript {$_.ExportedCommands.Keys.Contains('Get-AcceptedDomain')}
+    foreach ($loadedModule in $AlreadyLoadedEXOProxyModules)
+    {
+        Write-Verbose -Message "Removing module {$($loadedModule.Name)} from current EXO session"
+        Remove-Module $loadedModule.Name -Force -Verbose:$false | Out-Null
+    }
+
     [array]$activeSessions = Get-PSSession | Where-Object -FilterScript {$_.ComputerName -like '*outlook.office*' -and $_.State -eq 'Opened'}
+    Write-Verbose -Message "Active Sessions: $($activeSessions | Out-String)"
     if ($activeSessions.Length -ge 1)
     {
         Write-Verbose -Message "Found {$($activeSessions.Length)} existing Exchange Online Session"
-        $command = Get-Command "Get-AcceptedDomain" -ErrorAction 'SilentlyContinue'
-        if ($null -ne $command -and $Global:MSCloudLoginConnectionProfile.ExchangeOnline.SkipModuleReload)
-        {
-            Write-Verbose "Not Reloading the Exchange Module due to SkipModuleReload being set to true"
-            $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connected = $true
-            return
-        }
-        $EXOModule = Import-PSSession $activeSessions[0] -DisableNameChecking -AllowClobber
-        Import-Module $EXOModule -Global | Out-Null
+        $ProxyModule = Import-PSSession $activeSessions[0] `
+                -DisableNameChecking `
+                -AllowClobber
+        Write-Verbose -Message "Imported session into $ProxyModule"
+        Import-Module $ProxyModule -Global `
+            -Verbose:$false| Out-Null
         $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connected = $true
         Write-Verbose "Reloaded the Exchange Module"
         return

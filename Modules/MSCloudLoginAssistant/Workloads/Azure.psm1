@@ -4,6 +4,7 @@ function Connect-MSCloudLoginAzure
     param
     ()
     $WarningPreference = 'SilentlyContinue'
+    $VerbosePreference = 'SilentlyContinue'
 
     # Explicitly import the required module(s) in case there is cmdlet ambiguity with other modules e.g. SharePointPnPPowerShell2013
     Import-Module -Name Az.Accounts -DisableNameChecking -Force
@@ -96,7 +97,7 @@ function Connect-MSCloudLoginAzure
             }
             catch
             {
-                Write-Debug -Message "Login using 'Connect-AzAccount' and '-AccessToken $AuthToken -AccountId $($global:o365Credential.UserName)' failed."
+                Write-Debug -Message "Login using 'Connect-AzAccount' and '-AccessToken $AuthToken -AccountId $($Global:MSCloudLoginConnectionProfile.Azure.Credentials.UserName)' failed."
                 Write-Host -ForegroundColor Red $_.Exception
                 $Global:MSCloudLoginConnectionProfile.Azure.Connected = $false
                 throw $_
@@ -119,7 +120,7 @@ function Connect-MSCloudLoginAzure
         elseif ($_.Exception -like "*this.Client.SubscriptionId*")
         {
             $Global:MSCloudLoginConnectionProfile.Azure.Connected = $false
-            throw "It appears there are no Azure subscriptions associated with the account '$($Global:o365Credential.UserName)'."
+            throw "It appears there are no Azure subscriptions associated with the account '$($Global:MSCloudLoginConnectionProfile.Azure.Credentials.UserName)'."
         }
         else
         {

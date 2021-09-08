@@ -3,6 +3,9 @@ function Connect-MSCloudLoginMicrosoftGraph
     [CmdletBinding()]
     param()
 
+    $ProgressPreference = 'SilentlyContinue'
+    $WarningPreference  = 'SilentlyContinue'
+    $VerbosePreference  = 'SilentlyContinue'
     if ($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected)
     {
         return
