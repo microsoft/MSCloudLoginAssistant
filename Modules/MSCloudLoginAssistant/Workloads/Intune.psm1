@@ -58,7 +58,8 @@ function Connect-MSCloudLoginIntune
         {
             Update-MSGraphEnvironment -AuthUrl $Global:MSCloudLoginConnectionProfile.Intune.AuthorizationUrl `
                 -GraphResourceId $Global:MSCloudLoginConnectionProfile.Intune.GraphResourceId `
-                -GraphBaseUrl $Global:MSCloudLoginConnectionProfile.Intune.GraphBaseUrl
+                -GraphBaseUrl $Global:MSCloudLoginConnectionProfile.Intune.GraphBaseUrl `
+                -AppID $Global:MSCloudLoginConnectionProfile.Intune.ApplicationId
             Connect-MSGraph -ClientSecret $Global:MSCloudLoginConnectionProfile.Intune.ApplicationSecret | Out-Null
         }
         catch

@@ -105,10 +105,18 @@ class Workload
                 if ($null -eq $Global:AttemptedToGetOrganizationName)
                 {
                     $Global:AttemptedToGetOrganizationName = $true
-                    $domain = Get-MSCloudLoginOrganizationName `
-                            -ApplicationId $this.ApplicationId `
-                            -TenantId $this.TenantId `
-                            -CertificateThumbprint $this.CertificateThumbprint
+
+                    if ([System.String]::IsNullOrEmpty($this.CertificateThumbprint))
+                    {
+                        $domain = $this.TenantId
+                    }
+                    else
+                    {
+                        $domain = Get-MSCloudLoginOrganizationName `
+                                -ApplicationId $this.ApplicationId `
+                                -TenantId $this.TenantId `
+                                -CertificateThumbprint $this.CertificateThumbprint
+                    }
                 }
             }
 
@@ -248,12 +256,12 @@ class Intune:Workload
         switch ($this.EnvironmentName)
         {
             "AzureCloud" {
-                $this.AuthorizationUrl = "https://login.microsoftonline.com/common/oauth/v2.0/authorize/$tenantId"
+                $this.AuthorizationUrl = "https://login.microsoftonline.com/oauth/v2.0/token/$($this.TenantId)"
                 $this.GraphResourceId  = 'https://graph.microsoft.com/'
                 $this.GraphBaseUrl     = 'https://graph.microsoft.com'
             }
             "AzureUSGovernment" {
-                $this.AuthorizationUrl = "https://login.microsoftonline.us/common/oauth/v2.0/authorize/$tenantId"
+                $this.AuthorizationUrl = "https://login.microsoftonline.us/oauth/v2.0/token/$($this.TenantId)"
                 $this.GraphResourceId  = 'https://graph.microsoft.us/'
                 $this.GraphBaseUrl     = 'https://graph.microsoft.us'
             }

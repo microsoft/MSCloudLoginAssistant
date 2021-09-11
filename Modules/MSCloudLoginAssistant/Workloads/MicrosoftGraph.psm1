@@ -13,7 +13,8 @@ function Connect-MSCloudLoginMicrosoftGraph
 
     Select-MgProfile $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ProfileName | Out-Null
 
-    if ($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AuthenticationType -eq 'CredentialsWithApplicationId')
+    if ($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AuthenticationType -eq 'CredentialsWithApplicationId' -or
+        $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AuthenticationType -eq 'Credentials')
     {
         Connect-MSCloudLoginMSGraphWithUser
     }
@@ -70,13 +71,21 @@ function Connect-MSCloudLoginMSGraphWithUser
         $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationId = "14d82eec-204b-4c2f-b7e8-296a70dab67e"
     }
 
-    $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AccessToken = Get-AccessToken `
-        -TargetUri $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ResourceUrl `
-        -AuthUri $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.UserTokenUrl `
-        -ClientId $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationId `
-        -Credentials $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Credentials
+    $TenantId = $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Credentials.Username.Split('@')[1]
+    $url = "https://login.microsoftonline.com/$TenantId/oauth2/v2.0/token"
+    $body = @{
+        scope = "https://graph.microsoft.com/.default"
+        grant_type = "password"
+        username = $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Credentials.Username
+        password = $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Credentials.GetNetworkCredential().Password
+        client_id = $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationId
+    }
+    Write-Verbose -Message "Requesting Access Token for Microsoft Graph"
+    $OAuthReq = Invoke-RestMethod -Uri $url -Method Post -Body $body
+    $AccessToken = $OAuthReq.access_token
 
-    Connect-MGGraph -AccessToken $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AccessToken | Out-Null
+    Write-Verbose -Message "Connecting to Microsoft Graph"
+    Connect-MgGraph -AccessToken $AccessToken | Out-Null
     $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime         = [System.DateTime]::Now.ToString()
     $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.MultiFactorAuthentication = $false
     $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected                 = $true
