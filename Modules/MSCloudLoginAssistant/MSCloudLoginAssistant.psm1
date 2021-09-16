@@ -744,11 +744,19 @@ function Get-MSCloudLoginOrganizationName
 
     Connect-M365Tenant -Workload AzureAD -ApplicationId $ApplicationId -TenantId $TenantId -CertificateThumbprint $CertificateThumbprint
 
-    $domain = Get-AzureADDomain  | where-object { $_.IsInitial -eq $True } | Select-Object Name
-
-    if ($null -ne $domain)
+    try
     {
+        $domain = Get-AzureADDomain -ErrorAction Stop | where-object { $_.IsInitial -eq $True } | Select-Object Name
 
-        return $domain.Name
+        if ($null -ne $domain)
+        {
+
+            return $domain.Name
+        }
+    }
+    catch
+    {
+        Write-Verbose -Message "Couldn't get domain. Using TenantId instead"
+        return $TenantId
     }
 }

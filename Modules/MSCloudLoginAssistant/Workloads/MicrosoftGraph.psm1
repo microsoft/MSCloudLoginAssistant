@@ -27,7 +27,7 @@ function Connect-MSCloudLoginMicrosoftGraph
                 Connect-MgGraph -ClientId $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationId `
                     -TenantId $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.TenantId `
                     -CertificateThumbprint $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.CertificateThumbprint | Out-Null
-                $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime         = [Sytem.DateTime]::Now.ToString()
+                $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime         = [System.DateTime]::Now.ToString()
                 $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.MultiFactorAuthentication = $false
                 $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected                 = $true
             }
@@ -47,7 +47,7 @@ function Connect-MSCloudLoginMicrosoftGraph
 
                 Write-Verbose -Message "Connecting to Microsoft Graph"
                 Connect-MgGraph -AccessToken $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AccessToken | Out-Null
-                $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime         = [Sytem.DateTime]::Now.ToString()
+                $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime         = [System.DateTime]::Now.ToString()
                 $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.MultiFactorAuthentication = $false
                 $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected                 = $true
             }

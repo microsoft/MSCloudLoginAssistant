@@ -16,7 +16,7 @@ function Connect-MSCloudLoginIntune
     {
         try
         {
-            Update-MSGraphEnvironment -AuthUrl $Global:MSCloudLoginConnectionProfile.Intune.AuthorizationUrl `
+            Update-MSGraphEnvironment -AuthUrl 'https://login.microsoftonline.com/common/' `
                 -GraphResourceId $Global:MSCloudLoginConnectionProfile.Intune.GraphResourceId `
                 -GraphBaseUrl $Global:MSCloudLoginConnectionProfile.Intune.GraphBaseUrl
 
