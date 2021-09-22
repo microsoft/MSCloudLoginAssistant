@@ -6,12 +6,20 @@ function Connect-MSCloudLoginMicrosoftGraph
     $ProgressPreference = 'SilentlyContinue'
     $WarningPreference  = 'SilentlyContinue'
     $VerbosePreference  = 'SilentlyContinue'
+
+    # If the current profile is not the same we expect, make the switch.
+    $currentProfile = (Get-MgProfile).Name
+    Write-Verbose -Message "Current Profile: $currentProfile"
+    if ($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ProfileName -ne $currentProfile)
+    {
+        Select-MgProfile $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ProfileName | Out-Null
+        $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected = $false
+    }
+
     if ($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected)
     {
         return
     }
-
-    Select-MgProfile $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ProfileName | Out-Null
 
     if ($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AuthenticationType -eq 'CredentialsWithApplicationId' -or
         $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AuthenticationType -eq 'Credentials')
@@ -66,29 +74,53 @@ function Connect-MSCloudLoginMSGraphWithUser
     [CmdletBinding()]
     Param()
 
+    
+
+    if ($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Credentials.UserName -ne (Get-MgContext).Account)
+    {
+        Write-Verbose -Message "The current account that is connect doesn't match the one we're trying to authenticate with. Disconnecting from Graph."
+        try
+        {
+            Disconnect-MGGraph -ErrorAction Stop | Out-Null
+        }
+        catch
+        {
+            Write-Verbose -Message "No connections to Microsoft Graph were found."
+        }
+    }
+
     if ([System.String]::IsNullOrEmpty($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationId))
     {
         $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationId = "14d82eec-204b-4c2f-b7e8-296a70dab67e"
     }
 
     $TenantId = $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Credentials.Username.Split('@')[1]
-    $url = "https://login.microsoftonline.com/$TenantId/oauth2/v2.0/token"
+    $url = $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.TokenUrl
     $body = @{
-        scope = "https://graph.microsoft.com/.default"
+        scope = $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Scope
         grant_type = "password"
         username = $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Credentials.Username
         password = $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Credentials.GetNetworkCredential().Password
         client_id = $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationId
     }
     Write-Verbose -Message "Requesting Access Token for Microsoft Graph"
-    $OAuthReq = Invoke-RestMethod -Uri $url -Method Post -Body $body
-    $AccessToken = $OAuthReq.access_token
+    
+    try
+    {
+        $OAuthReq = Invoke-RestMethod -Uri $url -Method Post -Body $body
+        $AccessToken = $OAuthReq.access_token
 
-    Write-Verbose -Message "Connecting to Microsoft Graph"
-    Connect-MgGraph -AccessToken $AccessToken | Out-Null
-    $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime         = [System.DateTime]::Now.ToString()
-    $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.MultiFactorAuthentication = $false
-    $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected                 = $true
+        Write-Verbose -Message "Connecting to Microsoft Graph"
+        Connect-MgGraph -AccessToken $AccessToken | Out-Null
+        $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime         = [System.DateTime]::Now.ToString()
+        $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.MultiFactorAuthentication = $false
+        $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected                 = $true
+    }
+    catch
+    {
+        Write-Verbose -Message "Connecting to Microsoft Graph interactively"
+        Connect-MgGraph -Environment $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment
+    }
 }
 
 function Invoke-MSCloudLoginMicrosoftGraphAPI

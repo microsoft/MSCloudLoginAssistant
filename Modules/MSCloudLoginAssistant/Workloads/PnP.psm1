@@ -127,8 +127,18 @@ function Connect-MSCloudLoginPnP
             }
             catch
             {
-                $Global:MSCloudLoginConnectionProfile.PnP.Connected = $true
-                throw $_
+                try
+                {
+                    Connect-PnPOnline -Url $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl -UseWebLogin
+                    $Global:MSCloudLoginConnectionProfile.PnP.ConnectedDateTime         = [System.DateTime]::Now.ToString()
+                    $Global:MSCloudLoginConnectionProfile.PnP.MultiFactorAuthentication = $true
+                    $Global:MSCloudLoginConnectionProfile.PnP.Connected                 = $true
+                }
+                catch
+                {
+                    $Global:MSCloudLoginConnectionProfile.PnP.Connected = $false
+                    throw $_
+                }
             }
         }
         elseif ($_.Exception -like '*The sign-in name or password does not match one in the Microsoft account system*')

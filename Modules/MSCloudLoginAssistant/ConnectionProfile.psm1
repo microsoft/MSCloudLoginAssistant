@@ -217,10 +217,10 @@ class ExchangeOnline:Workload
                 $this.ExchangeEnvironmentName    = 'O365Default'
             }
             "AzureGermanyCloud" {
-                $this.ConnectionUrl    = 'O365GermanyCloud'
+                $this.ExchangeEnvironmentName    = 'O365GermanyCloud'
             }
             "AzureUSGovernment" {
-                $this.ConnectionUrl    = 'O365USGovGCCHigh'
+                $this.ExchangeEnvironmentName    = 'O365USGovGCCHigh'
             }
         }
 
@@ -276,6 +276,10 @@ class MicrosoftGraph:Workload
     $AccessToken
 
     [string]
+    [ValidateSet("China", "Global", "USGov", "USGovDoD", "Germany")]
+    $GraphEnvironment = "Global"
+
+    [string]
     [ValidateSet("v1.0", "beta")]
     $ProfileName = "v1.0"
 
@@ -304,16 +308,18 @@ class MicrosoftGraph:Workload
         switch ($this.EnvironmentName)
         {
             "AzureCloud" {
-                $this.ResourceUrl  = 'https://graph.microsoft.com/'
-                $this.Scope        = 'https://graph.microsoft.com/.default'
-                $this.TokenUrl     = "https://login.microsoftonline.com/$($this.TenantId)/oauth2/v2.0/token"
-                $this.UserTokenUrl = "https://login.microsoftonline.com/$($this.TenantId)/oauth2/v2.0/authorize"
+                $this.GraphEnvironment = 'Global'
+                $this.ResourceUrl      = 'https://graph.microsoft.com/'
+                $this.Scope            = 'https://graph.microsoft.com/.default'
+                $this.TokenUrl         = "https://login.microsoftonline.com/$($this.TenantId)/oauth2/v2.0/token"
+                $this.UserTokenUrl     = "https://login.microsoftonline.com/$($this.TenantId)/oauth2/v2.0/authorize"
             }
             "AzureUSGovernment" {
-                $this.ResourceUrl  = 'https://graph.microsoft.us/'
-                $this.Scope        = 'https://graph.microsoft.us/.default'
-                $this.TokenUrl     = "https://login.microsoftonline.us/$($this.TenantId)/oauth2/v2.0/token"
-                $this.UserTokenUrl = "https://login.microsoftonline.us/$($this.TenantId)/oauth2/v2.0/authorize"
+                $this.GraphEnvironment = 'USGov'
+                $this.ResourceUrl      = 'https://graph.microsoft.us/'
+                $this.Scope            = 'https://graph.microsoft.us/.default'
+                $this.TokenUrl         = "https://login.microsoftonline.us/$($this.TenantId)/oauth2/v2.0/token"
+                $this.UserTokenUrl     = "https://login.microsoftonline.us/$($this.TenantId)/oauth2/v2.0/authorize"
             }
         }
         Connect-MSCloudLoginMicrosoftGraph

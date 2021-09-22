@@ -105,8 +105,7 @@ function Connect-MSCloudLoginExchangeOnline
         {
             if ($_.Exception -like '*you must use multi-factor authentication to access*')
             {
-                Connect-MSCloudLoginExchangeOnlineMFA -Credentials $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Credentials `
-                    -ConnectionUrl $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ConnectionUrl
+                Connect-MSCloudLoginExchangeOnlineMFA -Credentials $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Credentials
             }
             else
             {
@@ -123,14 +122,11 @@ function Connect-MSCloudLoginExchangeOnlineMFA
     Param(
         [Parameter(Mandatory=$true)]
         [System.Management.Automation.PSCredential]
-        $Credentials,
-
-        [Parameter(Mandatory=$true)]
-        [System.String]
-        $ConnectionUrl
+        $Credentials
     )
-    $WarningPreference = 'SilentlyContinue'
+    $WarningPreference  = 'SilentlyContinue'
     $ProgressPreference = 'SilentlyContinue'
+    $VerbosePreference  = 'SilentlyContinue'
 
     try
     {
