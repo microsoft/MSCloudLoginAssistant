@@ -274,10 +274,22 @@ function Get-SPOAdminUrl
         $Credential
     )
 
-    Write-Verbose -Message "Connection to Azure AD is required to automatically determine SharePoint Online admin URL..."
-    Connect-M365Tenant -Workload 'AzureAD' -Credential $Credential
-    Write-Verbose -Message "Getting SharePoint Online admin URL..."
-    $defaultDomain = Get-AzureADDomain | Where-Object { $_.Name -like "*.onmicrosoft.com" -and $_.IsInitial -eq $true } # We don't use IsDefault here because the default could be a custom domain
+    Write-Verbose -Message "Connection to Microsoft Graph is required to automatically determine SharePoint Online admin URL..."
+    try
+    {
+        $defaultDomain = Get-MgDomain -ErrorAction Stop| Where-Object { $_.Id -like "*.onmicrosoft.com" -and $_.IsInitial -eq $true } # We don't use IsDefault here because the default could be a custom domain
+        if (-not $defaultDomain)
+        {
+            Write-Verbose -Message "Here!"
+            Connect-M365Tenant -Workload 'MicrosoftGraph' -Credential $Credential
+            [Array]$defaultDomain = Get-MgDomain | Where-Object { $_.Id -like "*.onmicrosoft.com" -and $_.IsInitial -eq $true } # We don't use IsDefault here because the default could be a custom domain
+        }
+    }
+    catch
+    {
+        Connect-M365Tenant -Workload 'MicrosoftGraph' -Credential $Credential
+        [Array]$defaultDomain = Get-MgDomain | Where-Object { $_.Id -like "*.onmicrosoft.com" -and $_.IsInitial -eq $true } # We don't use IsDefault here because the default could be a custom domain
+    }
 
     $Global:CloudEnvironmentInfo = Get-CloudEnvironmentInfo -Credentials $Credential `
         -ApplicationId $ApplicationId `
@@ -292,16 +304,16 @@ function Get-SPOAdminUrl
     {
         if ($Global:CloudEnvironment -eq 'Germany')
         {
-            $defaultDomain = Get-AzureADDomain | Where-Object { $_.Name -like "*.onmicrosoft.de" -and $_.IsInitial -eq $true }
+            [Array]$defaultDomain = Get-MgDomain | Where-Object { $_.Id -like "*.onmicrosoft.de" -and $_.IsInitial -eq $true }
             $domain = '.onmicrosoft.de'
-            $tenantName = $defaultDomain[0].Name.Replace($domain, '')
+            $tenantName = $defaultDomain.Id.Replace($domain, '')
             $spoAdminUrl = "https://$tenantName-admin.sharepoint.de"
         }
         elseif ($Global:CloudEnvironment -eq 'GCCHigh')
         {
-            $defaultDomain = Get-AzureADDomain | Where-Object { $_.Name -like "*.onmicrosoft.us" -and $_.IsInitial -eq $true }
+            [Array]$defaultDomain = Get-MgDomain | Where-Object { $_.Id -like "*.onmicrosoft.us" -and $_.IsInitial -eq $true }
             $domain = '.onmicrosoft.us'
-            $tenantName = $defaultDomain[0].Name.Replace($domain, '')
+            $tenantName = $defaultDomain.Id.Replace($domain, '')
             $spoAdminUrl = "https://$tenantName-admin.sharepoint.us"
         }
         Write-Verbose -Message "SharePoint Online admin URL is $spoAdminUrl"
@@ -310,7 +322,7 @@ function Get-SPOAdminUrl
     else
     {
         $domain = '.onmicrosoft.com'
-        $tenantName = $defaultDomain[0].Name.Replace($domain, '')
+        $tenantName = $defaultDomain.Id.Replace($domain, '')
         $extension = 'sharepoint.com'
         if ($Global:CloudEnvironment -eq 'Germany')
         {

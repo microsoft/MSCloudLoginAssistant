@@ -188,7 +188,14 @@ function Connect-MSCloudLoginPnP
         }
         elseif ($_.Exception -like "*AADSTS65001: The user or administrator has not consented to use the application with ID*")
         {
-            throw "The PnP.PowerShell Azure AD Application has not been granted access for this tenant. Please run 'Register-PnPManagementShellAccess' to grant access and try again after."
+            try
+            {
+                Connect-PnPOnline -UseWebLogin -Url $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl
+            }
+            catch
+            {
+                throw "The PnP.PowerShell Azure AD Application has not been granted access for this tenant. Please run 'Register-PnPManagementShellAccess' to grant access and try again after."
+            }
         }
         else
         {

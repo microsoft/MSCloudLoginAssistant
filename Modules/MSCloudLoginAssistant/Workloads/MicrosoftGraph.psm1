@@ -24,6 +24,7 @@ function Connect-MSCloudLoginMicrosoftGraph
     if ($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AuthenticationType -eq 'CredentialsWithApplicationId' -or
         $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AuthenticationType -eq 'Credentials')
     {
+        Write-Verbose -Message "Will try connecting with user credentials"
         Connect-MSCloudLoginMSGraphWithUser
     }
     else
@@ -74,8 +75,6 @@ function Connect-MSCloudLoginMSGraphWithUser
     [CmdletBinding()]
     Param()
 
-    
-
     if ($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Credentials.UserName -ne (Get-MgContext).Account)
     {
         Write-Verbose -Message "The current account that is connect doesn't match the one we're trying to authenticate with. Disconnecting from Graph."
@@ -104,20 +103,22 @@ function Connect-MSCloudLoginMSGraphWithUser
         client_id = $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationId
     }
     Write-Verbose -Message "Requesting Access Token for Microsoft Graph"
-    
+
     try
     {
         $OAuthReq = Invoke-RestMethod -Uri $url -Method Post -Body $body
         $AccessToken = $OAuthReq.access_token
 
-        Write-Verbose -Message "Connecting to Microsoft Graph"
-        Connect-MgGraph -AccessToken $AccessToken | Out-Null
+        Write-Verbose -Message "Connecting to Microsoft Graph - Environment {$($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment)}"
+        Connect-MgGraph -AccessToken $AccessToken `
+            -Environment $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment | Out-Null
         $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime         = [System.DateTime]::Now.ToString()
         $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.MultiFactorAuthentication = $false
         $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected                 = $true
     }
     catch
     {
+        Write-Verbose -Message "Error connecting - $_"
         Write-Verbose -Message "Connecting to Microsoft Graph interactively"
         Connect-MgGraph -Environment $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment
     }
