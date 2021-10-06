@@ -727,14 +727,13 @@ function Get-TenantDomain
         $CertificateThumbprint
     )
 
-    Test-MSCloudLogin -Platform AzureAD -ApplicationId $ApplicationId -TenantId $TenantId -CertificateThumbprint $CertificateThumbprint
+    Connect-M365Tenant -Workload MicrosoftGraph -ApplicationId $ApplicationId -TenantId $TenantId -CertificateThumbprint $CertificateThumbprint
 
-    $domain = Get-AzureADDomain  | where-object { $_.IsInitial -eq $True } | select Name
+    $domain = Get-MgDomain  | where-object { $_.IsInitial -eq $True }
 
     if ($null -ne $domain)
     {
-
-        return $domain.Name.split(".")[0]
+        return $domain.Id.split(".")[0]
     }
 }
 
@@ -754,16 +753,15 @@ function Get-MSCloudLoginOrganizationName
         $CertificateThumbprint
     )
 
-    Connect-M365Tenant -Workload AzureAD -ApplicationId $ApplicationId -TenantId $TenantId -CertificateThumbprint $CertificateThumbprint
+    Connect-M365Tenant -Workload MicrosoftGraph -ApplicationId $ApplicationId -TenantId $TenantId -CertificateThumbprint $CertificateThumbprint
 
     try
     {
-        $domain = Get-AzureADDomain -ErrorAction Stop | where-object { $_.IsInitial -eq $True } | Select-Object Name
+        $domain = Get-MgDomain -ErrorAction Stop | where-object { $_.IsInitial -eq $True }
 
         if ($null -ne $domain)
         {
-
-            return $domain.Name
+            return $domain.Id
         }
     }
     catch
