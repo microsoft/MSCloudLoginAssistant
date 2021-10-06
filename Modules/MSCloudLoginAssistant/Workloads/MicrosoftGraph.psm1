@@ -115,12 +115,25 @@ function Connect-MSCloudLoginMSGraphWithUser
         $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime         = [System.DateTime]::Now.ToString()
         $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.MultiFactorAuthentication = $false
         $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected                 = $true
+        $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AccessToken               = $AccessToken
     }
     catch
     {
-        Write-Verbose -Message "Error connecting - $_"
-        Write-Verbose -Message "Connecting to Microsoft Graph interactively"
-        Connect-MgGraph -Environment $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment
+        try
+        {
+            Write-Verbose -Message "Attempting to connect without specifying the Environment"
+            Connect-MgGraph -AccessToken $AccessToken | Out-Null
+            $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime         = [System.DateTime]::Now.ToString()
+            $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.MultiFactorAuthentication = $false
+            $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected                 = $true
+            $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AccessToken               = $AccessToken
+        }
+        catch
+        {
+            Write-Verbose -Message "Error connecting - $_"
+            Write-Verbose -Message "Connecting to Microsoft Graph interactively"
+            Connect-MgGraph -Environment $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment
+        }
     }
 }
 
