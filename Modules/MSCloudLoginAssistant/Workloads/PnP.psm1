@@ -16,11 +16,11 @@ function Connect-MSCloudLoginPnP
         return
     }
 
-    if (-not $ForceRefreshConnection)
+    if ($psversiontable.PSVersion.Major -ge 7 -or $ForceRefreshConnection)
     {
         try
         {
-            $commandResult = Get-PnPAlert -ErrorAction 'Stop'
+            Get-PnPAlert -ErrorAction 'Stop' | Out-Null
             Write-Verbose -Message "Retrieved results from the command. Not re-connecting to PnP."
             $Global:MSCloudLoginConnectionProfile.PnP.Connected = $true
             return
@@ -28,6 +28,11 @@ function Connect-MSCloudLoginPnP
         catch
         {
             Write-Verbose -Message "Couldn't get results back from the command"
+            Write-Verbose -Message "Using PowerShell 7 or above. Loading the PnP.PowerShell module using Windows PowerShell."
+            if ($psversiontable.PSVersion.Major -ge 7)
+            {
+                Import-Module PnP.PowerShell -UseWindowsPowerShell -Global -Force | Out-Null
+            }
         }
     }
 
