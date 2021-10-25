@@ -132,7 +132,26 @@ function Connect-MSCloudLoginMSGraphWithUser
         {
             Write-Verbose -Message "Error connecting - $_"
             Write-Verbose -Message "Connecting to Microsoft Graph interactively"
-            Connect-MgGraph -Environment $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment
+
+            try
+            {
+                Connect-MgGraph -Environment $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment
+                $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected = $true
+            }
+            catch
+            {
+                $error = $_
+                if ($error -like "*\.graph\GraphContext.json*")
+                {
+                    $pathStart = $error.ToString().IndexOf("to file at '", 0) + 12
+                    $pathEnd = $error.ToString().IndexOf("'", $pathStart)
+                    $path = $error.ToString().Substring($pathStart, $pathEnd - $pathStart)
+
+                    New-Item $path -Force | Out-Null
+                    Connect-MgGraph -Environment $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment
+                    $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected = $true
+                }
+            }
         }
     }
 }
