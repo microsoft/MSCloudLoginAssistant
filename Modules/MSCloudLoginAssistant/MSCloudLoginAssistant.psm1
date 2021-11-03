@@ -228,7 +228,7 @@ function Connect-M365Tenant
 
             # Mark as disconnected if we are trying to connect to a different url then we previously connected to.
             if ($Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl -ne $Url -or `
-                $null -eq $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl)
+                -not $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl)
             {
                 $ForceRefresh = $false
                 if ($Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl -ne $Url)
