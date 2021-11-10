@@ -228,7 +228,8 @@ function Connect-M365Tenant
 
             # Mark as disconnected if we are trying to connect to a different url then we previously connected to.
             if ($Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl -ne $Url -or `
-                -not $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl)
+                -not $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl -and `
+                $Url -or (-not $Url -and -not $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl))
             {
                 $ForceRefresh = $false
                 if ($Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl -ne $Url)
@@ -238,6 +239,38 @@ function Connect-M365Tenant
                 $Global:MSCloudLoginConnectionProfile.PnP.Connected     = $false
                 $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl = $Url
                 $Global:MSCloudLoginConnectionProfile.PnP.Connect($ForceRefresh)
+            }
+            else
+            {
+                try
+                {
+                    $contextUrl = (Get-PnPContext).Url
+                    if ($contextUrl -ne $Url)
+                    {
+                        $ForceRefresh = $true
+                        $Global:MSCloudLoginConnectionProfile.PnP.Connected     = $false
+                        if ($url)
+                        {
+                            $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl = $Url
+                        }
+                        else
+                        {
+                            $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl = $Global:MSCloudLoginConnectionProfile.PnP.AdminUrl
+                        }
+                        $Global:MSCloudLoginConnectionProfile.PnP.Connect($ForceRefresh)
+                    }
+                }
+                catch
+                {
+                    Write-Information -Message "Couldn't acquire PnP Context"
+                }
+            }
+
+            # If the AdminUrl is empty and a URL was provided, assume that the url
+            # provided is the admin center;
+            if (-not $Global:MSCloudLoginConnectionProfile.PnP.AdminUrl -and $Url)
+            {
+                $Global:MSCloudLoginConnectionProfile.PnP.AdminUrl = $Url
             }
         }
         'PowerPlatforms'
@@ -273,14 +306,12 @@ function Get-SPOAdminUrl
         [System.Management.Automation.PSCredential]
         $Credential
     )
-
     Write-Verbose -Message "Connection to Microsoft Graph is required to automatically determine SharePoint Online admin URL..."
     try
     {
         $defaultDomain = Get-MgDomain -ErrorAction Stop| Where-Object { $_.Id -like "*.onmicrosoft.com" -and $_.IsInitial -eq $true } # We don't use IsDefault here because the default could be a custom domain
         if (-not $defaultDomain)
         {
-            Write-Verbose -Message "Here!"
             Connect-M365Tenant -Workload 'MicrosoftGraph' -Credential $Credential
             [Array]$defaultDomain = Get-MgDomain | Where-Object { $_.Id -like "*.onmicrosoft.com" -and $_.IsInitial -eq $true } # We don't use IsDefault here because the default could be a custom domain
         }
