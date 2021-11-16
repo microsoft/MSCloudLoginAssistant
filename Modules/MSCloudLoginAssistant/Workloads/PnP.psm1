@@ -16,7 +16,7 @@ function Connect-MSCloudLoginPnP
         return
     }
 
-    if ($psversiontable.PSVersion.Major -ge 7 -and -not $ForceRefreshConnection)
+    if ($psversiontable.PSVersion.Major -ge 7)
     {
         try
         {
@@ -80,7 +80,7 @@ function Connect-MSCloudLoginPnP
             if (-not $Url)
             {
                 Write-Information -Message "Connecting with Service Principal - Thumbprint"
-                Write-Information -Message "URL: $Url"                
+                Write-Information -Message "URL: $Url"
                 Write-Information -Message "ConnectionUrl: $($Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl)"
                 Connect-PnPOnline -Url $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl `
                     -ClientId $Global:MSCloudLoginConnectionProfile.PnP.ApplicationId `
@@ -91,7 +91,7 @@ function Connect-MSCloudLoginPnP
             elseif ($Global:MSCloudLoginConnectionProfile.PnP.AdminUrl)
             {
                 Write-Information -Message "Connecting with Service Principal - Thumbprint"
-                Write-Information -Message "URL: $Url"                
+                Write-Information -Message "URL: $Url"
                 Write-Information -Message "AdminUrl: $($Global:MSCloudLoginConnectionProfile.PnP.AdminUrl)"
                 Connect-PnPOnline -Url $Global:MSCloudLoginConnectionProfile.PnP.AdminUrl `
                     -ClientId $Global:MSCloudLoginConnectionProfile.PnP.ApplicationId `
@@ -109,7 +109,7 @@ function Connect-MSCloudLoginPnP
             if ($Url)
             {
                 Write-Information -Message "Connecting with Service Principal - Path"
-                Write-Information -Message "URL: $Url"                
+                Write-Information -Message "URL: $Url"
                 Write-Information -Message "ConnectionUrl: $($Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl)"
                 Connect-PnPOnline -Url $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl `
                     -ClientId $Global:MSCloudLoginConnectionProfile.PnP.ApplicationId `
@@ -121,7 +121,7 @@ function Connect-MSCloudLoginPnP
             else
             {
                 Write-Information -Message "Connecting with Service Principal - Path"
-                Write-Information -Message "URL: $Url"                
+                Write-Information -Message "URL: $Url"
                 Write-Information -Message "AdminUrl: $($Global:MSCloudLoginConnectionProfile.PnP.AdminUrl)"
                 Connect-PnPOnline -Url $Global:MSCloudLoginConnectionProfile.PnP.AdminUrl `
                     -ClientId $Global:MSCloudLoginConnectionProfile.PnP.ApplicationId `
@@ -140,7 +140,7 @@ function Connect-MSCloudLoginPnP
             if ($Url)
             {
                 Write-Information -Message "Connecting with Service Principal - Secret"
-                Write-Information -Message "URL: $Url"                
+                Write-Information -Message "URL: $Url"
                 Write-Information -Message "ConnectionUrl: $($Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl)"
                 Connect-PnPOnline -Url $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl `
                     -ClientId $Global:MSCloudLoginConnectionProfile.PnP.ApplicationId `
@@ -151,7 +151,7 @@ function Connect-MSCloudLoginPnP
             else
             {
                 Write-Information -Message "Connecting with Service Principal - Secret"
-                Write-Information -Message "URL: $Url"                
+                Write-Information -Message "URL: $Url"
                 Write-Information -Message "AdminUrl: $($Global:MSCloudLoginConnectionProfile.PnP.AdminUrl)"
                 Connect-PnPOnline -Url $Global:MSCloudLoginConnectionProfile.PnP.AdminUrl `
                     -ClientId $Global:MSCloudLoginConnectionProfile.PnP.ApplicationId `
@@ -168,7 +168,7 @@ function Connect-MSCloudLoginPnP
             if ($Url)
             {
                 Write-Information -Message "Connecting with Credentials"
-                Write-Information -Message "URL: $Url"                
+                Write-Information -Message "URL: $Url"
                 Write-Information -Message "ConnectionUrl: $($Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl)"
                 Connect-PnPOnline -Url $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl `
                     -Credentials $Global:MSCloudLoginConnectionProfile.PnP.Credentials `
@@ -177,7 +177,7 @@ function Connect-MSCloudLoginPnP
             else
             {
                 Write-Information -Message "Connecting with Credentials"
-                Write-Information -Message "URL: $Url"                
+                Write-Information -Message "URL: $Url"
                 Write-Information -Message "AdminUrl: $($Global:MSCloudLoginConnectionProfile.PnP.AdminUrl)"
                 Connect-PnPOnline -Url $Global:MSCloudLoginConnectionProfile.PnP.AdminUrl `
                     -Credentials $Global:MSCloudLoginConnectionProfile.PnP.Credentials `
@@ -238,7 +238,7 @@ function Connect-MSCloudLoginPnP
                             -AccessToken $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl.AccessToken
                     }
                     else
-                    {                    
+                    {
                         Connect-PnPOnline -Url $Global:MSCloudLoginConnectionProfile.PnP.AdminUrl `
                             -AccessToken $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl.AccessToken
                     }
