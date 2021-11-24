@@ -291,7 +291,7 @@ function Connect-MSCloudLoginPnP
         }
         else
         {
-            $Global:MSCloudLoginConnectionProfile.PnP.Connect = $false
+            $Global:MSCloudLoginConnectionProfile.PnP.connected = $false
 
             $message = "An error has occurred $($_.Exception.Message)"
             throw $message
