@@ -13,6 +13,11 @@ function Connect-MSCloudLoginPowerPlatform
 
     try
     {
+        if ($psversiontable.PSVersion.Major -ge 7)
+        {
+            Write-Verbose -Message "Using PowerShell 7 or above. Loading the Microsoft.PowerApps.Administration.PowerShell module using Windows PowerShell."
+            Import-Module Microsoft.PowerApps.Administration.PowerShell -UseWindowsPowerShell -Global -DisableNameChecking | Out-Null
+        }
         if ($Global:MSCloudLoginConnectionProfile.PowerPlatform.EnvironmentName -eq 'AzureGermany')
         {
             Write-Warning 'Microsoft PowerPlatform is not supported in the Germany Cloud'
