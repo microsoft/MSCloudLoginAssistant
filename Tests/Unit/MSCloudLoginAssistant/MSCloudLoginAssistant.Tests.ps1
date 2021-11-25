@@ -233,6 +233,28 @@ Describe -Name $Global:DscHelper.DescribeHeader -Fixture {
                 Test-MSCloudLogin @testParams | Assert-MockCalled -CommandName Invoke-Expression
             }
         }
+
+        Context -Name "Connecting to MicrosoftTeams for the second time" -Fixture {
+            $CallNumber = 0
+            Mock -CommandName Invoke-Expression -MockWith {
+                if ($CallNumber -eq 0)
+                {
+                    $CallNumber++
+                }
+            }
+            Mock -CommandName Get-CsTeamsCallingPolicy -MockWith {
+                "Success"
+            }
+
+            $testParams = @{
+                Platform        = "MicrosoftTeams"
+                CloudCredential = $GlobalAdminAccount
+            }
+
+            It 'Should Call the Login Method successfully but not attempt reconnect' {
+                Test-MSCloudLogin @testParams | Assert-MockCalled -CommandName Get-PSSession -Times 0
+            }
+        }
     }
 }
 
