@@ -22,7 +22,7 @@ function Connect-MSCloudLoginTeams
         if ($null -ne $results)
         {
             Write-Verbose -Message "Succeeded"
-            $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connected = $true
+            $Global:MSCloudLoginConnectionProfile.Teams.Connected = $true
             return
         }
     }
