@@ -319,7 +319,16 @@ function Get-SPOAdminUrl
     catch
     {
         Connect-M365Tenant -Workload 'MicrosoftGraph' -Credential $Credential
-        [Array]$defaultDomain = Get-MgDomain | Where-Object { $_.Id -like "*.onmicrosoft.com" -and $_.IsInitial -eq $true } # We don't use IsDefault here because the default could be a custom domain
+        try
+        {
+            [Array]$defaultDomain = Get-MgDomain -ErrorAction Stop | Where-Object { $_.Id -like "*.onmicrosoft.com" -and $_.IsInitial -eq $true }
+        }
+        catch
+        {
+            Write-Verbose -Message "Requesting access to read information about the domain"
+            Connect-MgGraph -Scopes Domain.Read.All
+            [Array]$defaultDomain = Get-MgDomain | Where-Object { $_.Id -like "*.onmicrosoft.com" -and $_.IsInitial -eq $true }
+        }
     }
 
     $Global:CloudEnvironmentInfo = Get-CloudEnvironmentInfo -Credentials $Credential `
