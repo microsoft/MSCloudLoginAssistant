@@ -118,8 +118,11 @@ function Connect-MSCloudLoginMSGraphWithUser
         $AccessToken = $OAuthReq.access_token
 
         Write-Verbose -Message "Connecting to Microsoft Graph - Environment {$($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment)}"
+
+        # Domain.Read.All permission Scope is required to get the domain name for the SPO Admin Center.
         Connect-MgGraph -AccessToken $AccessToken `
-            -Environment $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment | Out-Null
+            -Environment $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment `
+            -Scopes 'Domain.Read.All' | Out-Null
         $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime         = [System.DateTime]::Now.ToString()
         $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.MultiFactorAuthentication = $false
         $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected                 = $true
@@ -143,7 +146,8 @@ function Connect-MSCloudLoginMSGraphWithUser
 
             try
             {
-                Connect-MgGraph -Environment $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment
+                Connect-MgGraph -Environment $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment `
+                    -Scopes 'Domain.Read.All'| Out-Null
                 $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected = $true
             }
             catch
@@ -156,7 +160,8 @@ function Connect-MSCloudLoginMSGraphWithUser
                     $path = $error.ToString().Substring($pathStart, $pathEnd - $pathStart)
 
                     New-Item $path -Force | Out-Null
-                    Connect-MgGraph -Environment $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment
+                    Connect-MgGraph -Environment $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment `
+                        -Scopes 'Domain.Read.All'| Out-Null
                     $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected = $true
                 }
             }
