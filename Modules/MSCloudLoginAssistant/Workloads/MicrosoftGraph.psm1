@@ -41,9 +41,21 @@ function Connect-MSCloudLoginMicrosoftGraph
         {
             if ($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AuthenticationType -eq 'ServicePrincipalWithThumbprint')
             {
-                Connect-MgGraph -ClientId $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationId `
-                    -TenantId $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.TenantId `
-                    -CertificateThumbprint $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.CertificateThumbprint | Out-Null
+                try
+                {
+                    Connect-MgGraph -ClientId $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationId `
+                        -TenantId $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.TenantId `
+                        -CertificateThumbprint $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.CertificateThumbprint `
+                        -ErrorAction Stop | Out-Null
+                }
+                catch
+                {
+                    # Check into the localmachine store
+                    $cert = Get-ChildItem "Cert:\LocalMachine\My\$($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.CertificateThumbprint)"
+                    Connect-MgGraph -ClientId $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationId `
+                        -TenantId $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.TenantId `
+                        -Certificate $cert | Out-Null
+                }
                 $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime         = [System.DateTime]::Now.ToString()
                 $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.MultiFactorAuthentication = $false
                 $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected                 = $true
