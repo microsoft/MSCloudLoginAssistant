@@ -41,9 +41,21 @@ function Connect-MSCloudLoginMicrosoftGraph
         {
             if ($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AuthenticationType -eq 'ServicePrincipalWithThumbprint')
             {
-                Connect-MgGraph -ClientId $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationId `
-                    -TenantId $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.TenantId `
-                    -CertificateThumbprint $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.CertificateThumbprint | Out-Null
+                try
+                {
+                    Connect-MgGraph -ClientId $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationId `
+                        -TenantId $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.TenantId `
+                        -CertificateThumbprint $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.CertificateThumbprint `
+                        -ErrorAction Stop | Out-Null
+                }
+                catch
+                {
+                    # Check into the localmachine store
+                    $cert = Get-ChildItem "Cert:\LocalMachine\My\$($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.CertificateThumbprint)"
+                    Connect-MgGraph -ClientId $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationId `
+                        -TenantId $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.TenantId `
+                        -Certificate $cert | Out-Null
+                }
                 $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime         = [System.DateTime]::Now.ToString()
                 $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.MultiFactorAuthentication = $false
                 $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected                 = $true
@@ -118,8 +130,11 @@ function Connect-MSCloudLoginMSGraphWithUser
         $AccessToken = $OAuthReq.access_token
 
         Write-Verbose -Message "Connecting to Microsoft Graph - Environment {$($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment)}"
+
+        # Domain.Read.All permission Scope is required to get the domain name for the SPO Admin Center.
         Connect-MgGraph -AccessToken $AccessToken `
-            -Environment $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment | Out-Null
+            -Environment $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment `
+            -Scopes 'Domain.Read.All' | Out-Null
         $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime         = [System.DateTime]::Now.ToString()
         $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.MultiFactorAuthentication = $false
         $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected                 = $true
@@ -143,7 +158,8 @@ function Connect-MSCloudLoginMSGraphWithUser
 
             try
             {
-                Connect-MgGraph -Environment $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment
+                Connect-MgGraph -Environment $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment `
+                    -Scopes 'Domain.Read.All'| Out-Null
                 $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected = $true
             }
             catch
@@ -156,7 +172,8 @@ function Connect-MSCloudLoginMSGraphWithUser
                     $path = $error.ToString().Substring($pathStart, $pathEnd - $pathStart)
 
                     New-Item $path -Force | Out-Null
-                    Connect-MgGraph -Environment $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment
+                    Connect-MgGraph -Environment $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment `
+                        -Scopes 'Domain.Read.All'| Out-Null
                     $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected = $true
                 }
             }

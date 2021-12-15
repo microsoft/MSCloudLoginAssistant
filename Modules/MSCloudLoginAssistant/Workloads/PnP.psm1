@@ -282,7 +282,10 @@ function Connect-MSCloudLoginPnP
         {
             try
             {
+                Register-PnPManagementShellAccess
                 Connect-PnPOnline -UseWebLogin -Url $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl
+                $Global:MSCloudLoginConnectionProfile.PnP.Connected                 = $true
+                $Global:MSCloudLoginConnectionProfile.PnP.ConnectedDateTime         = [System.DateTime]::Now.ToString()
             }
             catch
             {
