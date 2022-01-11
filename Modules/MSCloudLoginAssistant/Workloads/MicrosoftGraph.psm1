@@ -133,8 +133,7 @@ function Connect-MSCloudLoginMSGraphWithUser
 
         # Domain.Read.All permission Scope is required to get the domain name for the SPO Admin Center.
         Connect-MgGraph -AccessToken $AccessToken `
-            -Environment $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment `
-            -Scopes 'Domain.Read.All' | Out-Null
+            -Environment $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment
         $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime         = [System.DateTime]::Now.ToString()
         $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.MultiFactorAuthentication = $false
         $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected                 = $true
