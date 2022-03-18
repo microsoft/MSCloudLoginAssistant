@@ -327,7 +327,7 @@ class MicrosoftGraph:Workload
                 $this.UserTokenUrl     = "https://login.microsoftonline.us/$($this.TenantId)/oauth2/v2.0/authorize"
             }
             "AzureDOD" {
-                $this.GraphEnvironment = 'USGov'
+                $this.GraphEnvironment = 'USGovDoD'
                 $this.ResourceUrl      = 'https://dod-graph.microsoft.us/'
                 $this.Scope            = 'https://dod-graph.microsoft.us/.default'
                 $this.TokenUrl         = "https://login.microsoftonline.us/$($this.TenantId)/oauth2/v2.0/token"
