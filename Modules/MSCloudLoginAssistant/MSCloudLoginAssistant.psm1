@@ -356,6 +356,13 @@ function Get-SPOAdminUrl
             $tenantName = $defaultDomain.Id.Replace($domain, '')
             $spoAdminUrl = "https://$tenantName-admin.sharepoint.us"
         }
+        elseif ($Global:CloudEnvironment -eq 'DOD')
+        {
+            [Array]$defaultDomain = Get-MgDomain | Where-Object { $_.Id -like "*.onmicrosoft.us" -and $_.IsInitial -eq $true }
+            $domain = '.onmicrosoft.us'
+            $tenantName = $defaultDomain.Id.Replace($domain, '')
+            $spoAdminUrl = "https://$tenantName-admin.sharepoint-mil.us"
+        }
         Write-Verbose -Message "SharePoint Online admin URL is $spoAdminUrl"
         return $spoAdminUrl
     }

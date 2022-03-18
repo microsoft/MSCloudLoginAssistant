@@ -66,7 +66,7 @@ class Workload
     $Credentials
 
     [string]
-    [ValidateSet('AzureCloud', 'AzureChinaCloud', 'AzureGermanyCloud', 'AzureUSGovernment')]
+    [ValidateSet('AzureCloud', 'AzureChinaCloud', 'AzureGermanyCloud', 'AzureUSGovernment','AzureDOD')]
     $EnvironmentName
 
     [boolean]
@@ -124,9 +124,9 @@ class Workload
             {
                 $this.EnvironmentName = 'AzureGermanyCloud'
             }
-            elseif ($domain -like '*.us')
+            elseif ($domain -like '*.mil')
             {
-                $this.EnvironmentName = 'AzureUSGovernment'
+                $this.EnvironmentName = 'AzureDOD'
             }
             else
             {
@@ -219,6 +219,9 @@ class ExchangeOnline:Workload
             "AzureGermanyCloud" {
                 $this.ExchangeEnvironmentName    = 'O365GermanyCloud'
             }
+            "AzureDOD" {
+                $this.ExchangeEnvironmentName    = 'O365USGovDoD'
+            }
             "AzureUSGovernment" {
                 $this.ExchangeEnvironmentName    = 'O365USGovGCCHigh'
             }
@@ -261,6 +264,11 @@ class Intune:Workload
                 $this.AuthorizationUrl = "https://login.microsoftonline.us/oauth/v2.0/token/$($this.TenantId)"
                 $this.GraphResourceId  = 'https://graph.microsoft.us/'
                 $this.GraphBaseUrl     = 'https://graph.microsoft.us'
+            }
+            "AzureDOD" {
+                $this.AuthorizationUrl = "https://login.microsoftonline.us/oauth/v2.0/token/$($this.TenantId)"
+                $this.GraphResourceId  = 'https://dod-graph.microsoft.us/'
+                $this.GraphBaseUrl     = 'https://dod-graph.microsoft.us'
             }
         }
         Connect-MSCloudLoginIntune
@@ -318,6 +326,13 @@ class MicrosoftGraph:Workload
                 $this.TokenUrl         = "https://login.microsoftonline.us/$($this.TenantId)/oauth2/v2.0/token"
                 $this.UserTokenUrl     = "https://login.microsoftonline.us/$($this.TenantId)/oauth2/v2.0/authorize"
             }
+            "AzureDOD" {
+                $this.GraphEnvironment = 'USGov'
+                $this.ResourceUrl      = 'https://dod-graph.microsoft.us/'
+                $this.Scope            = 'https://dod-graph.microsoft.us/.default'
+                $this.TokenUrl         = "https://login.microsoftonline.us/$($this.TenantId)/oauth2/v2.0/token"
+                $this.UserTokenUrl     = "https://login.microsoftonline.us/$($this.TenantId)/oauth2/v2.0/authorize"
+            }
         }
         Connect-MSCloudLoginMicrosoftGraph
     }
@@ -365,6 +380,10 @@ class PnP:Workload
         elseif ($this.EnvironmentName -eq 'AzureUSGovernment')
         {
             $this.PnPAzureEnvironment = 'USGovernmentHigh'
+        }
+        elseif ($this.EnvironmentName -eq 'AzureDOD')
+        {
+            $this.PnPAzureEnvironment = 'USGovernmentDoD'
         }
         elseif ($this.EnvironmentName -eq 'AzureGermany')
         {
@@ -416,6 +435,11 @@ class SecurityComplianceCenter:Workload
             "AzureUSGovernment"
             {
                 $this.ConnectionUrl = 'https://ps.compliance.protection.office365.us/powershell-liveid/'
+                $this.AuthorizationUrl = 'https://login.microsoftonline.us/organizations'
+            }
+            "AzureDOD"
+            {
+                $this.ConnectionUrl = 'https://l5.ps.compliance.protection.office365.us/powershell-liveid/'
                 $this.AuthorizationUrl = 'https://login.microsoftonline.us/organizations'
             }
             "AzureGermany"
