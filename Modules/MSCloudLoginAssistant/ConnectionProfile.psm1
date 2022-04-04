@@ -121,7 +121,7 @@ class Workload
                     $Global:CloudEnvironmentInfo = Get-CloudEnvironmentInfo -ApplicationId $this.ApplicationId -TenantId $this.TenantId -CertificateThumbprint $this.CertificateThumbprint
                 }
             }
-            switch ($Global:CloudEnvironmentInfo.EnvironmentName)
+            switch ($Global:CloudEnvironmentInfo.tenant_region_sub_scope)
             {
                 "AzureGermanyCloud"
                 {
@@ -131,7 +131,7 @@ class Workload
                 {
                     $this.EnvironmentName = 'AzureDOD'
                 }
-                "USGov"
+                "DODCON"
                 {
                     $this.EnvironmentName = 'AzureUSGovernment'
                 }

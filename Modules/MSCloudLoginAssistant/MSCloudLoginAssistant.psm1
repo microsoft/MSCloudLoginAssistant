@@ -335,7 +335,7 @@ function Get-SPOAdminUrl
         -ApplicationId $ApplicationId `
         -TenantId $TenantId `
         -CertificateThumbprint $CertificateThumbprint
-    if ($Global:CloudEnvironmentInfo.tenant_region_scope -eq 'USGov')
+    if ($Global:CloudEnvironmentInfo.tenant_region_sub_scope -eq 'DODCON')
     {
         $Global:CloudEnvironment = 'GCCHigh'
     }
