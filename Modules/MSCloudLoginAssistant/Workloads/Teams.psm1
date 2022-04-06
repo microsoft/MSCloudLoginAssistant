@@ -150,6 +150,10 @@ function Connect-MSCloudLoginTeamsMFA
         {
             $ConnectionParams.Add("TeamsEnvironmentName", "TeamsGCCH")
         }
+        if ($Global:MSCloudLoginConnectionProfile.Teams.EnvironmentName -eq 'USGovernmentDoD')
+        {
+            $ConnectionParams.Add("TeamsEnvironmentName", 'TeamsDOD')
+        }
         Write-Verbose -Message "Disconnecting from Microsoft Teams"
         Disconnect-MicrosoftTeams | Out-Null
 
