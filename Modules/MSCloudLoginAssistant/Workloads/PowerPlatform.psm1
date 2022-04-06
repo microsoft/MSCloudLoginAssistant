@@ -24,7 +24,7 @@ function Connect-MSCloudLoginPowerPlatform
             return
         }
 
-        switch ($Global:MSCloudLoginConnectionProfile.tenant_region_sub_scope)
+        switch ($Global:CloudEnvironmentInfo.tenant_region_sub_scope)
         {
             'DODCON'{
                 $Global:MSCloudLoginConnectionProfile.PowerPlatform.Endpoint = 'usgovhigh'
