@@ -24,10 +24,16 @@ function Connect-MSCloudLoginPowerPlatform
             return
         }
 
-        switch ($Global:MSCloudLoginConnectionProfile.PowerPlatform.EnvironmentName)
+        switch ($Global:MSCloudLoginConnectionProfile.tenant_region_sub_scope)
         {
-            'AzureUSGovernment'{
+            'DODCON'{
                 $Global:MSCloudLoginConnectionProfile.PowerPlatform.Endpoint = 'usgovhigh'
+            }
+            'DOD'{
+                $Global:MSCloudLoginConnectionProfile.PowerPlatform.Endpoint = 'dod'
+            }
+            'GCC'{
+                $Global:MSCloudLoginConnectionProfile.PowerPlatform.Endpoint = 'usgov'
             }
         }
 
