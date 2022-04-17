@@ -742,10 +742,9 @@ function Get-CloudEnvironmentInfo
         }
         else
         {
-            $tenantName = Get-MSCloudLoginOrganizationName -ApplicationId $ApplicationId `
-                -TenantId $TenantId `
-                -CertificateThumbprint $CertificateThumbprint
+            $tenantName = $TenantId `
         }
+        ## endpoint will work with TenantId or tenantName
         $response = Invoke-WebRequest -Uri "https://login.microsoftonline.com/$tenantName/v2.0/.well-known/openid-configuration" -Method Get -UseBasicParsing
 
         $content = $response.Content
