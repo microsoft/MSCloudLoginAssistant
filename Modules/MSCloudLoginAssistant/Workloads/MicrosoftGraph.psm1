@@ -55,6 +55,7 @@ function Connect-MSCloudLoginMicrosoftGraph
                     $cert = Get-ChildItem "Cert:\LocalMachine\My\$($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.CertificateThumbprint)"
                     Connect-MgGraph -ClientId $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationId `
                         -TenantId $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.TenantId `
+                        -Environment $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment `
                         -Certificate $cert | Out-Null
                 }
                 $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime         = [System.DateTime]::Now.ToString()
