@@ -46,6 +46,7 @@ function Connect-MSCloudLoginMicrosoftGraph
                     Connect-MgGraph -ClientId $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationId `
                         -TenantId $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.TenantId `
                         -CertificateThumbprint $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.CertificateThumbprint `
+                        -Environment $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment `
                         -ErrorAction Stop | Out-Null
                 }
                 catch
