@@ -95,32 +95,12 @@ class Workload
         # Determine the environment name based on email
         if ($null -eq $this.EnvironmentName)
         {
-            $domain = $null
             if ($null -ne $this.Credentials)
             {
-                $domain = $this.Credentials.UserName.Split('@')[1]
                 $Global:CloudEnvironmentInfo = Get-CloudEnvironmentInfo -Credentials $this.Credentials
             }
             elseif ($this.ApplicationID)
             {
-                if ($null -eq $Global:AttemptedToGetOrganizationName)
-                {
-                    $Global:AttemptedToGetOrganizationName = $true
-
-                    if ([System.String]::IsNullOrEmpty($this.CertificateThumbprint))
-                    {
-                        $domain = $this.TenantId
-                    }
-                    else
-                    {
-                        <#
-                        $domain = Get-MSCloudLoginOrganizationName `
-                            -ApplicationId $this.ApplicationId `
-                            -TenantId $this.TenantId `
-                            -CertificateThumbprint $this.CertificateThumbprint
-                        #>
-                    }
-                }
                 $Global:CloudEnvironmentInfo = Get-CloudEnvironmentInfo -ApplicationId $this.ApplicationId -TenantId $this.TenantId -CertificateThumbprint $this.CertificateThumbprint
             }
 
