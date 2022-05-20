@@ -38,15 +38,15 @@ class MSCloudLoginConnectionProfile
         $this.CreatedTime = [System.DateTime]::Now.ToString()
 
         # Workloads Object Creation
-        $this.Azure                    = New-Object Azure
-        $this.AzureAD                  = New-Object AzureAD
-        $this.ExchangeOnline           = New-Object ExchangeOnline
-        $this.Intune                   = New-Object Intune
-        $this.MicrosoftGraph           = New-Object MicrosoftGraph
-        $this.PnP                      = New-Object PnP
-        $this.PowerPlatform            = New-Object PowerPlatform
+        $this.Azure = New-Object Azure
+        $this.AzureAD = New-Object AzureAD
+        $this.ExchangeOnline = New-Object ExchangeOnline
+        $this.Intune = New-Object Intune
+        $this.MicrosoftGraph = New-Object MicrosoftGraph
+        $this.PnP = New-Object PnP
+        $this.PowerPlatform = New-Object PowerPlatform
         $this.SecurityComplianceCenter = New-Object SecurityComplianceCenter
-        $this.Teams                    = New-Object Teams
+        $this.Teams = New-Object Teams
     }
 }
 
@@ -66,7 +66,7 @@ class Workload
     $Credentials
 
     [string]
-    [ValidateSet('AzureCloud', 'AzureChinaCloud', 'AzureGermanyCloud', 'AzureUSGovernment')]
+    [ValidateSet('AzureCloud', 'AzureChinaCloud', 'AzureGermanyCloud', 'AzureUSGovernment', 'AzureDOD')]
     $EnvironmentName
 
     [boolean]
@@ -95,45 +95,37 @@ class Workload
         # Determine the environment name based on email
         if ($null -eq $this.EnvironmentName)
         {
-            $domain = $null
             if ($null -ne $this.Credentials)
             {
-                $domain = $this.Credentials.UserName.Split('@')[1]
+                $Global:CloudEnvironmentInfo = Get-CloudEnvironmentInfo -Credentials $this.Credentials
             }
             elseif ($this.ApplicationID)
             {
-                if ($null -eq $Global:AttemptedToGetOrganizationName)
-                {
-                    $Global:AttemptedToGetOrganizationName = $true
+                $Global:CloudEnvironmentInfo = Get-CloudEnvironmentInfo -ApplicationId $this.ApplicationId -TenantId $this.TenantId -CertificateThumbprint $this.CertificateThumbprint
+            }
 
-                    if ([System.String]::IsNullOrEmpty($this.CertificateThumbprint))
-                    {
-                        $domain = $this.TenantId
-                    }
-                    else
-                    {
-                        $domain = Get-MSCloudLoginOrganizationName `
-                                -ApplicationId $this.ApplicationId `
-                                -TenantId $this.TenantId `
-                                -CertificateThumbprint $this.CertificateThumbprint
-                    }
+            Write-Verbose "Set environment to $Global:CloudEnvironmentInfo.tenant_region_sub_scope"
+
+            switch ($Global:CloudEnvironmentInfo.tenant_region_sub_scope)
+            {
+                "AzureGermanyCloud"
+                {
+                    $this.EnvironmentName = 'O365GermanyCloud'
+                }
+                "DOD"
+                {
+                    $this.EnvironmentName = 'AzureDOD'
+                }
+                "DODCON"
+                {
+                    $this.EnvironmentName = 'AzureUSGovernment'
+                }
+                default
+                {
+                    $this.EnvironmentName = 'AzureCloud'
                 }
             }
-
-            if ($domain -like '*.de')
-            {
-                $this.EnvironmentName = 'AzureGermanyCloud'
-            }
-            elseif ($domain -like '*.us')
-            {
-                $this.EnvironmentName = 'AzureUSGovernment'
-            }
-            else
-            {
-                $this.EnvironmentName = 'AzureCloud'
-            }
         }
-
         # Determine the Authentication Type
         if ($this.ApplicationId -and $this.TenantId -and $this.CertificateThumbprint)
         {
@@ -177,9 +169,11 @@ class Azure:Workload
     $UseModernAuthentication
 
     Azure()
-    {}
+    {
+    }
 
-    [void] Connect() {
+    [void] Connect()
+    {
         ([Workload]$this).Setup()
         Connect-MSCloudLoginAzure
     }
@@ -188,9 +182,11 @@ class Azure:Workload
 class AzureAD:Workload
 {
     AzureAD()
-    {}
+    {
+    }
 
-    [void] Connect() {
+    [void] Connect()
+    {
         ([Workload]$this).Setup()
         Connect-MSCloudLoginAzureAD
     }
@@ -206,21 +202,30 @@ class ExchangeOnline:Workload
     $SkipModuleReload = $false
 
     ExchangeOnline()
-    {}
+    {
+    }
 
-    [void] Connect() {
+    [void] Connect()
+    {
         ([Workload]$this).Setup()
 
         switch ($this.EnvironmentName)
         {
-            "AzureCloud" {
-                $this.ExchangeEnvironmentName    = 'O365Default'
+            "AzureCloud"
+            {
+                $this.ExchangeEnvironmentName = 'O365Default'
             }
-            "AzureGermanyCloud" {
-                $this.ExchangeEnvironmentName    = 'O365GermanyCloud'
+            "AzureGermanyCloud"
+            {
+                $this.ExchangeEnvironmentName = 'O365GermanyCloud'
             }
-            "AzureUSGovernment" {
-                $this.ExchangeEnvironmentName    = 'O365USGovGCCHigh'
+            "AzureDOD"
+            {
+                $this.ExchangeEnvironmentName = 'O365USGovDoD'
+            }
+            "AzureUSGovernment"
+            {
+                $this.ExchangeEnvironmentName = 'O365USGovGCCHigh'
             }
         }
 
@@ -240,9 +245,11 @@ class Intune:Workload
     $GraphBaseUrl
 
     Intune()
-    {}
+    {
+    }
 
-    [void] Connect() {
+    [void] Connect()
+    {
         ([Workload]$this).Setup()
 
         $tenantId = ''
@@ -252,15 +259,23 @@ class Intune:Workload
         }
         switch ($this.EnvironmentName)
         {
-            "AzureCloud" {
+            "AzureCloud"
+            {
                 $this.AuthorizationUrl = "https://login.microsoftonline.com/oauth/v2.0/token/$($this.TenantId)"
-                $this.GraphResourceId  = 'https://graph.microsoft.com/'
-                $this.GraphBaseUrl     = 'https://graph.microsoft.com'
+                $this.GraphResourceId = 'https://graph.microsoft.com/'
+                $this.GraphBaseUrl = 'https://graph.microsoft.com'
             }
-            "AzureUSGovernment" {
+            "AzureUSGovernment"
+            {
                 $this.AuthorizationUrl = "https://login.microsoftonline.us/oauth/v2.0/token/$($this.TenantId)"
-                $this.GraphResourceId  = 'https://graph.microsoft.us/'
-                $this.GraphBaseUrl     = 'https://graph.microsoft.us'
+                $this.GraphResourceId = 'https://graph.microsoft.us/'
+                $this.GraphBaseUrl = 'https://graph.microsoft.us'
+            }
+            "AzureDOD"
+            {
+                $this.AuthorizationUrl = "https://login.microsoftonline.us/oauth/v2.0/token/$($this.TenantId)"
+                $this.GraphResourceId = 'https://dod-graph.microsoft.us/'
+                $this.GraphBaseUrl = 'https://dod-graph.microsoft.us'
             }
         }
         Connect-MSCloudLoginIntune
@@ -293,9 +308,11 @@ class MicrosoftGraph:Workload
     $UserTokenUrl
 
     MicrosoftGraph()
-    {}
+    {
+    }
 
-    [void] Connect() {
+    [void] Connect()
+    {
         ([Workload]$this).Setup()
 
         if ($null -ne $this.Credentials -and [System.String]::IsNullOrEmpty($this.TenantId))
@@ -304,19 +321,29 @@ class MicrosoftGraph:Workload
         }
         switch ($this.EnvironmentName)
         {
-            "AzureCloud" {
+            "AzureCloud"
+            {
                 $this.GraphEnvironment = 'Global'
-                $this.ResourceUrl      = 'https://graph.microsoft.com/'
-                $this.Scope            = 'https://graph.microsoft.com/.default'
-                $this.TokenUrl         = "https://login.microsoftonline.com/$($this.TenantId)/oauth2/v2.0/token"
-                $this.UserTokenUrl     = "https://login.microsoftonline.com/$($this.TenantId)/oauth2/v2.0/authorize"
+                $this.ResourceUrl = 'https://graph.microsoft.com/'
+                $this.Scope = 'https://graph.microsoft.com/.default'
+                $this.TokenUrl = "https://login.microsoftonline.com/$($this.TenantId)/oauth2/v2.0/token"
+                $this.UserTokenUrl = "https://login.microsoftonline.com/$($this.TenantId)/oauth2/v2.0/authorize"
             }
-            "AzureUSGovernment" {
+            "AzureUSGovernment"
+            {
                 $this.GraphEnvironment = 'USGov'
-                $this.ResourceUrl      = 'https://graph.microsoft.us/'
-                $this.Scope            = 'https://graph.microsoft.us/.default'
-                $this.TokenUrl         = "https://login.microsoftonline.us/$($this.TenantId)/oauth2/v2.0/token"
-                $this.UserTokenUrl     = "https://login.microsoftonline.us/$($this.TenantId)/oauth2/v2.0/authorize"
+                $this.ResourceUrl = 'https://graph.microsoft.us/'
+                $this.Scope = 'https://graph.microsoft.us/.default'
+                $this.TokenUrl = "https://login.microsoftonline.us/$($this.TenantId)/oauth2/v2.0/token"
+                $this.UserTokenUrl = "https://login.microsoftonline.us/$($this.TenantId)/oauth2/v2.0/authorize"
+            }
+            "AzureDOD"
+            {
+                $this.GraphEnvironment = 'USGovDoD'
+                $this.ResourceUrl = 'https://dod-graph.microsoft.us/'
+                $this.Scope = 'https://dod-graph.microsoft.us/.default'
+                $this.TokenUrl = "https://login.microsoftonline.us/$($this.TenantId)/oauth2/v2.0/token"
+                $this.UserTokenUrl = "https://login.microsoftonline.us/$($this.TenantId)/oauth2/v2.0/authorize"
             }
         }
         Connect-MSCloudLoginMicrosoftGraph
@@ -347,14 +374,15 @@ class PnP:Workload
     PnP()
     {
         if (-not [String]::IsNullOrEmpty($this.CertificateThumbprint) -and (-not[String]::IsNullOrEmpty($this.CertificatePassword) -or
-            -not[String]::IsNullOrEmpty($this.CertificatePath))
+                -not[String]::IsNullOrEmpty($this.CertificatePath))
         )
         {
             throw "Cannot specific both a Certificate Thumbprint and Certificate Path and Password"
         }
     }
 
-    [void] Connect([boolean]$ForceRefresh) {
+    [void] Connect([boolean]$ForceRefresh)
+    {
         ([Workload]$this).Setup()
 
         # PnP uses Production instead of AzureCloud to designate the Public Azure Cloud * AzureUSGovernment to USGovernmentHigh
@@ -365,6 +393,10 @@ class PnP:Workload
         elseif ($this.EnvironmentName -eq 'AzureUSGovernment')
         {
             $this.PnPAzureEnvironment = 'USGovernmentHigh'
+        }
+        elseif ($this.EnvironmentName -eq 'AzureDOD')
+        {
+            $this.PnPAzureEnvironment = 'USGovernmentDoD'
         }
         elseif ($this.EnvironmentName -eq 'AzureGermany')
         {
@@ -381,9 +413,11 @@ class PowerPlatform:Workload
     $Endpoint = 'prod'
 
     PowerPlatform()
-    {}
+    {
+    }
 
-    [void] Connect() {
+    [void] Connect()
+    {
         ([Workload]$this).Setup()
         Connect-MSCloudLoginPowerPlatform
     }
@@ -401,9 +435,11 @@ class SecurityComplianceCenter:Workload
     $AuthorizationUrl
 
     SecurityComplianceCenter()
-    {}
+    {
+    }
 
-    [void] Connect() {
+    [void] Connect()
+    {
         ([Workload]$this).Setup()
 
         switch ($this.EnvironmentName)
@@ -416,6 +452,11 @@ class SecurityComplianceCenter:Workload
             "AzureUSGovernment"
             {
                 $this.ConnectionUrl = 'https://ps.compliance.protection.office365.us/powershell-liveid/'
+                $this.AuthorizationUrl = 'https://login.microsoftonline.us/organizations'
+            }
+            "AzureDOD"
+            {
+                $this.ConnectionUrl = 'https://l5.ps.compliance.protection.office365.us/powershell-liveid/'
                 $this.AuthorizationUrl = 'https://login.microsoftonline.us/organizations'
             }
             "AzureGermany"
@@ -431,9 +472,11 @@ class SecurityComplianceCenter:Workload
 class Teams:Workload
 {
     Teams()
-    {}
+    {
+    }
 
-    [void] Connect() {
+    [void] Connect()
+    {
         ([Workload]$this).Setup()
         Connect-MSCloudLoginTeams
     }

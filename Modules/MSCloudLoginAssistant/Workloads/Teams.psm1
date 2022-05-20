@@ -71,6 +71,11 @@ function Connect-MSCloudLoginTeams
                 $ConnectionParams.Add("TeamsEnvironmentName", 'TeamsGCCH')
             }
 
+            if ($Global:MSCloudLoginConnectionProfile.Teams.EnvironmentName -eq 'USGovernmentDoD')
+            {
+                $ConnectionParams.Add("TeamsEnvironmentName", 'TeamsDOD')
+            }
+
             Connect-MicrosoftTeams @ConnectionParams | Out-Null
             $Global:MSCloudLoginConnectionProfile.Teams.ConnectedDateTime         = [System.DateTime]::Now.ToString()
             $Global:MSCloudLoginConnectionProfile.Teams.MultiFactorAuthentication = $false
@@ -100,6 +105,11 @@ function Connect-MSCloudLoginTeams
             if ($Global:MSCloudLoginConnectionProfile.Teams.EnvironmentName -eq 'AzureUSGovernment')
             {
                 $ConnectionParams.Add("TeamsEnvironmentName", 'TeamsGCCH')
+            }
+
+            if ($Global:MSCloudLoginConnectionProfile.Teams.EnvironmentName -eq 'USGovernmentDoD')
+            {
+                $ConnectionParams.Add("TeamsEnvironmentName", 'TeamsDOD')
             }
 
             Write-Verbose -Message "Connecting to Microsoft Teams using credentials."
@@ -139,6 +149,10 @@ function Connect-MSCloudLoginTeamsMFA
         if ($Global:MSCloudLoginConnectionProfile.Teams.EnvironmentName -eq 'AzureUSGovernment')
         {
             $ConnectionParams.Add("TeamsEnvironmentName", "TeamsGCCH")
+        }
+        if ($Global:MSCloudLoginConnectionProfile.Teams.EnvironmentName -eq 'USGovernmentDoD')
+        {
+            $ConnectionParams.Add("TeamsEnvironmentName", 'TeamsDOD')
         }
         Write-Verbose -Message "Disconnecting from Microsoft Teams"
         Disconnect-MicrosoftTeams | Out-Null

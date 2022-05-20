@@ -24,10 +24,19 @@ function Connect-MSCloudLoginPowerPlatform
             return
         }
 
-        switch ($Global:MSCloudLoginConnectionProfile.PowerPlatform.EnvironmentName)
+        switch ($Global:CloudEnvironmentInfo.tenant_region_sub_scope)
         {
-            'AzureUSGovernment'{
+            'DODCON'{
                 $Global:MSCloudLoginConnectionProfile.PowerPlatform.Endpoint = 'usgovhigh'
+            }
+            'DOD'{
+                $Global:MSCloudLoginConnectionProfile.PowerPlatform.Endpoint = 'dod'
+            }
+            'GCC'{
+                $Global:MSCloudLoginConnectionProfile.PowerPlatform.Endpoint = 'usgov'
+            }
+            default{
+                $Global:MSCloudLoginConnectionProfile.PowerPlatform.Endpoint = 'prod'
             }
         }
 
@@ -110,8 +119,8 @@ function Connect-MSCloudLoginPowerPlatformMFA
     param()
     try
     {
-        Test-PowerAppsAccount
-
+        #Test-PowerAppsAccount This is failing in PowerApps admin module for GCCH MFA
+        Add-PowerAppsAccount -Endpoint $Global:MSCloudLoginConnectionProfile.PowerPlatform.Endpoint
         $Global:MSCloudLoginConnectionProfile.PowerPlatform.ConnectedDateTime         = [System.DateTime]::Now.ToString()
         $Global:MSCloudLoginConnectionProfile.PowerPlatform.MultiFactorAuthentication = $true
         $Global:MSCloudLoginConnectionProfile.PowerPlatform.Connected                 = $true
