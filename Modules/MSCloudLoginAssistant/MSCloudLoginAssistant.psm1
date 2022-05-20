@@ -335,7 +335,7 @@ function Get-SPOAdminUrl
         -ApplicationId $ApplicationId `
         -TenantId $TenantId `
         -CertificateThumbprint $CertificateThumbprint
-    if ($Global:CloudEnvironmentInfo.tenant_region_scope -eq 'USGov')
+    if ($Global:CloudEnvironmentInfo.tenant_region_sub_scope -eq 'DODCON')
     {
         $Global:CloudEnvironment = 'GCCHigh'
     }
@@ -355,6 +355,13 @@ function Get-SPOAdminUrl
             $domain = '.onmicrosoft.us'
             $tenantName = $defaultDomain.Id.Replace($domain, '')
             $spoAdminUrl = "https://$tenantName-admin.sharepoint.us"
+        }
+        elseif ($Global:CloudEnvironment -eq 'DOD')
+        {
+            [Array]$defaultDomain = Get-MgDomain | Where-Object { $_.Id -like "*.onmicrosoft.us" -and $_.IsInitial -eq $true }
+            $domain = '.onmicrosoft.us'
+            $tenantName = $defaultDomain.Id.Replace($domain, '')
+            $spoAdminUrl = "https://$tenantName-admin.sharepoint-mil.us"
         }
         Write-Verbose -Message "SharePoint Online admin URL is $spoAdminUrl"
         return $spoAdminUrl
@@ -735,10 +742,9 @@ function Get-CloudEnvironmentInfo
         }
         else
         {
-            $tenantName = Get-MSCloudLoginOrganizationName -ApplicationId $ApplicationId `
-                -TenantId $TenantId `
-                -CertificateThumbprint $CertificateThumbprint
+            $tenantName = $TenantId `
         }
+        ## endpoint will work with TenantId or tenantName
         $response = Invoke-WebRequest -Uri "https://login.microsoftonline.com/$tenantName/v2.0/.well-known/openid-configuration" -Method Get -UseBasicParsing
 
         $content = $response.Content

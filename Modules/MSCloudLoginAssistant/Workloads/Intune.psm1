@@ -16,9 +16,17 @@ function Connect-MSCloudLoginIntune
     {
         try
         {
-            Update-MSGraphEnvironment -AuthUrl 'https://login.microsoftonline.com/common/' `
+            if ($Global:MSCloudLoginConnectionProfile.environment -eq 'AzureUSGovernment' -or ($Global:MSCloudLoginConnectionProfile.environment -eq 'AzureDOD' ))
+            {
+                Update-MSGraphEnvironment -AuthUrl 'https://login.microsoftonline.us/common/' `
                 -GraphResourceId $Global:MSCloudLoginConnectionProfile.Intune.GraphResourceId `
                 -GraphBaseUrl $Global:MSCloudLoginConnectionProfile.Intune.GraphBaseUrl
+            }
+            else {
+                Update-MSGraphEnvironment -AuthUrl 'https://login.microsoftonline.com/common/' `
+                -GraphResourceId $Global:MSCloudLoginConnectionProfile.Intune.GraphResourceId `
+                -GraphBaseUrl $Global:MSCloudLoginConnectionProfile.Intune.GraphBaseUrl
+            }
 
             Connect-MSGraph -Credential $Global:MSCloudLoginConnectionProfile.Intune.Credentials | Out-Null
             $Global:MSCloudLoginConnectionProfile.Intune.ConnectedDateTime         = [System.DateTime]::Now.ToString()
