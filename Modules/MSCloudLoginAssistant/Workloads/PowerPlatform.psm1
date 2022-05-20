@@ -35,6 +35,9 @@ function Connect-MSCloudLoginPowerPlatform
             'GCC'{
                 $Global:MSCloudLoginConnectionProfile.PowerPlatform.Endpoint = 'usgov'
             }
+            default{
+                $Global:MSCloudLoginConnectionProfile.PowerPlatform.Endpoint = 'prod'
+            }
         }
 
         if ($Global:MSCloudLoginConnectionProfile.PowerPlatform.AuthenticationType -eq 'ServicePrincipalWithThumbprint')
@@ -116,8 +119,8 @@ function Connect-MSCloudLoginPowerPlatformMFA
     param()
     try
     {
-        Test-PowerAppsAccount
-
+        #Test-PowerAppsAccount This is failing in PowerApps admin module for GCCH MFA
+        Add-PowerAppsAccount -Endpoint $Global:MSCloudLoginConnectionProfile.PowerPlatform.Endpoint
         $Global:MSCloudLoginConnectionProfile.PowerPlatform.ConnectedDateTime         = [System.DateTime]::Now.ToString()
         $Global:MSCloudLoginConnectionProfile.PowerPlatform.MultiFactorAuthentication = $true
         $Global:MSCloudLoginConnectionProfile.PowerPlatform.Connected                 = $true
