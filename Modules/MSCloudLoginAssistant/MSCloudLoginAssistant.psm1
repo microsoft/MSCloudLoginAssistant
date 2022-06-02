@@ -325,9 +325,20 @@ function Get-SPOAdminUrl
         }
         catch
         {
-            Write-Verbose -Message "Requesting access to read information about the domain"
-            Connect-MgGraph -Scopes Domain.Read.All
-            [Array]$defaultDomain = Get-MgDomain | Where-Object { $_.Id -like "*.onmicrosoft.com" -and $_.IsInitial -eq $true }
+            if (Assert-IsNonInteractiveShell -eq $false)
+            {
+                # Only run interactive command when Exporting
+                Write-Verbose -Message "Requesting access to read information about the domain"
+                Connect-MgGraph -Scopes Domain.Read.All -ErrorAction 'Stop'
+                [Array]$defaultDomain = Get-MgDomain | Where-Object { $_.Id -like "*.onmicrosoft.com" -and $_.IsInitial -eq $true }
+            }
+            else
+            {
+                if ($_.Exception.Message -eq "Insufficient privileges to complete the operation.")
+                {
+                    throw "The Graph application does not have the correct permissions to access Domains. Make sure you run 'Connect-MgGraph -Scopes Domain.Read.All' first!"
+                }
+            }
         }
     }
 
@@ -815,4 +826,18 @@ function Get-MSCloudLoginOrganizationName
         Write-Verbose -Message "Couldn't get domain. Using TenantId instead"
         return $TenantId
     }
+}
+
+function Assert-IsNonInteractiveShell
+{
+    # Test each Arg for match of abbreviated '-NonInteractive' command.
+    $NonInteractive = [Environment]::GetCommandLineArgs() | Where-Object { $_ -like '-NonI*' }
+
+    if ([Environment]::UserInteractive -and -not $NonInteractive)
+    {
+        # We are in an interactive shell.
+        return $false
+    }
+
+    return $true
 }

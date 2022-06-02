@@ -47,8 +47,16 @@ function Connect-MSCloudLoginPnP
             if ($Global:MSCloudLoginConnectionProfile.PnP.AuthenticationType -eq 'Credentials' -and `
                 -not $Global:MSCloudLoginConnectionProfile.PnP.AdminUrl)
             {
-                $Global:MSCloudLoginConnectionProfile.PnP.AdminUrl      = Get-SPOAdminUrl -Credential $Global:MSCloudLoginConnectionProfile.PnP.Credentials
-                $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl = $Global:MSCloudLoginConnectionProfile.PnP.AdminUrl
+                $adminUrl = Get-SPOAdminUrl -Credential $Global:MSCloudLoginConnectionProfile.PnP.Credentials
+                if ([String]::IsNullOrEmpty($adminUrl) -eq $false)
+                {
+                    $Global:MSCloudLoginConnectionProfile.PnP.AdminUrl      = $adminUrl
+                    $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl = $Global:MSCloudLoginConnectionProfile.PnP.AdminUrl
+                }
+                else
+                {
+                    throw "Unable to retrieve SharePoint Admin Url. Check if the Graph can be contacted successfully."
+                }
             }
             else
             {

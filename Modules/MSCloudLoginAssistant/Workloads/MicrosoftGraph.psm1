@@ -143,6 +143,15 @@ function Connect-MSCloudLoginMSGraphWithUser
     }
     catch
     {
+        if ($_.Exception -like "System.Net.WebException: The remote server returned an error: (400) Bad Request.*")
+        {
+            $warningPref = $WarningPreference
+            $WarningPreference = 'Continue'
+            Write-Warning -Message "Unable to retrieve AccessToken. Have you registered the 'Microsoft Graph PowerShell' application already? Please run 'Connect-MgGraph -Scopes Domain.Read.All' and logon using '$($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Credentials.Username)'"
+            $WarningPreference = $warningPref
+            return
+        }
+
         try
         {
             Write-Verbose -Message "Attempting to connect without specifying the Environment"
@@ -160,22 +169,27 @@ function Connect-MSCloudLoginMSGraphWithUser
             try
             {
                 Connect-MgGraph -Environment $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment `
-                    -Scopes 'Domain.Read.All'| Out-Null
+                    -Scopes 'Domain.Read.All' -ErrorAction 'Stop' | Out-Null
                 $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected = $true
             }
             catch
             {
-                $error = $_
-                if ($error -like "*\.graph\GraphContext.json*")
+                $err = $_
+                if ($err -like "*\.graph\GraphContext.json*")
                 {
-                    $pathStart = $error.ToString().IndexOf("to file at '", 0) + 12
-                    $pathEnd = $error.ToString().IndexOf("'", $pathStart)
-                    $path = $error.ToString().Substring($pathStart, $pathEnd - $pathStart)
+                    $pathStart = $err.ToString().IndexOf("to file at '", 0) + 12
+                    $pathEnd = $err.ToString().IndexOf("'", $pathStart)
+                    $path = $err.ToString().Substring($pathStart, $pathEnd - $pathStart)
 
                     New-Item $path -Force | Out-Null
                     Connect-MgGraph -Environment $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment `
                         -Scopes 'Domain.Read.All'| Out-Null
                     $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected = $true
+                }
+
+                if ($err.Exception.Message -eq "Device code terminal timed-out after 120 seconds. Please try again.")
+                {
+                    throw "Unable to connect to the Microsoft Graph. Please make sure the app permissions are setup correctly. Please run Update-M365DSCAllowedGraphScopes."
                 }
             }
         }
