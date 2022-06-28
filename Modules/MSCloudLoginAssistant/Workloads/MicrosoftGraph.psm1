@@ -4,8 +4,8 @@ function Connect-MSCloudLoginMicrosoftGraph
     param()
 
     $ProgressPreference = 'SilentlyContinue'
-    $WarningPreference  = 'SilentlyContinue'
-    $VerbosePreference  = 'SilentlyContinue'
+    $WarningPreference = 'SilentlyContinue'
+    $VerbosePreference = 'SilentlyContinue'
 
     # If the current profile is not the same we expect, make the switch.
     $currentProfile = (Get-MgProfile).Name
@@ -26,7 +26,14 @@ function Connect-MSCloudLoginMicrosoftGraph
 
     if ($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected)
     {
-        return
+        if ($null -eq (Get-MgContext))
+        {
+            $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected = $false
+        }
+        else
+        {
+            return
+        }
     }
 
     if ($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AuthenticationType -eq 'CredentialsWithApplicationId' -or
@@ -58,18 +65,18 @@ function Connect-MSCloudLoginMicrosoftGraph
                         -Environment $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment `
                         -Certificate $cert | Out-Null
                 }
-                $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime         = [System.DateTime]::Now.ToString()
+                $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime = [System.DateTime]::Now.ToString()
                 $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.MultiFactorAuthentication = $false
-                $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected                 = $true
+                $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected = $true
             }
             else
             {
                 $body = @{
-                    scope = $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Scope
-                    grant_type = "client_credentials"
+                    scope         = $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Scope
+                    grant_type    = "client_credentials"
                     client_secret = $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationSecret
-                    client_info = 1
-                    client_id = $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationId
+                    client_info   = 1
+                    client_id     = $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationId
                 }
                 Write-Verbose -Message "Requesting Access Token for Microsoft Graph"
                 $OAuthReq = Invoke-RestMethod -Uri $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.TokenUrl `
@@ -78,9 +85,9 @@ function Connect-MSCloudLoginMicrosoftGraph
 
                 Write-Verbose -Message "Connecting to Microsoft Graph"
                 Connect-MgGraph -AccessToken $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AccessToken | Out-Null
-                $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime         = [System.DateTime]::Now.ToString()
+                $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime = [System.DateTime]::Now.ToString()
                 $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.MultiFactorAuthentication = $false
-                $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected                 = $true
+                $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected = $true
             }
             Write-Verbose -Message "Connected"
         }
@@ -118,11 +125,11 @@ function Connect-MSCloudLoginMSGraphWithUser
     $TenantId = $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Credentials.Username.Split('@')[1]
     $url = $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.TokenUrl
     $body = @{
-        scope = $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Scope
+        scope      = $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Scope
         grant_type = "password"
-        username = $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Credentials.Username
-        password = $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Credentials.GetNetworkCredential().Password
-        client_id = $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationId
+        username   = $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Credentials.Username
+        password   = $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Credentials.GetNetworkCredential().Password
+        client_id  = $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationId
     }
     Write-Verbose -Message "Requesting Access Token for Microsoft Graph"
 
@@ -136,14 +143,15 @@ function Connect-MSCloudLoginMSGraphWithUser
         # Domain.Read.All permission Scope is required to get the domain name for the SPO Admin Center.
         Connect-MgGraph -AccessToken $AccessToken `
             -Environment $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment
-        $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime         = [System.DateTime]::Now.ToString()
+        $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime = [System.DateTime]::Now.ToString()
         $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.MultiFactorAuthentication = $false
-        $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected                 = $true
-        $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AccessToken               = $AccessToken
+        $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected = $true
+        $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AccessToken = $AccessToken
     }
     catch
     {
-        if ($_.Exception -like "System.Net.WebException: The remote server returned an error: (400) Bad Request.*")
+        if ($_.Exception -like "System.Net.WebException: The remote server returned an error: (400) Bad Request.*" -and `
+            (Assert-IsNonInteractiveShell) -eq $true)
         {
             $warningPref = $WarningPreference
             $WarningPreference = 'Continue'
@@ -156,10 +164,10 @@ function Connect-MSCloudLoginMSGraphWithUser
         {
             Write-Verbose -Message "Attempting to connect without specifying the Environment"
             Connect-MgGraph -AccessToken $AccessToken | Out-Null
-            $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime         = [System.DateTime]::Now.ToString()
+            $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime = [System.DateTime]::Now.ToString()
             $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.MultiFactorAuthentication = $false
-            $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected                 = $true
-            $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AccessToken               = $AccessToken
+            $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected = $true
+            $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AccessToken = $AccessToken
         }
         catch
         {
@@ -183,7 +191,7 @@ function Connect-MSCloudLoginMSGraphWithUser
 
                     New-Item $path -Force | Out-Null
                     Connect-MgGraph -Environment $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment `
-                        -Scopes 'Domain.Read.All'| Out-Null
+                        -Scopes 'Domain.Read.All' | Out-Null
                     $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected = $true
                 }
 
@@ -233,7 +241,7 @@ function Invoke-MSCloudLoginMicrosoftGraphAPI
 
     $requestHeaders = @{
         "Authorization" = "Bearer " + $Global:MSCloudLoginGraphAccessToken
-        "Content-Type" = "application/json;charset=utf-8"
+        "Content-Type"  = "application/json;charset=utf-8"
     }
     foreach ($key in $Headers.Keys)
     {
@@ -244,9 +252,9 @@ function Invoke-MSCloudLoginMicrosoftGraphAPI
     Write-Verbose -Message "URI: $Uri"
     Write-Verbose -Message "Method: $Method"
     $requestParams = @{
-        Method  = $Method
-        Uri     = $Uri
-        Headers = $requestHeaders
+        Method      = $Method
+        Uri         = $Uri
+        Headers     = $requestHeaders
         ContentType = "application/json;charset=utf-8"
     }
     if (-not [System.String]::IsNullOrEmpty($Body))
@@ -292,7 +300,7 @@ function Invoke-MSCloudLoginMicrosoftGraphAPI
             $newSleepTime = 10 * $CallCount
             Start-Sleep -Seconds $newSleepTime
             Invoke-MSCloudLoginMicrosoftGraphAPI -Uri $Uri -Body $Body -Headers $Headers -Method $Method -Credential $Credential `
-                -ApplicationId $ApplicationId -CallCount ($CallCount+1)
+                -ApplicationId $ApplicationId -CallCount ($CallCount + 1)
         }
         else
         {
