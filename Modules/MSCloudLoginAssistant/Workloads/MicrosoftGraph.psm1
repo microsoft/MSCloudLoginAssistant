@@ -26,7 +26,14 @@ function Connect-MSCloudLoginMicrosoftGraph
 
     if ($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected)
     {
-        return
+        if ($null -eq (Get-MgContext))
+        {
+            $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected = $false
+        }
+        else
+        {
+            return
+        }
     }
 
     if ($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AuthenticationType -eq 'CredentialsWithApplicationId' -or
