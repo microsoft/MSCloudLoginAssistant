@@ -142,7 +142,7 @@ function Connect-MSCloudLoginMSGraphWithUser
 
         # Domain.Read.All permission Scope is required to get the domain name for the SPO Admin Center.
         Connect-MgGraph -AccessToken $AccessToken `
-            -Environment $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment
+            -Environment $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment | Out-Null
         $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime = [System.DateTime]::Now.ToString()
         $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.MultiFactorAuthentication = $false
         $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected = $true
@@ -240,7 +240,7 @@ function Invoke-MSCloudLoginMicrosoftGraphAPI
     Connect-MSCloudLoginMSGraphWithUser
 
     $requestHeaders = @{
-        "Authorization" = "Bearer " + $Global:MSCloudLoginGraphAccessToken
+        "Authorization" = "Bearer " + $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AccessToken
         "Content-Type"  = "application/json;charset=utf-8"
     }
     foreach ($key in $Headers.Keys)
@@ -281,7 +281,7 @@ function Invoke-MSCloudLoginMicrosoftGraphAPI
             {
                 $newSleepTime = 10 * $CallCount
                 Write-Verbose -Message "The Access Token expired, waiting {$newSleepTime} and then regenerating a new one."
-                $Global:MSCloudLoginGraphAccessToken = $null
+                $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AccessToken = $null
             }
             $CallCount++
             try
@@ -292,6 +292,13 @@ function Invoke-MSCloudLoginMicrosoftGraphAPI
             {
                 Write-Verbose -Message "CallCount was not already specified."
             }
+
+            # Check for a max CallCount to prevent call depth issues
+            if ($CallCount -ge 12)
+            {
+                throw $_
+            }
+
             return (Invoke-MSCloudLoginMicrosoftGraphAPI @PSBoundParameters -CallCount $CallCount)
         }
         elseif ($_ -like '*Too many requests*' -and $CallCount -lt 12)
