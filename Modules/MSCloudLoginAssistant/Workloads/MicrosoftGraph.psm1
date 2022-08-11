@@ -42,6 +42,19 @@ function Connect-MSCloudLoginMicrosoftGraph
         Write-Verbose -Message "Will try connecting with user credentials"
         Connect-MSCloudLoginMSGraphWithUser
     }
+    elseif ($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AuthenticationType -eq 'Identity')
+    {
+        Write-Verbose "Connecting with managed identity"
+        $AzProfile = Login-AzAccount -Identity
+        $accessToken = (Get-AzAccessToken -ResourceTypeName MSGraph).Token
+        $null = Logout-AzAccount -Username $AzProfile.Context.Account
+
+        Connect-MgGraph -AccessToken $accessToken
+        $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime = [System.DateTime]::Now.ToString()
+        $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.MultiFactorAuthentication = $true
+        $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected = $true
+        $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.TenantId = (Get-MGContext).TenantId
+    }
     else
     {
         try
