@@ -1,12 +1,12 @@
 <#
 .SYNOPSIS
-    The Test-MSCloudLogin function is used to assist with checking authentication status of and logging in to various Microsoft Cloud services, such as Azure, SharePoint Online, and SharePoint PnP.
+    The Test-MSCloudLogin function is used to assist with checking authentication status of and logging in to various Microsoft Cloud services, such as Azure, Microsoft Graph and SharePoint Online (PnP).
 .EXAMPLE
     Test-MSCloudLogin -Platform AzureAD -Verbose
 .EXAMPLE
     Test-MSCloudLogin -Platform PnP
 .PARAMETER Platform
-    The Platform parameter specifies which cloud service for which we are testing the login state. Possible values are Azure, AzureAD, SharePointOnline, ExchangeOnline, SecurityComplianceCenter, MSOnline, PnP, PowerPlatforms, MicrosoftTeams, MicrosoftGraph and SkypeForBusiness.
+    The Platform parameter specifies which cloud service for which we are testing the login state. Possible values are Azure, AzureAD, ExchangeOnline, SecurityComplianceCenter, PnP, PowerPlatforms, MicrosoftTeams, MicrosoftGraph.
 .NOTES
     Created & maintained by the Microsoft365DSC Team, 2019-2020. (@BrianLala & @NikCharlebois)
 .LINK
@@ -262,7 +262,7 @@ function Connect-M365Tenant
                 }
                 catch
                 {
-                    Write-Information -Message "Couldn't acquire PnP Context"
+                    Write-Information -MessageData "Couldn't acquire PnP Context"
                 }
             }
 
@@ -448,6 +448,7 @@ function Get-TenantLoginEndPoint
 function New-ADALServiceInfo
 {
     [CmdletBinding()]
+    [OutputType([System.Collections.HashTable])]
     Param(
         [Parameter(Mandatory = $True)]
         [System.String]
