@@ -53,7 +53,7 @@ class MSCloudLoginConnectionProfile
 class Workload
 {
     [string]
-    [ValidateSet('Credentials', 'CredentialsWithApplicationId', 'ServicePrincipalWithSecret', 'ServicePrincipalWithThumbprint', 'ServicePrincipalWithPath', 'Interactive')]
+    [ValidateSet('Credentials', 'CredentialsWithApplicationId', 'ServicePrincipalWithSecret', 'ServicePrincipalWithThumbprint', 'ServicePrincipalWithPath', 'Interactive', 'Identity')]
     $AuthenticationType
 
     [boolean]
@@ -146,6 +146,10 @@ class Workload
         elseif ($this.Credentials)
         {
             $this.AuthenticationType = 'Credentials'
+        }
+        elseif ($this.Identity) 
+        {
+            $this.AuthenticationType = 'Identity'
         }
         else
         {
@@ -306,6 +310,9 @@ class MicrosoftGraph:Workload
 
     [string]
     $UserTokenUrl
+
+    [switch]
+    $Identity
 
     MicrosoftGraph()
     {

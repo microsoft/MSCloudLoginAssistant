@@ -138,6 +138,10 @@ function Connect-M365Tenant
         $SkipModuleReload = $false,
 
         [Parameter()]
+        [Switch]
+        $Identity,
+
+        [Parameter()]
         [System.String]
         [ValidateSet("v1.0", "beta")]
         $ProfileName = "v1.0"
@@ -203,6 +207,7 @@ function Connect-M365Tenant
             $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.TenantId              = $TenantId
             $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.CertificateThumbprint = $CertificateThumbprint
             $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ProfileName           = $ProfileName
+            $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Identity              = $Identity
             $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connect()
         }
         'MicrosoftTeams'
