@@ -114,7 +114,7 @@ function Connect-M365Tenant
         $TenantId,
 
         [Parameter()]
-        [System.Management.Automation.PSCredential]]
+        [System.Management.Automation.PSCredential]
         $ApplicationSecret,
 
         [Parameter()]
