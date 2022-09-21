@@ -161,7 +161,10 @@ function Connect-M365Tenant
         {
             $Global:MSCloudLoginConnectionProfile.Azure.Credentials           = $Credential
             $Global:MSCloudLoginConnectionProfile.Azure.ApplicationId         = $ApplicationId
-            $Global:MSCloudLoginConnectionProfile.Azure.ApplicationSecret     = $ApplicationSecret.GetNetworkCredential().Password
+            if ($null -ne $ApplicationSecret)
+            {
+                $Global:MSCloudLoginConnectionProfile.Azure.ApplicationSecret     = $ApplicationSecret.GetNetworkCredential().Password
+            }
             $Global:MSCloudLoginConnectionProfile.Azure.TenantId              = $TenantId
             $Global:MSCloudLoginConnectionProfile.Azure.CertificateThumbprint = $CertificateThumbprint
 
@@ -175,7 +178,10 @@ function Connect-M365Tenant
         {
             $Global:MSCloudLoginConnectionProfile.AzureAD.Credentials           = $Credential
             $Global:MSCloudLoginConnectionProfile.AzureAD.ApplicationId         = $ApplicationId
-            $Global:MSCloudLoginConnectionProfile.AzureAD.ApplicationSecret     = $ApplicationSecret.GetNetworkCredential().Password
+            if ($null -ne $ApplicationSecret)
+            {
+                $Global:MSCloudLoginConnectionProfile.AzureAD.ApplicationSecret     = $ApplicationSecret.GetNetworkCredential().Password
+            }
             $Global:MSCloudLoginConnectionProfile.AzureAD.TenantId              = $TenantId
             $Global:MSCloudLoginConnectionProfile.AzureAD.CertificateThumbprint = $CertificateThumbprint
             $Global:MSCloudLoginConnectionProfile.AzureAD.Connect()
@@ -184,7 +190,10 @@ function Connect-M365Tenant
         {
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Credentials           = $Credential
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ApplicationId         = $ApplicationId
-            $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ApplicationSecret     = $ApplicationSecret.GetNetworkCredential().Password
+            if ($null -ne $ApplicationSecret)
+            {
+                $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ApplicationSecret     = $ApplicationSecret.GetNetworkCredential().Password
+            }
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.TenantId              = $TenantId
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.CertificateThumbprint = $CertificateThumbprint
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.SkipModuleReload      = $SkipModuleReload
@@ -194,7 +203,10 @@ function Connect-M365Tenant
         {
             $Global:MSCloudLoginConnectionProfile.Intune.Credentials           = $Credential
             $Global:MSCloudLoginConnectionProfile.Intune.ApplicationId         = $ApplicationId
-            $Global:MSCloudLoginConnectionProfile.Intune.ApplicationSecret     = $ApplicationSecret.GetNetworkCredential().Password
+            if ($null -ne $ApplicationSecret)
+            {
+                $Global:MSCloudLoginConnectionProfile.Intune.ApplicationSecret     = $ApplicationSecret.GetNetworkCredential().Password
+            }
             $Global:MSCloudLoginConnectionProfile.Intune.TenantId              = $TenantId
             $Global:MSCloudLoginConnectionProfile.Intune.CertificateThumbprint = $CertificateThumbprint
             $Global:MSCloudLoginConnectionProfile.Intune.Connect()
@@ -203,7 +215,10 @@ function Connect-M365Tenant
         {
             $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Credentials           = $Credential
             $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationId         = $ApplicationId
-            $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationSecret     = $ApplicationSecret.GetNetworkCredential().Password
+            if ($null -ne $ApplicationSecret)
+            {
+                $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationSecret     = $ApplicationSecret.GetNetworkCredential().Password
+            }
             $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.TenantId              = $TenantId
             $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.CertificateThumbprint = $CertificateThumbprint
             $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ProfileName           = $ProfileName
@@ -214,7 +229,10 @@ function Connect-M365Tenant
         {
             $Global:MSCloudLoginConnectionProfile.Teams.Credentials           = $Credential
             $Global:MSCloudLoginConnectionProfile.Teams.ApplicationId         = $ApplicationId
-            $Global:MSCloudLoginConnectionProfile.Teams.ApplicationSecret     = $ApplicationSecret.GetNetworkCredential().Password
+            if ($null -ne $ApplicationSecret)
+            {
+                $Global:MSCloudLoginConnectionProfile.Teams.ApplicationSecret     = $ApplicationSecret.GetNetworkCredential().Password
+            }
             $Global:MSCloudLoginConnectionProfile.Teams.TenantId              = $TenantId
             $Global:MSCloudLoginConnectionProfile.Teams.CertificateThumbprint = $CertificateThumbprint
             $Global:MSCloudLoginConnectionProfile.Teams.CertificatePath       = $CertificatePath
@@ -225,7 +243,10 @@ function Connect-M365Tenant
         {
             $Global:MSCloudLoginConnectionProfile.PnP.Credentials           = $Credential
             $Global:MSCloudLoginConnectionProfile.PnP.ApplicationId         = $ApplicationId
-            $Global:MSCloudLoginConnectionProfile.PnP.ApplicationSecret     = $ApplicationSecret.GetNetworkCredential().Password
+            if ($null -ne $ApplicationSecret)
+            {
+                $Global:MSCloudLoginConnectionProfile.PnP.ApplicationSecret     = $ApplicationSecret.GetNetworkCredential().Password
+            }
             $Global:MSCloudLoginConnectionProfile.PnP.TenantId              = $TenantId
             $Global:MSCloudLoginConnectionProfile.PnP.CertificateThumbprint = $CertificateThumbprint
             $Global:MSCloudLoginConnectionProfile.PnP.CertificatePath       = $CertificatePath
@@ -290,7 +311,10 @@ function Connect-M365Tenant
         {
             $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Credentials           = $Credential
             $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ApplicationId         = $ApplicationId
-            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ApplicationSecret     = $ApplicationSecret.GetNetworkCredential().Password
+            if ($null -ne $ApplicationSecret)
+            {
+                $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ApplicationSecret     = $ApplicationSecret.GetNetworkCredential().Password
+            }
             $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.TenantId              = $TenantId
             $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.CertificateThumbprint = $CertificateThumbprint
             $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.CertificatePath       = $CertificatePath
