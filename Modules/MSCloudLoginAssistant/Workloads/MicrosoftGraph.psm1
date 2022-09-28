@@ -50,7 +50,8 @@ function Connect-MSCloudLoginMicrosoftGraph
         $oauth2 = Invoke-RestMethod -Uri "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https%3A%2F%2F$($resourceEndpoint)%2F" -Headers @{Metadata = 'true' }
         $accessToken = $oauth2.access_token
 
-        Connect-MgGraph -AccessToken $accessToken
+        Connect-MgGraph -AccessToken $accessToken `
+            -Environment $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment
         $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime = [System.DateTime]::Now.ToString()
         $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.MultiFactorAuthentication = $true
         $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected = $true

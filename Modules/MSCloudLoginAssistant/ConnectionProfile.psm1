@@ -90,6 +90,9 @@ class Workload
     [string]
     $CertificateThumbprint
 
+    [switch]
+    $Identity
+
     Setup()
     {
         # Determine the environment name based on email
@@ -103,20 +106,24 @@ class Workload
             {
                 $Global:CloudEnvironmentInfo = Get-CloudEnvironmentInfo -ApplicationId $this.ApplicationId -TenantId $this.TenantId -CertificateThumbprint $this.CertificateThumbprint
             }
+            elseif ($this.Identity.IsPresent)
+            {
+                $Global:CloudEnvironmentInfo = Get-CloudEnvironmentInfo -Identity -TenantId $this.TenantId
+            }
 
             Write-Verbose "Set environment to $Global:CloudEnvironmentInfo.tenant_region_sub_scope"
 
             switch ($Global:CloudEnvironmentInfo.tenant_region_sub_scope)
             {
-                "AzureGermanyCloud"
+                'AzureGermanyCloud'
                 {
                     $this.EnvironmentName = 'O365GermanyCloud'
                 }
-                "DOD"
+                'DOD'
                 {
                     $this.EnvironmentName = 'AzureDOD'
                 }
-                "DODCON"
+                'DODCON'
                 {
                     $this.EnvironmentName = 'AzureUSGovernment'
                 }
@@ -129,15 +136,15 @@ class Workload
         # Determine the Authentication Type
         if ($this.ApplicationId -and $this.TenantId -and $this.CertificateThumbprint)
         {
-            $this.AuthenticationType = "ServicePrincipalWithThumbprint"
+            $this.AuthenticationType = 'ServicePrincipalWithThumbprint'
         }
         elseif ($this.ApplicationId -and $this.TenantId -and $this.ApplicationSecret)
         {
-            $this.AuthenticationType = "ServicePrincipalWithSecret"
+            $this.AuthenticationType = 'ServicePrincipalWithSecret'
         }
         elseif ($this.ApplicationId -and $this.TenantId -and $this.CertificatePath -and $this.CertificatePassword)
         {
-            $this.AuthenticationType = "ServicePrincipalWithPAth"
+            $this.AuthenticationType = 'ServicePrincipalWithPAth'
         }
         elseif ($this.Credentials -and $this.ApplicationId)
         {
@@ -147,7 +154,7 @@ class Workload
         {
             $this.AuthenticationType = 'Credentials'
         }
-        elseif ($this.Identity) 
+        elseif ($this.Identity)
         {
             $this.AuthenticationType = 'Identity'
         }
@@ -161,13 +168,13 @@ class Workload
 class Azure:Workload
 {
     [string]
-    $ClientID = "1950a258-227b-4e31-a9cf-717495945fc2"
+    $ClientID = '1950a258-227b-4e31-a9cf-717495945fc2'
 
     [string]
-    $ResourceURI = "https://management.core.windows.net"
+    $ResourceURI = 'https://management.core.windows.net'
 
     [string]
-    $RedirectURI = "urn:ietf:wg:oauth:2.0:oob";
+    $RedirectURI = 'urn:ietf:wg:oauth:2.0:oob';
 
     [switch]
     $UseModernAuthentication
@@ -205,6 +212,9 @@ class ExchangeOnline:Workload
     [boolean]
     $SkipModuleReload = $false
 
+    [switch]
+    $Identity
+
     ExchangeOnline()
     {
     }
@@ -215,19 +225,19 @@ class ExchangeOnline:Workload
 
         switch ($this.EnvironmentName)
         {
-            "AzureCloud"
+            'AzureCloud'
             {
                 $this.ExchangeEnvironmentName = 'O365Default'
             }
-            "AzureGermanyCloud"
+            'AzureGermanyCloud'
             {
                 $this.ExchangeEnvironmentName = 'O365GermanyCloud'
             }
-            "AzureDOD"
+            'AzureDOD'
             {
                 $this.ExchangeEnvironmentName = 'O365USGovDoD'
             }
-            "AzureUSGovernment"
+            'AzureUSGovernment'
             {
                 $this.ExchangeEnvironmentName = 'O365USGovGCCHigh'
             }
@@ -248,6 +258,9 @@ class Intune:Workload
     [string]
     $GraphBaseUrl
 
+    [switch]
+    $Identity
+
     Intune()
     {
     }
@@ -263,19 +276,19 @@ class Intune:Workload
         }
         switch ($this.EnvironmentName)
         {
-            "AzureCloud"
+            'AzureCloud'
             {
                 $this.AuthorizationUrl = "https://login.microsoftonline.com/oauth/v2.0/token/$($this.TenantId)"
                 $this.GraphResourceId = 'https://graph.microsoft.com/'
                 $this.GraphBaseUrl = 'https://graph.microsoft.com'
             }
-            "AzureUSGovernment"
+            'AzureUSGovernment'
             {
                 $this.AuthorizationUrl = "https://login.microsoftonline.us/oauth/v2.0/token/$($this.TenantId)"
                 $this.GraphResourceId = 'https://graph.microsoft.us/'
                 $this.GraphBaseUrl = 'https://graph.microsoft.us'
             }
-            "AzureDOD"
+            'AzureDOD'
             {
                 $this.AuthorizationUrl = "https://login.microsoftonline.us/oauth/v2.0/token/$($this.TenantId)"
                 $this.GraphResourceId = 'https://dod-graph.microsoft.us/'
@@ -292,12 +305,12 @@ class MicrosoftGraph:Workload
     $AccessToken
 
     [string]
-    [ValidateSet("China", "Global", "USGov", "USGovDoD", "Germany")]
-    $GraphEnvironment = "Global"
+    [ValidateSet('China', 'Global', 'USGov', 'USGovDoD', 'Germany')]
+    $GraphEnvironment = 'Global'
 
     [string]
-    [ValidateSet("v1.0", "beta")]
-    $ProfileName = "v1.0"
+    [ValidateSet('v1.0', 'beta')]
+    $ProfileName = 'v1.0'
 
     [string]
     $ResourceUrl
@@ -328,7 +341,7 @@ class MicrosoftGraph:Workload
         }
         switch ($this.EnvironmentName)
         {
-            "AzureCloud"
+            'AzureCloud'
             {
                 $this.GraphEnvironment = 'Global'
                 $this.ResourceUrl = 'https://graph.microsoft.com/'
@@ -336,7 +349,7 @@ class MicrosoftGraph:Workload
                 $this.TokenUrl = "https://login.microsoftonline.com/$($this.TenantId)/oauth2/v2.0/token"
                 $this.UserTokenUrl = "https://login.microsoftonline.com/$($this.TenantId)/oauth2/v2.0/authorize"
             }
-            "AzureUSGovernment"
+            'AzureUSGovernment'
             {
                 $this.GraphEnvironment = 'USGov'
                 $this.ResourceUrl = 'https://graph.microsoft.us/'
@@ -344,7 +357,7 @@ class MicrosoftGraph:Workload
                 $this.TokenUrl = "https://login.microsoftonline.us/$($this.TenantId)/oauth2/v2.0/token"
                 $this.UserTokenUrl = "https://login.microsoftonline.us/$($this.TenantId)/oauth2/v2.0/authorize"
             }
-            "AzureDOD"
+            'AzureDOD'
             {
                 $this.GraphEnvironment = 'USGovDoD'
                 $this.ResourceUrl = 'https://dod-graph.microsoft.us/'
@@ -366,7 +379,7 @@ class PnP:Workload
     $ClientId = '9bc3ab49-b65d-410a-85ad-de819febfddc'
 
     [string]
-    $RedirectURI = "https://oauth.spops.microsoft.com/"
+    $RedirectURI = 'https://oauth.spops.microsoft.com/'
 
     [string]
     $AdminUrl
@@ -384,7 +397,7 @@ class PnP:Workload
                 -not[String]::IsNullOrEmpty($this.CertificatePath))
         )
         {
-            throw "Cannot specific both a Certificate Thumbprint and Certificate Path and Password"
+            throw 'Cannot specific both a Certificate Thumbprint and Certificate Path and Password'
         }
     }
 
@@ -451,22 +464,22 @@ class SecurityComplianceCenter:Workload
 
         switch ($this.EnvironmentName)
         {
-            "AzureCloud"
+            'AzureCloud'
             {
                 $this.ConnectionUrl = 'https://ps.compliance.protection.outlook.com/powershell-liveid/'
                 $this.AuthorizationUrl = 'https://login.microsoftonline.com/organizations'
             }
-            "AzureUSGovernment"
+            'AzureUSGovernment'
             {
                 $this.ConnectionUrl = 'https://ps.compliance.protection.office365.us/powershell-liveid/'
                 $this.AuthorizationUrl = 'https://login.microsoftonline.us/organizations'
             }
-            "AzureDOD"
+            'AzureDOD'
             {
                 $this.ConnectionUrl = 'https://l5.ps.compliance.protection.office365.us/powershell-liveid/'
                 $this.AuthorizationUrl = 'https://login.microsoftonline.us/organizations'
             }
-            "AzureGermany"
+            'AzureGermany'
             {
                 $this.ConnectionUrl = 'https://ps.compliance.protection.outlook.de/powershell-liveid/'
                 $this.AuthorizationUrl = 'https://login.microsoftonline.de/organizations'

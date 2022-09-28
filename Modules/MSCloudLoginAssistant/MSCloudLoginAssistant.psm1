@@ -201,6 +201,7 @@ function Connect-M365Tenant
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.TenantId = $TenantId
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.CertificateThumbprint = $CertificateThumbprint
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.SkipModuleReload = $SkipModuleReload
+            $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Identity = $Identity
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connect()
         }
         'Intune'
@@ -213,6 +214,7 @@ function Connect-M365Tenant
             }
             $Global:MSCloudLoginConnectionProfile.Intune.TenantId = $TenantId
             $Global:MSCloudLoginConnectionProfile.Intune.CertificateThumbprint = $CertificateThumbprint
+            $Global:MSCloudLoginConnectionProfile.Intune.Identity = $Identity
             $Global:MSCloudLoginConnectionProfile.Intune.Connect()
         }
         'MicrosoftGraph'
@@ -815,20 +817,31 @@ function Get-CloudEnvironmentInfo
 function Get-TenantDomain
 {
     param(
-        [Parameter(Mandatory = $true)]
+        [Parameter()]
         [System.String]
         $ApplicationId,
 
-        [Parameter(Mandatory = $true)]
+        [Parameter()]
         [System.String]
         $TenantId,
 
-        [Parameter(Mandatory = $true)]
+        [Parameter()]
         [System.String]
-        $CertificateThumbprint
+        $CertificateThumbprint,
+
+        [Parameter()]
+        [switch]
+        $Identity
     )
 
-    Connect-M365Tenant -Workload MicrosoftGraph -ApplicationId $ApplicationId -TenantId $TenantId -CertificateThumbprint $CertificateThumbprint
+    if (-not [string]::IsNullOrEmpty($ApplicationId))
+    {
+        Connect-M365Tenant -Workload MicrosoftGraph -ApplicationId $ApplicationId -TenantId $TenantId -CertificateThumbprint $CertificateThumbprint
+    }
+    elseif ($Identity.IsPresent)
+    {
+        Connect-M365Tenant -Workload MicrosoftGraph -Identity -TenantId $TenantId
+    }
 
     $domain = Get-MgDomain | Where-Object { $_.IsInitial -eq $True }
 
@@ -841,20 +854,31 @@ function Get-TenantDomain
 function Get-MSCloudLoginOrganizationName
 {
     param(
-        [Parameter(Mandatory = $true)]
+        [Parameter()]
         [System.String]
         $ApplicationId,
 
-        [Parameter(Mandatory = $true)]
+        [Parameter()]
         [System.String]
         $TenantId,
 
-        [Parameter(Mandatory = $true)]
+        [Parameter()]
         [System.String]
-        $CertificateThumbprint
+        $CertificateThumbprint,
+
+        [Parameter()]
+        [switch]
+        $Identity
     )
 
-    Connect-M365Tenant -Workload MicrosoftGraph -ApplicationId $ApplicationId -TenantId $TenantId -CertificateThumbprint $CertificateThumbprint
+    if (-not [string]::IsNullOrEmpty($ApplicationId))
+    {
+        Connect-M365Tenant -Workload MicrosoftGraph -ApplicationId $ApplicationId -TenantId $TenantId -CertificateThumbprint $CertificateThumbprint
+    }
+    elseif ($Identity.IsPresent)
+    {
+        Connect-M365Tenant -Workload MicrosoftGraph -Identity -TenantId $TenantId
+    }
 
     try
     {
