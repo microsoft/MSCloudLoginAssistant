@@ -212,9 +212,6 @@ class ExchangeOnline:Workload
     [boolean]
     $SkipModuleReload = $false
 
-    [switch]
-    $Identity
-
     ExchangeOnline()
     {
     }
@@ -257,9 +254,6 @@ class Intune:Workload
 
     [string]
     $GraphBaseUrl
-
-    [switch]
-    $Identity
 
     Intune()
     {
@@ -323,9 +317,6 @@ class MicrosoftGraph:Workload
 
     [string]
     $UserTokenUrl
-
-    [switch]
-    $Identity
 
     MicrosoftGraph()
     {
