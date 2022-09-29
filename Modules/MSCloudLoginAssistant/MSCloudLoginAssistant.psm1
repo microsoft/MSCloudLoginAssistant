@@ -18,10 +18,10 @@ function Test-MSCloudLogin
     param
     (
         [Parameter(Mandatory = $true)]
-        [ValidateSet("Azure", "AzureAD", `
-                "ExchangeOnline", "Intune", `
-                "SecurityComplianceCenter", "PnP", "PowerPlatforms", `
-                "MicrosoftTeams", "MicrosoftGraph")]
+        [ValidateSet('Azure', 'AzureAD', `
+                'ExchangeOnline', 'Intune', `
+                'SecurityComplianceCenter', 'PnP', 'PowerPlatforms', `
+                'MicrosoftTeams', 'MicrosoftGraph')]
         [System.String]
         $Platform,
 
@@ -30,7 +30,7 @@ function Test-MSCloudLogin
         $ConnectionUrl,
 
         [Parameter()]
-        [Alias("o365Credential")]
+        [Alias('o365Credential')]
         [System.Management.Automation.PSCredential]
         $CloudCredential,
 
@@ -67,19 +67,23 @@ function Test-MSCloudLogin
         $SkipModuleReload = $false,
 
         [Parameter()]
+        [Switch]
+        $Identity,
+
+        [Parameter()]
         [System.String]
-        [ValidateSet("v1.0", "beta")]
-        $ProfileName = "v1.0"
+        [ValidateSet('v1.0', 'beta')]
+        $ProfileName = 'v1.0'
     )
     $parametersToPass = $PSBoundParameters
-    $parametersToPass.Add("Workload", $Platform)
-    $parametersToPass.Remove("Platform") | Out-Null
+    $parametersToPass.Add('Workload', $Platform)
+    $parametersToPass.Remove('Platform') | Out-Null
 
-    $parametersToPass.Add("Credential", $CloudCredential)
-    $parametersToPass.Remove("CloudCredential") | Out-Null
+    $parametersToPass.Add('Credential', $CloudCredential)
+    $parametersToPass.Remove('CloudCredential') | Out-Null
 
-    $parametersToPass.Add("Url", $ConnectionUrl)
-    $parametersToPass.Remove("ConnectionUrl") | Out-Null
+    $parametersToPass.Add('Url', $ConnectionUrl)
+    $parametersToPass.Remove('ConnectionUrl') | Out-Null
 
     Connect-M365Tenant @parametersToPass
 }
@@ -89,10 +93,10 @@ function Connect-M365Tenant
     param
     (
         [Parameter(Mandatory = $true)]
-        [ValidateSet("Azure", "AzureAD", `
-                "ExchangeOnline", "Intune", `
-                "SecurityComplianceCenter", "PnP", "PowerPlatforms", `
-                "MicrosoftTeams", "MicrosoftGraph")]
+        [ValidateSet('Azure', 'AzureAD', `
+                'ExchangeOnline', 'Intune', `
+                'SecurityComplianceCenter', 'PnP', 'PowerPlatforms', `
+                'MicrosoftTeams', 'MicrosoftGraph')]
         [System.String]
         $Workload,
 
@@ -101,7 +105,7 @@ function Connect-M365Tenant
         $Url,
 
         [Parameter()]
-        [Alias("o365Credential")]
+        [Alias('o365Credential')]
         [System.Management.Automation.PSCredential]
         $Credential,
 
@@ -143,8 +147,8 @@ function Connect-M365Tenant
 
         [Parameter()]
         [System.String]
-        [ValidateSet("v1.0", "beta")]
-        $ProfileName = "v1.0"
+        [ValidateSet('v1.0', 'beta')]
+        $ProfileName = 'v1.0'
     )
 
     $VerbosePreference = 'SilentlyContinue'
@@ -159,13 +163,13 @@ function Connect-M365Tenant
     {
         'Azure'
         {
-            $Global:MSCloudLoginConnectionProfile.Azure.Credentials           = $Credential
-            $Global:MSCloudLoginConnectionProfile.Azure.ApplicationId         = $ApplicationId
+            $Global:MSCloudLoginConnectionProfile.Azure.Credentials = $Credential
+            $Global:MSCloudLoginConnectionProfile.Azure.ApplicationId = $ApplicationId
             if ($null -ne $ApplicationSecret)
             {
-                $Global:MSCloudLoginConnectionProfile.Azure.ApplicationSecret     = $ApplicationSecret.GetNetworkCredential().Password
+                $Global:MSCloudLoginConnectionProfile.Azure.ApplicationSecret = $ApplicationSecret.GetNetworkCredential().Password
             }
-            $Global:MSCloudLoginConnectionProfile.Azure.TenantId              = $TenantId
+            $Global:MSCloudLoginConnectionProfile.Azure.TenantId = $TenantId
             $Global:MSCloudLoginConnectionProfile.Azure.CertificateThumbprint = $CertificateThumbprint
 
             if ($null -eq $UseModernAuth)
@@ -176,93 +180,95 @@ function Connect-M365Tenant
         }
         'AzureAD'
         {
-            $Global:MSCloudLoginConnectionProfile.AzureAD.Credentials           = $Credential
-            $Global:MSCloudLoginConnectionProfile.AzureAD.ApplicationId         = $ApplicationId
+            $Global:MSCloudLoginConnectionProfile.AzureAD.Credentials = $Credential
+            $Global:MSCloudLoginConnectionProfile.AzureAD.ApplicationId = $ApplicationId
             if ($null -ne $ApplicationSecret)
             {
-                $Global:MSCloudLoginConnectionProfile.AzureAD.ApplicationSecret     = $ApplicationSecret.GetNetworkCredential().Password
+                $Global:MSCloudLoginConnectionProfile.AzureAD.ApplicationSecret = $ApplicationSecret.GetNetworkCredential().Password
             }
-            $Global:MSCloudLoginConnectionProfile.AzureAD.TenantId              = $TenantId
+            $Global:MSCloudLoginConnectionProfile.AzureAD.TenantId = $TenantId
             $Global:MSCloudLoginConnectionProfile.AzureAD.CertificateThumbprint = $CertificateThumbprint
             $Global:MSCloudLoginConnectionProfile.AzureAD.Connect()
         }
         'ExchangeOnline'
         {
-            $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Credentials           = $Credential
-            $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ApplicationId         = $ApplicationId
+            $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Credentials = $Credential
+            $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ApplicationId = $ApplicationId
             if ($null -ne $ApplicationSecret)
             {
-                $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ApplicationSecret     = $ApplicationSecret.GetNetworkCredential().Password
+                $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ApplicationSecret = $ApplicationSecret.GetNetworkCredential().Password
             }
-            $Global:MSCloudLoginConnectionProfile.ExchangeOnline.TenantId              = $TenantId
+            $Global:MSCloudLoginConnectionProfile.ExchangeOnline.TenantId = $TenantId
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.CertificateThumbprint = $CertificateThumbprint
-            $Global:MSCloudLoginConnectionProfile.ExchangeOnline.SkipModuleReload      = $SkipModuleReload
+            $Global:MSCloudLoginConnectionProfile.ExchangeOnline.SkipModuleReload = $SkipModuleReload
+            $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Identity = $Identity
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connect()
         }
         'Intune'
         {
-            $Global:MSCloudLoginConnectionProfile.Intune.Credentials           = $Credential
-            $Global:MSCloudLoginConnectionProfile.Intune.ApplicationId         = $ApplicationId
+            $Global:MSCloudLoginConnectionProfile.Intune.Credentials = $Credential
+            $Global:MSCloudLoginConnectionProfile.Intune.ApplicationId = $ApplicationId
             if ($null -ne $ApplicationSecret)
             {
-                $Global:MSCloudLoginConnectionProfile.Intune.ApplicationSecret     = $ApplicationSecret.GetNetworkCredential().Password
+                $Global:MSCloudLoginConnectionProfile.Intune.ApplicationSecret = $ApplicationSecret.GetNetworkCredential().Password
             }
-            $Global:MSCloudLoginConnectionProfile.Intune.TenantId              = $TenantId
+            $Global:MSCloudLoginConnectionProfile.Intune.TenantId = $TenantId
             $Global:MSCloudLoginConnectionProfile.Intune.CertificateThumbprint = $CertificateThumbprint
+            $Global:MSCloudLoginConnectionProfile.Intune.Identity = $Identity
             $Global:MSCloudLoginConnectionProfile.Intune.Connect()
         }
         'MicrosoftGraph'
         {
-            $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Credentials           = $Credential
-            $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationId         = $ApplicationId
+            $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Credentials = $Credential
+            $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationId = $ApplicationId
             if ($null -ne $ApplicationSecret)
             {
-                $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationSecret     = $ApplicationSecret.GetNetworkCredential().Password
+                $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationSecret = $ApplicationSecret.GetNetworkCredential().Password
             }
-            $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.TenantId              = $TenantId
+            $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.TenantId = $TenantId
             $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.CertificateThumbprint = $CertificateThumbprint
-            $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ProfileName           = $ProfileName
-            $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Identity              = $Identity
+            $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ProfileName = $ProfileName
+            $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Identity = $Identity
             $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connect()
         }
         'MicrosoftTeams'
         {
-            $Global:MSCloudLoginConnectionProfile.Teams.Credentials           = $Credential
-            $Global:MSCloudLoginConnectionProfile.Teams.ApplicationId         = $ApplicationId
+            $Global:MSCloudLoginConnectionProfile.Teams.Credentials = $Credential
+            $Global:MSCloudLoginConnectionProfile.Teams.ApplicationId = $ApplicationId
             if ($null -ne $ApplicationSecret)
             {
-                $Global:MSCloudLoginConnectionProfile.Teams.ApplicationSecret     = $ApplicationSecret.GetNetworkCredential().Password
+                $Global:MSCloudLoginConnectionProfile.Teams.ApplicationSecret = $ApplicationSecret.GetNetworkCredential().Password
             }
-            $Global:MSCloudLoginConnectionProfile.Teams.TenantId              = $TenantId
+            $Global:MSCloudLoginConnectionProfile.Teams.TenantId = $TenantId
             $Global:MSCloudLoginConnectionProfile.Teams.CertificateThumbprint = $CertificateThumbprint
-            $Global:MSCloudLoginConnectionProfile.Teams.CertificatePath       = $CertificatePath
-            $Global:MSCloudLoginConnectionProfile.Teams.CertificatePassword   = $CertificatePassword
+            $Global:MSCloudLoginConnectionProfile.Teams.CertificatePath = $CertificatePath
+            $Global:MSCloudLoginConnectionProfile.Teams.CertificatePassword = $CertificatePassword
             $Global:MSCloudLoginConnectionProfile.Teams.Connect()
         }
         'PnP'
         {
-            $Global:MSCloudLoginConnectionProfile.PnP.Credentials           = $Credential
-            $Global:MSCloudLoginConnectionProfile.PnP.ApplicationId         = $ApplicationId
+            $Global:MSCloudLoginConnectionProfile.PnP.Credentials = $Credential
+            $Global:MSCloudLoginConnectionProfile.PnP.ApplicationId = $ApplicationId
             if ($null -ne $ApplicationSecret)
             {
-                $Global:MSCloudLoginConnectionProfile.PnP.ApplicationSecret     = $ApplicationSecret.GetNetworkCredential().Password
+                $Global:MSCloudLoginConnectionProfile.PnP.ApplicationSecret = $ApplicationSecret.GetNetworkCredential().Password
             }
-            $Global:MSCloudLoginConnectionProfile.PnP.TenantId              = $TenantId
+            $Global:MSCloudLoginConnectionProfile.PnP.TenantId = $TenantId
             $Global:MSCloudLoginConnectionProfile.PnP.CertificateThumbprint = $CertificateThumbprint
-            $Global:MSCloudLoginConnectionProfile.PnP.CertificatePath       = $CertificatePath
-            $Global:MSCloudLoginConnectionProfile.PnP.CertificatePassword   = $CertificatePassword
+            $Global:MSCloudLoginConnectionProfile.PnP.CertificatePath = $CertificatePath
+            $Global:MSCloudLoginConnectionProfile.PnP.CertificatePassword = $CertificatePassword
 
             # Mark as disconnected if we are trying to connect to a different url then we previously connected to.
             if ($Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl -ne $Url -or `
-                -not $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl -and `
-                $Url -or (-not $Url -and -not $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl))
+                    -not $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl -and `
+                    $Url -or (-not $Url -and -not $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl))
             {
                 $ForceRefresh = $false
                 if ($Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl -ne $Url)
                 {
                     $ForceRefresh = $true
                 }
-                $Global:MSCloudLoginConnectionProfile.PnP.Connected     = $false
+                $Global:MSCloudLoginConnectionProfile.PnP.Connected = $false
                 $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl = $Url
                 $Global:MSCloudLoginConnectionProfile.PnP.Connect($ForceRefresh)
             }
@@ -274,7 +280,7 @@ function Connect-M365Tenant
                     if ($contextUrl -ne $Url)
                     {
                         $ForceRefresh = $true
-                        $Global:MSCloudLoginConnectionProfile.PnP.Connected     = $false
+                        $Global:MSCloudLoginConnectionProfile.PnP.Connected = $false
                         if ($url)
                         {
                             $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl = $Url
@@ -301,25 +307,25 @@ function Connect-M365Tenant
         }
         'PowerPlatforms'
         {
-            $Global:MSCloudLoginConnectionProfile.PowerPlatform.Credentials           = $Credential
-            $Global:MSCloudLoginConnectionProfile.PowerPlatform.ApplicationId         = $ApplicationId
-            $Global:MSCloudLoginConnectionProfile.PowerPlatform.TenantId              = $TenantId
+            $Global:MSCloudLoginConnectionProfile.PowerPlatform.Credentials = $Credential
+            $Global:MSCloudLoginConnectionProfile.PowerPlatform.ApplicationId = $ApplicationId
+            $Global:MSCloudLoginConnectionProfile.PowerPlatform.TenantId = $TenantId
             $Global:MSCloudLoginConnectionProfile.PowerPlatform.CertificateThumbprint = $CertificateThumbprint
             $Global:MSCloudLoginConnectionProfile.PowerPlatform.Connect()
         }
         'SecurityComplianceCenter'
         {
-            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Credentials           = $Credential
-            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ApplicationId         = $ApplicationId
+            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Credentials = $Credential
+            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ApplicationId = $ApplicationId
             if ($null -ne $ApplicationSecret)
             {
-                $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ApplicationSecret     = $ApplicationSecret.GetNetworkCredential().Password
+                $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ApplicationSecret = $ApplicationSecret.GetNetworkCredential().Password
             }
-            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.TenantId              = $TenantId
+            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.TenantId = $TenantId
             $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.CertificateThumbprint = $CertificateThumbprint
-            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.CertificatePath       = $CertificatePath
-            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.CertificatePassword   = $CertificatePassword
-            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.SkipModuleReload      = $SkipModuleReload
+            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.CertificatePath = $CertificatePath
+            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.CertificatePassword = $CertificatePassword
+            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.SkipModuleReload = $SkipModuleReload
             $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Connect()
         }
     }
@@ -335,14 +341,14 @@ function Get-SPOAdminUrl
         [System.Management.Automation.PSCredential]
         $Credential
     )
-    Write-Verbose -Message "Connection to Microsoft Graph is required to automatically determine SharePoint Online admin URL..."
+    Write-Verbose -Message 'Connection to Microsoft Graph is required to automatically determine SharePoint Online admin URL...'
     try
     {
-        $defaultDomain = Get-MgDomain -ErrorAction Stop| Where-Object { $_.Id -like "*.onmicrosoft.com" -and $_.IsInitial -eq $true } # We don't use IsDefault here because the default could be a custom domain
+        $defaultDomain = Get-MgDomain -ErrorAction Stop | Where-Object { $_.Id -like '*.onmicrosoft.com' -and $_.IsInitial -eq $true } # We don't use IsDefault here because the default could be a custom domain
         if (-not $defaultDomain)
         {
             Connect-M365Tenant -Workload 'MicrosoftGraph' -Credential $Credential
-            [Array]$defaultDomain = Get-MgDomain | Where-Object { $_.Id -like "*.onmicrosoft.com" -and $_.IsInitial -eq $true } # We don't use IsDefault here because the default could be a custom domain
+            [Array]$defaultDomain = Get-MgDomain | Where-Object { $_.Id -like '*.onmicrosoft.com' -and $_.IsInitial -eq $true } # We don't use IsDefault here because the default could be a custom domain
         }
     }
     catch
@@ -350,20 +356,20 @@ function Get-SPOAdminUrl
         Connect-M365Tenant -Workload 'MicrosoftGraph' -Credential $Credential
         try
         {
-            [Array]$defaultDomain = Get-MgDomain -ErrorAction Stop | Where-Object { $_.Id -like "*.onmicrosoft.com" -and $_.IsInitial -eq $true }
+            [Array]$defaultDomain = Get-MgDomain -ErrorAction Stop | Where-Object { $_.Id -like '*.onmicrosoft.com' -and $_.IsInitial -eq $true }
         }
         catch
         {
             if (Assert-IsNonInteractiveShell -eq $false)
             {
                 # Only run interactive command when Exporting
-                Write-Verbose -Message "Requesting access to read information about the domain"
+                Write-Verbose -Message 'Requesting access to read information about the domain'
                 Connect-MgGraph -Scopes Domain.Read.All -ErrorAction 'Stop'
-                [Array]$defaultDomain = Get-MgDomain | Where-Object { $_.Id -like "*.onmicrosoft.com" -and $_.IsInitial -eq $true }
+                [Array]$defaultDomain = Get-MgDomain | Where-Object { $_.Id -like '*.onmicrosoft.com' -and $_.IsInitial -eq $true }
             }
             else
             {
-                if ($_.Exception.Message -eq "Insufficient privileges to complete the operation.")
+                if ($_.Exception.Message -eq 'Insufficient privileges to complete the operation.')
                 {
                     throw "The Graph application does not have the correct permissions to access Domains. Make sure you run 'Connect-MgGraph -Scopes Domain.Read.All' first!"
                 }
@@ -384,21 +390,21 @@ function Get-SPOAdminUrl
     {
         if ($Global:CloudEnvironment -eq 'Germany')
         {
-            [Array]$defaultDomain = Get-MgDomain | Where-Object { $_.Id -like "*.onmicrosoft.de" -and $_.IsInitial -eq $true }
+            [Array]$defaultDomain = Get-MgDomain | Where-Object { $_.Id -like '*.onmicrosoft.de' -and $_.IsInitial -eq $true }
             $domain = '.onmicrosoft.de'
             $tenantName = $defaultDomain.Id.Replace($domain, '')
             $spoAdminUrl = "https://$tenantName-admin.sharepoint.de"
         }
         elseif ($Global:CloudEnvironment -eq 'GCCHigh')
         {
-            [Array]$defaultDomain = Get-MgDomain | Where-Object { $_.Id -like "*.onmicrosoft.us" -and $_.IsInitial -eq $true }
+            [Array]$defaultDomain = Get-MgDomain | Where-Object { $_.Id -like '*.onmicrosoft.us' -and $_.IsInitial -eq $true }
             $domain = '.onmicrosoft.us'
             $tenantName = $defaultDomain.Id.Replace($domain, '')
             $spoAdminUrl = "https://$tenantName-admin.sharepoint.us"
         }
         elseif ($Global:CloudEnvironment -eq 'DOD')
         {
-            [Array]$defaultDomain = Get-MgDomain | Where-Object { $_.Id -like "*.onmicrosoft.us" -and $_.IsInitial -eq $true }
+            [Array]$defaultDomain = Get-MgDomain | Where-Object { $_.Id -like '*.onmicrosoft.us' -and $_.IsInitial -eq $true }
             $domain = '.onmicrosoft.us'
             $tenantName = $defaultDomain.Id.Replace($domain, '')
             $spoAdminUrl = "https://$tenantName-admin.sharepoint-mil.us"
@@ -431,7 +437,7 @@ function Get-AzureADDLL
     [OutputType([System.String])]
     param(
     )
-    [array]$AzureADModules = Get-Module -ListAvailable | Where-Object { $_.name -eq "AzureADPreview" }
+    [array]$AzureADModules = Get-Module -ListAvailable | Where-Object { $_.name -eq 'AzureADPreview' }
 
     if ($AzureADModules.count -eq 0)
     {
@@ -439,7 +445,7 @@ function Get-AzureADDLL
     }
     else
     {
-        $AzureDLL = Join-Path (($AzureADModules | Sort-Object version -Descending | Select-Object -first 1).Path | Split-Path) Microsoft.IdentityModel.Clients.ActiveDirectory.dll
+        $AzureDLL = Join-Path (($AzureADModules | Sort-Object version -Descending | Select-Object -First 1).Path | Split-Path) Microsoft.IdentityModel.Clients.ActiveDirectory.dll
         return $AzureDLL
     }
 
@@ -456,10 +462,10 @@ function Get-TenantLoginEndPoint
         [Parameter(Mandatory = $false)]
         [System.String]
         [ValidateSet('MicrosoftOnline', 'EvoSTS')]
-        $LoginSource = "EvoSTS"
+        $LoginSource = 'EvoSTS'
     )
     $TenantInfo = @{ }
-    if ($LoginSource -eq "EvoSTS")
+    if ($LoginSource -eq 'EvoSTS')
     {
         $webrequest = Invoke-WebRequest -Uri https://login.windows.net/$($TenantName)/.well-known/openid-configuration -UseBasicParsing
     }
@@ -490,7 +496,7 @@ function New-ADALServiceInfo
         [Parameter(Mandatory = $false)]
         [System.String]
         [ValidateSet('MicrosoftOnline', 'EvoSTS')]
-        $LoginSource = "EvoSTS"
+        $LoginSource = 'EvoSTS'
     )
     $AzureADDLL = Get-AzureADDLL
     if ([string]::IsNullOrEmpty($AzureADDLL))
@@ -516,9 +522,9 @@ function New-ADALServiceInfo
     }
     $PromptBehavior = [Microsoft.IdentityModel.Clients.ActiveDirectory.PromptBehavior]::Auto
     $Service = @{ }
-    $Service["authContext"] = [Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext]::new($authority, $false)
-    $Service["platformParam"] = New-Object "Microsoft.IdentityModel.Clients.ActiveDirectory.PlatformParameters" -ArgumentList $PromptBehavior
-    $Service["userId"] = New-Object "Microsoft.IdentityModel.Clients.ActiveDirectory.UserIdentifier" -ArgumentList $UserPrincipalName, "OptionalDisplayableId"
+    $Service['authContext'] = [Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext]::new($authority, $false)
+    $Service['platformParam'] = New-Object 'Microsoft.IdentityModel.Clients.ActiveDirectory.PlatformParameters' -ArgumentList $PromptBehavior
+    $Service['userId'] = New-Object 'Microsoft.IdentityModel.Clients.ActiveDirectory.UserIdentifier' -ArgumentList $UserPrincipalName, 'OptionalDisplayableId'
 
     Write-Verbose -Message "Current Assembly for AD AuthenticationContext: $([Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext].Assembly | Out-String)"
 
@@ -533,7 +539,7 @@ function Get-AuthHeader
         [System.String]
         $UserPrincipalName,
         [Parameter(Mandatory = $True)]
-        [Alias("RessourceURI")] # For backward compat with anything using the misspelled parameter
+        [Alias('RessourceURI')] # For backward compat with anything using the misspelled parameter
         $ResourceURI,
         [Parameter(Mandatory = $True)]
         $clientId,
@@ -543,18 +549,18 @@ function Get-AuthHeader
     )
     if ($null -eq $Global:ADALServicePoint)
     {
-        $TenantName = $UserPrincipalName.split("@")[1]
+        $TenantName = $UserPrincipalName.split('@')[1]
         $Global:ADALServicePoint = New-ADALServiceInfo -TenantName $TenantName -UserPrincipalName $UserPrincipalName
     }
 
     try
     {
-        Write-Debug "Looking for a refresh token"
+        Write-Debug 'Looking for a refresh token'
         $authResult = $Global:ADALServicePoint.authContext.AcquireTokenSilentAsync($ResourceURI, $clientId)
         if ($null -eq $authResult.result)
         {
             $RedirectURI = [System.Uri]::new($RedirectURI)
-            $authResult = $Global:ADALServicePoint.authContext.AcquireTokenAsync($ResourceURI, $clientId, $RedirectURI, $Global:ADALServicePoint.platformParam, $Global:ADALServicePoint.userId, "", "")
+            $authResult = $Global:ADALServicePoint.authContext.AcquireTokenAsync($ResourceURI, $clientId, $RedirectURI, $Global:ADALServicePoint.platformParam, $Global:ADALServicePoint.userId, '', '')
         }
         $AuthHeader = $authResult.result.CreateAuthorizationHeader()
     }
@@ -604,7 +610,7 @@ function Get-AccessToken
 
         if ([System.String]::IsNullOrEmpty($AccessToken))
         {
-            $jobName = "AcquireTokenAsync" + (New-Guid).ToString()
+            $jobName = 'AcquireTokenAsync' + (New-Guid).ToString()
             Start-Job -Name $jobName -ScriptBlock {
                 Param(
                     [Parameter(Mandatory = $True)]
@@ -649,7 +655,7 @@ function Get-AccessToken
             do
             {
                 Start-Sleep -Seconds 1
-            } while ($job.JobStateInfo.State -ne "Completed")
+            } while ($job.JobStateInfo.State -ne 'Completed')
             $AccessToken = Receive-Job -Name $jobName
         }
         Write-Verbose "Token Found --> $AccessToken"
@@ -690,13 +696,13 @@ function Get-PowerPlatformTokenInfo
         {
             $WarningPreference = 'SilentlyContinue'
             Import-Module -Name 'Microsoft.PowerApps.Administration.PowerShell' -Force
-            $authContext = New-Object Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext("https://login.windows.net/common");
+            $authContext = New-Object Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext('https://login.windows.net/common');
             $credential = [Microsoft.IdentityModel.Clients.ActiveDirectory.UserCredential]::new($O365Credentials.Username, $O365Credentials.Password)
-            $authResult = $authContext.AcquireToken($Audience, "1950a258-227b-4e31-a9cf-717495945fc2", $credential);
+            $authResult = $authContext.AcquireToken($Audience, '1950a258-227b-4e31-a9cf-717495945fc2', $credential);
 
             $JwtToken = $authResult.IdToken
-            $tokenSplit = $JwtToken.Split(".")
-            $claimsSegment = $tokenSplit[1].Replace(" ", "+");
+            $tokenSplit = $JwtToken.Split('.')
+            $claimsSegment = $tokenSplit[1].Replace(' ', '+');
 
             $mod = $claimsSegment.Length % 4
             if ($mod -gt 0)
@@ -704,7 +710,7 @@ function Get-PowerPlatformTokenInfo
                 $paddingCount = 4 - $mod;
                 for ($i = 0; $i -lt $paddingCount; $i++)
                 {
-                    $claimsSegment += "="
+                    $claimsSegment += '='
                 }
             }
             $decodedClaimsSegment = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($claimsSegment))
@@ -727,7 +733,7 @@ function Get-PowerPlatformTokenInfo
     do
     {
         Start-Sleep -Seconds 1
-    } while ($job.JobStateInfo.State -ne "Completed")
+    } while ($job.JobStateInfo.State -ne 'Completed')
     $TokenInfo = Receive-Job -Name $jobName
     return $TokenInfo
 }
@@ -772,7 +778,11 @@ function Get-CloudEnvironmentInfo
 
         [Parameter()]
         [System.String]
-        $CertificateThumbprint
+        $CertificateThumbprint,
+
+        [Parameter()]
+        [switch]
+        $Identity
     )
 
     try
@@ -781,9 +791,15 @@ function Get-CloudEnvironmentInfo
         {
             $tenantName = $Credentials.UserName.Split('@')[1]
         }
-        else
+        elseif (-not [string]::IsNullOrEmpty($ApplicationId))
         {
-            $tenantName = $TenantId `
+            $tenantName = Get-MSCloudLoginOrganizationName -ApplicationId $ApplicationId `
+                -TenantId $TenantId `
+                -CertificateThumbprint $CertificateThumbprint
+        }
+        elseif ($Identity.IsPresent)
+        {
+            $tenantName = $TenantId
         }
         ## endpoint will work with TenantId or tenantName
         $response = Invoke-WebRequest -Uri "https://login.microsoftonline.com/$tenantName/v2.0/.well-known/openid-configuration" -Method Get -UseBasicParsing
@@ -801,50 +817,72 @@ function Get-CloudEnvironmentInfo
 function Get-TenantDomain
 {
     param(
-        [Parameter(Mandatory = $true)]
+        [Parameter()]
         [System.String]
         $ApplicationId,
 
-        [Parameter(Mandatory = $true)]
+        [Parameter()]
         [System.String]
         $TenantId,
 
-        [Parameter(Mandatory = $true)]
+        [Parameter()]
         [System.String]
-        $CertificateThumbprint
+        $CertificateThumbprint,
+
+        [Parameter()]
+        [switch]
+        $Identity
     )
 
-    Connect-M365Tenant -Workload MicrosoftGraph -ApplicationId $ApplicationId -TenantId $TenantId -CertificateThumbprint $CertificateThumbprint
+    if (-not [string]::IsNullOrEmpty($ApplicationId))
+    {
+        Connect-M365Tenant -Workload MicrosoftGraph -ApplicationId $ApplicationId -TenantId $TenantId -CertificateThumbprint $CertificateThumbprint
+    }
+    elseif ($Identity.IsPresent)
+    {
+        Connect-M365Tenant -Workload MicrosoftGraph -Identity -TenantId $TenantId
+    }
 
-    $domain = Get-MgDomain  | where-object { $_.IsInitial -eq $True }
+    $domain = Get-MgDomain | Where-Object { $_.IsInitial -eq $True }
 
     if ($null -ne $domain)
     {
-        return $domain.Id.split(".")[0]
+        return $domain.Id.split('.')[0]
     }
 }
 
 function Get-MSCloudLoginOrganizationName
 {
     param(
-        [Parameter(Mandatory = $true)]
+        [Parameter()]
         [System.String]
         $ApplicationId,
 
-        [Parameter(Mandatory = $true)]
+        [Parameter()]
         [System.String]
         $TenantId,
 
-        [Parameter(Mandatory = $true)]
+        [Parameter()]
         [System.String]
-        $CertificateThumbprint
+        $CertificateThumbprint,
+
+        [Parameter()]
+        [switch]
+        $Identity
     )
 
-    Connect-M365Tenant -Workload MicrosoftGraph -ApplicationId $ApplicationId -TenantId $TenantId -CertificateThumbprint $CertificateThumbprint
+    if (-not [string]::IsNullOrEmpty($ApplicationId))
+    {
+        Connect-M365Tenant -Workload MicrosoftGraph -ApplicationId $ApplicationId -TenantId $TenantId -CertificateThumbprint $CertificateThumbprint
+    }
+    elseif ($Identity.IsPresent)
+    {
+        Connect-M365Tenant -Workload MicrosoftGraph -Identity -TenantId $TenantId
+    }
 
     try
     {
-        $domain = Get-MgDomain -ErrorAction Stop | where-object { $_.IsInitial -eq $True }
+        $domain = Get-MgDomain -ErrorAction Stop | Where-Object { $_.IsInitial -eq $True }
 
         if ($null -ne $domain)
         {

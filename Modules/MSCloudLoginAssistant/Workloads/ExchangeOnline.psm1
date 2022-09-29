@@ -3,26 +3,26 @@ function Connect-MSCloudLoginExchangeOnline
     [CmdletBinding()]
     param()
 
-    $WarningPreference     = 'SilentlyContinue'
+    $WarningPreference = 'SilentlyContinue'
     $InformationPreference = 'SilentlyContinue'
-    $ProgressPreference    = 'SilentlyContinue'
-    $VerbosePreference     = 'SilentlyContinue'
+    $ProgressPreference = 'SilentlyContinue'
+    $VerbosePreference = 'SilentlyContinue'
 
-    Write-Verbose -Message "Trying to get the Get-AcceptedDomain command from within MSCloudLoginAssistant"
+    Write-Verbose -Message 'Trying to get the Get-AcceptedDomain command from within MSCloudLoginAssistant'
     try
     {
         Get-AcceptedDomain -ErrorAction Stop
-        Write-Verbose -Message "Succeeded"
+        Write-Verbose -Message 'Succeeded'
         $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connected = $true
         return
     }
     catch
     {
-        Write-Verbose -Message "Failed"
+        Write-Verbose -Message 'Failed'
     }
 
     if ($Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connected -and `
-        $Global:MSCloudLoginConnectionProfile.ExchangeOnline.SkipModuleReload)
+            $Global:MSCloudLoginConnectionProfile.ExchangeOnline.SkipModuleReload)
     {
         $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connected = $true
         return
@@ -30,29 +30,29 @@ function Connect-MSCloudLoginExchangeOnline
 
     Write-Verbose -Message "Loaded Modules: $(Get-Module | Select-Object Name)"
     $loadedModules = Get-Module
-    $AlreadyLoadedEXOProxyModules = $loadedModules | Where-Object -FilterScript {$_.ExportedCommands.Keys.Contains('Get-AcceptedDomain')}
+    $AlreadyLoadedEXOProxyModules = $loadedModules | Where-Object -FilterScript { $_.ExportedCommands.Keys.Contains('Get-AcceptedDomain') }
     foreach ($loadedModule in $AlreadyLoadedEXOProxyModules)
     {
         Write-Verbose -Message "Removing module {$($loadedModule.Name)} from current EXO session"
         Remove-Module $loadedModule.Name -Force -Verbose:$false | Out-Null
     }
 
-    [array]$activeSessions = Get-PSSession | Where-Object -FilterScript {$_.ComputerName -like '*outlook.office*' -and $_.State -eq 'Opened'}
+    [array]$activeSessions = Get-PSSession | Where-Object -FilterScript { $_.ComputerName -like '*outlook.office*' -and $_.State -eq 'Opened' }
     Write-Verbose -Message "Active Sessions: $($activeSessions | Out-String)"
     if ($activeSessions.Length -ge 1)
     {
         Write-Verbose -Message "Found {$($activeSessions.Length)} existing Exchange Online Session"
         $ProxyModule = Import-PSSession $activeSessions[0] `
-                -DisableNameChecking `
-                -AllowClobber
+            -DisableNameChecking `
+            -AllowClobber
         Write-Verbose -Message "Imported session into $ProxyModule"
         Import-Module $ProxyModule -Global `
-            -Verbose:$false| Out-Null
+            -Verbose:$false | Out-Null
         $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connected = $true
-        Write-Verbose "Reloaded the Exchange Module"
+        Write-Verbose 'Reloaded the Exchange Module'
         return
     }
-    Write-Verbose -Message "No active Exchange Online session found."
+    Write-Verbose -Message 'No active Exchange Online session found.'
 
     if ($Global:MSCloudLoginConnectionProfile.ExchangeOnline.AuthenticationType -eq 'ServicePrincipalWithThumbprint')
     {
@@ -75,8 +75,8 @@ function Connect-MSCloudLoginExchangeOnline
                 -ExchangeEnvironmentName $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ExchangeEnvironmentName `
                 -Verbose:$false | Out-Null
 
-            $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ConnectedDateTime         = [System.DateTime]::Now.ToString()
-            $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connected                 = $true
+            $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ConnectedDateTime = [System.DateTime]::Now.ToString()
+            $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connected = $true
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.MultiFactorAuthentication = $false
             Write-Verbose -Message "Successfully connected to Exchange Online using AAD App {$ApplicationID}"
         }
@@ -89,17 +89,17 @@ function Connect-MSCloudLoginExchangeOnline
     {
         try
         {
-            Write-Verbose -Message "Attempting to connect to Exchange Online using Credentials without MFA"
+            Write-Verbose -Message 'Attempting to connect to Exchange Online using Credentials without MFA'
 
             Connect-ExchangeOnline -Credential $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Credentials `
                 -ShowProgress:$false `
                 -ShowBanner:$false `
                 -ExchangeEnvironmentName $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ExchangeEnvironmentName `
                 -Verbose:$false -ErrorAction Stop | Out-Null
-            $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ConnectedDateTime         = [System.DateTime]::Now.ToString()
-            $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connected                 = $true
+            $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ConnectedDateTime = [System.DateTime]::Now.ToString()
+            $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connected = $true
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.MultiFactorAuthentication = $false
-            Write-Verbose -Message "Successfully connected to Exchange Online using Credentials without MFA"
+            Write-Verbose -Message 'Successfully connected to Exchange Online using Credentials without MFA'
         }
         catch
         {
@@ -114,33 +114,61 @@ function Connect-MSCloudLoginExchangeOnline
             }
         }
     }
+    elseif ($Global:MSCloudLoginConnectionProfile.ExchangeOnline.AuthenticationType -eq 'Identity')
+    {
+        Write-Verbose -Message 'Attempting to connect to Exchange Online using Managed Identity'
+        try
+        {
+            if ($NULL -eq $Global:MSCloudLoginConnectionProfile.OrganizationName)
+            {
+                $Global:MSCloudLoginConnectionProfile.OrganizationName = Get-TenantDomain -Identity
+            }
+
+            Connect-ExchangeOnline -AppId $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ApplicationId `
+                -Organization $Global:MSCloudLoginConnectionProfile.OrganizationName `
+                -ManagedIdentity `
+                -ShowBanner:$false `
+                -ShowProgress:$false `
+                -ExchangeEnvironmentName $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ExchangeEnvironmentName `
+                -Verbose:$false | Out-Null
+
+            $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ConnectedDateTime = [System.DateTime]::Now.ToString()
+            $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connected = $true
+            $Global:MSCloudLoginConnectionProfile.ExchangeOnline.MultiFactorAuthentication = $true
+            Write-Verbose -Message 'Successfully connected to Exchange Online using Managed Identity'
+        }
+        catch
+        {
+            throw $_
+        }
+    }
 }
 
 function Connect-MSCloudLoginExchangeOnlineMFA
 {
     [CmdletBinding()]
     Param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [System.Management.Automation.PSCredential]
         $Credentials
     )
-    $WarningPreference  = 'SilentlyContinue'
+    $WarningPreference = 'SilentlyContinue'
     $ProgressPreference = 'SilentlyContinue'
-    $VerbosePreference  = 'SilentlyContinue'
+    $VerbosePreference = 'SilentlyContinue'
 
     try
     {
-        Write-Verbose -Message "Creating a new ExchangeOnline Session using MFA"
+        Write-Verbose -Message 'Creating a new ExchangeOnline Session using MFA'
         Connect-ExchangeOnline -UserPrincipalName $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Credentials.UserName `
             -ShowBanner:$false `
             -ShowProgress:$false `
             -ExchangeEnvironmentName $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ExchangeEnvironmentName `
             -Verbose:$false | Out-Null
 
-        $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ConnectedDateTime         = [System.DateTime]::Now.ToString()
-        $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connected                 = $true
+        $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ConnectedDateTime = [System.DateTime]::Now.ToString()
+        $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connected = $true
         $Global:MSCloudLoginConnectionProfile.ExchangeOnline.MultiFactorAuthentication = $true
-        Write-Verbose -Message "Successfully connected to Exchange Online using credentials with MFA"
+        Write-Verbose -Message 'Successfully connected to Exchange Online using credentials with MFA'
     }
     catch
     {
