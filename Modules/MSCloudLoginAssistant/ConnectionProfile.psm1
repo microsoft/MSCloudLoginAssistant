@@ -96,15 +96,20 @@ class Workload
     Setup()
     {
         # Determine the environment name based on email
-        if ($null -eq $this.EnvironmentName)
+        if ($null -eq $this.EnvironmentName -and -not $Global:MSCloudLoginTriedGetEnvironment)
         {
+            $Global:MSCloudLoginTriedGetEnvironment = $true
             if ($null -ne $this.Credentials)
             {
                 $Global:CloudEnvironmentInfo = Get-CloudEnvironmentInfo -Credentials $this.Credentials
             }
-            elseif ($this.ApplicationID)
+            elseif ($this.ApplicationID -and $this.CertificateThumbprint)
             {
                 $Global:CloudEnvironmentInfo = Get-CloudEnvironmentInfo -ApplicationId $this.ApplicationId -TenantId $this.TenantId -CertificateThumbprint $this.CertificateThumbprint
+            }
+            elseif ($this.ApplicationID -and $this.ApplicationSecret)
+            {
+                $Global:CloudEnvironmentInfo = Get-CloudEnvironmentInfo -ApplicationId $this.ApplicationId -TenantId $this.TenantId -ApplicationSecret $this.ApplicationSecret
             }
             elseif ($this.Identity.IsPresent)
             {
@@ -133,6 +138,12 @@ class Workload
                 }
             }
         }
+
+        if ([System.String]::IsNullOrEmpty($this.EnvironmentName))
+        {
+            $this.EnvironmentName = 'AzureCloud'
+        }
+
         # Determine the Authentication Type
         if ($this.ApplicationId -and $this.TenantId -and $this.CertificateThumbprint)
         {
