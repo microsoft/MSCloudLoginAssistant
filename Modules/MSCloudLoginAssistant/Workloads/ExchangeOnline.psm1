@@ -133,7 +133,7 @@ function Connect-MSCloudLoginExchangeOnline
                 -Verbose:$false | Out-Null
 
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ConnectedDateTime = [System.DateTime]::Now.ToString()
-            $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connected = $true
+            $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connected = $false
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.MultiFactorAuthentication = $true
             Write-Verbose -Message 'Successfully connected to Exchange Online using Managed Identity'
         }
