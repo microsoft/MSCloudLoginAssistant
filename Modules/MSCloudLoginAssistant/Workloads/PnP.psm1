@@ -200,11 +200,11 @@ function Connect-MSCloudLoginPnP
         {
             if ($Url)
             {
-                $connectionURL = $Url
+                $connectionURL = $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl
             }
             else
             {
-                $connectionURL = $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl
+                $connectionURL = $Global:MSCloudLoginConnectionProfile.PnP.AdminUrl
             }
 
 
