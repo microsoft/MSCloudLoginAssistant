@@ -7,8 +7,8 @@ function Connect-MSCloudLoginPnP
     )
 
     $ProgressPreference = 'SilentlyContinue'
-    $WarningPreference  = 'SilentlyContinue'
-    $VerbosePreference  = 'SilentlyContinue'
+    $WarningPreference = 'SilentlyContinue'
+    $VerbosePreference = 'SilentlyContinue'
 
     if ($Global:MSCloudLoginConnectionProfile.PnP.Connected)
     {
@@ -21,14 +21,14 @@ function Connect-MSCloudLoginPnP
         try
         {
             Get-PnPAlert -ErrorAction 'Stop' | Out-Null
-            Write-Verbose -Message "Retrieved results from the command. Not re-connecting to PnP."
+            Write-Verbose -Message 'Retrieved results from the command. Not re-connecting to PnP.'
             $Global:MSCloudLoginConnectionProfile.PnP.Connected = $true
             return
         }
         catch
         {
             Write-Verbose -Message "Couldn't get results back from the command"
-            Write-Verbose -Message "Using PowerShell 7 or above. Loading the PnP.PowerShell module using Windows PowerShell."
+            Write-Verbose -Message 'Using PowerShell 7 or above. Loading the PnP.PowerShell module using Windows PowerShell.'
             if ($psversiontable.PSVersion.Major -ge 7)
             {
                 Import-Module PnP.PowerShell -UseWindowsPowerShell -Global -Force | Out-Null
@@ -45,33 +45,33 @@ function Connect-MSCloudLoginPnP
         else
         {
             if ($Global:MSCloudLoginConnectionProfile.PnP.AuthenticationType -eq 'Credentials' -and `
-                -not $Global:MSCloudLoginConnectionProfile.PnP.AdminUrl)
+                    -not $Global:MSCloudLoginConnectionProfile.PnP.AdminUrl)
             {
                 $adminUrl = Get-SPOAdminUrl -Credential $Global:MSCloudLoginConnectionProfile.PnP.Credentials
                 if ([String]::IsNullOrEmpty($adminUrl) -eq $false)
                 {
-                    $Global:MSCloudLoginConnectionProfile.PnP.AdminUrl      = $adminUrl
+                    $Global:MSCloudLoginConnectionProfile.PnP.AdminUrl = $adminUrl
                     $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl = $Global:MSCloudLoginConnectionProfile.PnP.AdminUrl
                 }
                 else
                 {
-                    throw "Unable to retrieve SharePoint Admin Url. Check if the Graph can be contacted successfully."
+                    throw 'Unable to retrieve SharePoint Admin Url. Check if the Graph can be contacted successfully.'
                 }
             }
             else
             {
-                if ($Global:MSCloudLoginConnectionProfile.PnP.TenantId.Contains("onmicrosoft"))
+                if ($Global:MSCloudLoginConnectionProfile.PnP.TenantId.Contains('onmicrosoft'))
                 {
-                    $domain = $Global:MSCloudLoginConnectionProfile.PnP.TenantId.Replace(".onmicrosoft.", "-admin.sharepoint.")
+                    $domain = $Global:MSCloudLoginConnectionProfile.PnP.TenantId.Replace('.onmicrosoft.', '-admin.sharepoint.')
                     if (-not $Global:MSCloudLoginConnectionProfile.PnP.AdminUrl)
                     {
                         $Global:MSCloudLoginConnectionProfile.PnP.AdminUrl = "https://$domain"
                     }
-                    $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl = "https://$domain"
+                    $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl = ("https://$domain").Replace('-admin', '')
                 }
                 else
                 {
-                    throw "TenantId must be in format contoso.onmicrosoft.com"
+                    throw 'TenantId must be in format contoso.onmicrosoft.com'
                 }
             }
         }
@@ -87,7 +87,7 @@ function Connect-MSCloudLoginPnP
         {
             if (-not $Url)
             {
-                Write-Information -Message "Connecting with Service Principal - Thumbprint"
+                Write-Information -Message 'Connecting with Service Principal - Thumbprint'
                 Write-Information -Message "URL: $Url"
                 Write-Information -Message "ConnectionUrl: $($Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl)"
                 Connect-PnPOnline -Url $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl `
@@ -98,7 +98,7 @@ function Connect-MSCloudLoginPnP
             }
             elseif ($Global:MSCloudLoginConnectionProfile.PnP.AdminUrl)
             {
-                Write-Information -Message "Connecting with Service Principal - Thumbprint"
+                Write-Information -Message 'Connecting with Service Principal - Thumbprint'
                 Write-Information -Message "URL: $Url"
                 Write-Information -Message "AdminUrl: $($Global:MSCloudLoginConnectionProfile.PnP.AdminUrl)"
                 Connect-PnPOnline -Url $Global:MSCloudLoginConnectionProfile.PnP.AdminUrl `
@@ -108,15 +108,15 @@ function Connect-MSCloudLoginPnP
                     -AzureEnvironment $Global:MSCloudLoginConnectionProfile.PnP.PnPAzureEnvironment | Out-Null
             }
 
-            $Global:MSCloudLoginConnectionProfile.PnP.ConnectedDateTime         = [System.DateTime]::Now.ToString()
+            $Global:MSCloudLoginConnectionProfile.PnP.ConnectedDateTime = [System.DateTime]::Now.ToString()
             $Global:MSCloudLoginConnectionProfile.PnP.MultiFactorAuthentication = $false
-            $Global:MSCloudLoginConnectionProfile.PnP.Connected                 = $true
+            $Global:MSCloudLoginConnectionProfile.PnP.Connected = $true
         }
         elseif ($Global:MSCloudLoginConnectionProfile.PnP.AuthenticationType -eq 'ServicePrincipalWithPath')
         {
             if ($Url)
             {
-                Write-Information -Message "Connecting with Service Principal - Path"
+                Write-Information -Message 'Connecting with Service Principal - Path'
                 Write-Information -Message "URL: $Url"
                 Write-Information -Message "ConnectionUrl: $($Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl)"
                 Connect-PnPOnline -Url $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl `
@@ -128,7 +128,7 @@ function Connect-MSCloudLoginPnP
             }
             else
             {
-                Write-Information -Message "Connecting with Service Principal - Path"
+                Write-Information -Message 'Connecting with Service Principal - Path'
                 Write-Information -Message "URL: $Url"
                 Write-Information -Message "AdminUrl: $($Global:MSCloudLoginConnectionProfile.PnP.AdminUrl)"
                 Connect-PnPOnline -Url $Global:MSCloudLoginConnectionProfile.PnP.AdminUrl `
@@ -139,15 +139,15 @@ function Connect-MSCloudLoginPnP
                     -AzureEnvironment $Global:MSCloudLoginConnectionProfile.PnP.PnPAzureEnvironment
             }
 
-            $Global:MSCloudLoginConnectionProfile.PnP.ConnectedDateTime         = [System.DateTime]::Now.ToString()
+            $Global:MSCloudLoginConnectionProfile.PnP.ConnectedDateTime = [System.DateTime]::Now.ToString()
             $Global:MSCloudLoginConnectionProfile.PnP.MultiFactorAuthentication = $false
-            $Global:MSCloudLoginConnectionProfile.PnP.Connected                 = $true
+            $Global:MSCloudLoginConnectionProfile.PnP.Connected = $true
         }
         elseif ($Global:MSCloudLoginConnectionProfile.PnP.AuthenticationType -eq 'ServicePrincipalWithSecret')
         {
             if ($Url)
             {
-                Write-Information -Message "Connecting with Service Principal - Secret"
+                Write-Information -Message 'Connecting with Service Principal - Secret'
                 Write-Information -Message "URL: $Url"
                 Write-Information -Message "ConnectionUrl: $($Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl)"
                 Connect-PnPOnline -Url $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl `
@@ -158,7 +158,7 @@ function Connect-MSCloudLoginPnP
             }
             else
             {
-                Write-Information -Message "Connecting with Service Principal - Secret"
+                Write-Information -Message 'Connecting with Service Principal - Secret'
                 Write-Information -Message "URL: $Url"
                 Write-Information -Message "AdminUrl: $($Global:MSCloudLoginConnectionProfile.PnP.AdminUrl)"
                 Connect-PnPOnline -Url $Global:MSCloudLoginConnectionProfile.PnP.AdminUrl `
@@ -167,15 +167,15 @@ function Connect-MSCloudLoginPnP
                     -AzureEnvironment $Global:MSCloudLoginConnectionProfile.PnP.PnPAzureEnvironment `
                     -WarningAction 'Ignore'
             }
-            $Global:MSCloudLoginConnectionProfile.PnP.ConnectedDateTime         = [System.DateTime]::Now.ToString()
+            $Global:MSCloudLoginConnectionProfile.PnP.ConnectedDateTime = [System.DateTime]::Now.ToString()
             $Global:MSCloudLoginConnectionProfile.PnP.MultiFactorAuthentication = $false
-            $Global:MSCloudLoginConnectionProfile.PnP.Connected                 = $true
+            $Global:MSCloudLoginConnectionProfile.PnP.Connected = $true
         }
         elseif ($Global:MSCloudLoginConnectionProfile.PnP.AuthenticationType -eq 'Credentials')
         {
             if ($Url)
             {
-                Write-Information -Message "Connecting with Credentials"
+                Write-Information -Message 'Connecting with Credentials'
                 Write-Information -Message "URL: $Url"
                 Write-Information -Message "ConnectionUrl: $($Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl)"
                 Connect-PnPOnline -Url $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl `
@@ -184,7 +184,7 @@ function Connect-MSCloudLoginPnP
             }
             else
             {
-                Write-Information -Message "Connecting with Credentials"
+                Write-Information -Message 'Connecting with Credentials'
                 Write-Information -Message "URL: $Url"
                 Write-Information -Message "AdminUrl: $($Global:MSCloudLoginConnectionProfile.PnP.AdminUrl)"
                 Connect-PnPOnline -Url $Global:MSCloudLoginConnectionProfile.PnP.AdminUrl `
@@ -192,9 +192,33 @@ function Connect-MSCloudLoginPnP
                     -AzureEnvironment $Global:MSCloudLoginConnectionProfile.PnP.PnPAzureEnvironment
             }
 
-            $Global:MSCloudLoginConnectionProfile.PnP.ConnectedDateTime         = [System.DateTime]::Now.ToString()
+            $Global:MSCloudLoginConnectionProfile.PnP.ConnectedDateTime = [System.DateTime]::Now.ToString()
             $Global:MSCloudLoginConnectionProfile.PnP.MultiFactorAuthentication = $false
-            $Global:MSCloudLoginConnectionProfile.PnP.Connected                 = $true
+            $Global:MSCloudLoginConnectionProfile.PnP.Connected = $true
+        }
+        elseif ($Global:MSCloudLoginConnectionProfile.PnP.AuthenticationType -eq 'Identity')
+        {
+            if ($Url)
+            {
+                $connectionURL = $Url
+            }
+            else
+            {
+                $connectionURL = $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl
+            }
+
+
+            $oauth2 = Invoke-RestMethod -Uri "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=$ConnectionURL" -Headers @{Metadata = 'true' }
+            $accessToken = $oauth2.access_token
+
+            Connect-PnPOnline -Url $connectionURL `
+                -AccessToken $accessToken `
+                -AzureEnvironment $Global:MSCloudLoginConnectionProfile.PnP.PnPAzureEnvironment `
+                -WarningAction 'Ignore'
+
+            $Global:MSCloudLoginConnectionProfile.PnP.ConnectedDateTime = [System.DateTime]::Now.ToString()
+            $Global:MSCloudLoginConnectionProfile.PnP.MultiFactorAuthentication = $false
+            $Global:MSCloudLoginConnectionProfile.PnP.Connected = $true
         }
     }
     catch
@@ -205,18 +229,18 @@ function Connect-MSCloudLoginPnP
             {
                 Connect-PnPOnline -Url $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl `
                     -Interactive
-                $Global:MSCloudLoginConnectionProfile.PnP.ConnectedDateTime         = [System.DateTime]::Now.ToString()
+                $Global:MSCloudLoginConnectionProfile.PnP.ConnectedDateTime = [System.DateTime]::Now.ToString()
                 $Global:MSCloudLoginConnectionProfile.PnP.MultiFactorAuthentication = $true
-                $Global:MSCloudLoginConnectionProfile.PnP.Connected                 = $true
+                $Global:MSCloudLoginConnectionProfile.PnP.Connected = $true
             }
             catch
             {
                 try
                 {
                     Connect-PnPOnline -Url $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl -UseWebLogin
-                    $Global:MSCloudLoginConnectionProfile.PnP.ConnectedDateTime         = [System.DateTime]::Now.ToString()
+                    $Global:MSCloudLoginConnectionProfile.PnP.ConnectedDateTime = [System.DateTime]::Now.ToString()
                     $Global:MSCloudLoginConnectionProfile.PnP.MultiFactorAuthentication = $true
-                    $Global:MSCloudLoginConnectionProfile.PnP.Connected                 = $true
+                    $Global:MSCloudLoginConnectionProfile.PnP.Connected = $true
                 }
                 catch
                 {
@@ -230,12 +254,12 @@ function Connect-MSCloudLoginPnP
             # This error means that the account was trying to connect using MFA.
             try
             {
-                Write-Verbose "Trying to acquire AccessToken"
+                Write-Verbose 'Trying to acquire AccessToken'
                 $AuthHeader = Get-AuthHeader -UserPrincipalName $Global:MSCloudLoginConnectionProfile.PnP.Credentials.UserName `
                     -ResourceURI $Global:MSCloudLoginConnectionProfile.PnP.AdminUrl `
-                    -clientID $Global:MSCloudLoginConnectionProfile.PnP.ClientId `
+                    -clientId $Global:MSCloudLoginConnectionProfile.PnP.ClientId `
                     -RedirectURI $Global:MSCloudLoginConnectionProfile.PnP.RedirectURI
-                $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl.AccessToken = $AuthHeader.split(" ")[1]
+                $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl.AccessToken = $AuthHeader.split(' ')[1]
 
                 Write-Verbose "Access Token = $($Global:MSCloudLoginConnectionProfile.PnP.AccessToken)"
                 if ($null -ne $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl.AccessToken)
@@ -264,9 +288,9 @@ function Connect-MSCloudLoginPnP
                             -Interactive
                     }
                 }
-                $Global:MSCloudLoginConnectionProfile.PnP.ConnectedDateTime         = [System.DateTime]::Now.ToString()
+                $Global:MSCloudLoginConnectionProfile.PnP.ConnectedDateTime = [System.DateTime]::Now.ToString()
                 $Global:MSCloudLoginConnectionProfile.PnP.MultiFactorAuthentication = $true
-                $Global:MSCloudLoginConnectionProfile.PnP.Connected                 = $true
+                $Global:MSCloudLoginConnectionProfile.PnP.Connected = $true
             }
             catch
             {
@@ -275,9 +299,9 @@ function Connect-MSCloudLoginPnP
                 {
                     Connect-PnPOnline -Url $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl `
                         -Interactive
-                    $Global:MSCloudLoginConnectionProfile.PnP.ConnectedDateTime         = [System.DateTime]::Now.ToString()
+                    $Global:MSCloudLoginConnectionProfile.PnP.ConnectedDateTime = [System.DateTime]::Now.ToString()
                     $Global:MSCloudLoginConnectionProfile.PnP.MultiFactorAuthentication = $true
-                    $Global:MSCloudLoginConnectionProfile.PnP.Connected                 = $true
+                    $Global:MSCloudLoginConnectionProfile.PnP.Connected = $true
                 }
                 catch
                 {
@@ -286,14 +310,14 @@ function Connect-MSCloudLoginPnP
                 }
             }
         }
-        elseif ($_.Exception -like "*AADSTS65001: The user or administrator has not consented to use the application with ID*")
+        elseif ($_.Exception -like '*AADSTS65001: The user or administrator has not consented to use the application with ID*')
         {
             try
             {
                 Register-PnPManagementShellAccess
                 Connect-PnPOnline -UseWebLogin -Url $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl
-                $Global:MSCloudLoginConnectionProfile.PnP.Connected                 = $true
-                $Global:MSCloudLoginConnectionProfile.PnP.ConnectedDateTime         = [System.DateTime]::Now.ToString()
+                $Global:MSCloudLoginConnectionProfile.PnP.Connected = $true
+                $Global:MSCloudLoginConnectionProfile.PnP.ConnectedDateTime = [System.DateTime]::Now.ToString()
             }
             catch
             {

@@ -168,7 +168,7 @@ function Connect-M365Tenant
             $Global:MSCloudLoginConnectionProfile.Azure.ApplicationSecret = $ApplicationSecret
             $Global:MSCloudLoginConnectionProfile.Azure.TenantId = $TenantId
             $Global:MSCloudLoginConnectionProfile.Azure.CertificateThumbprint = $CertificateThumbprint
-
+            $Global:MSCloudLoginConnectionProfile.Azure.Identity = $Identity
             if ($null -eq $UseModernAuth)
             {
                 $Global:MSCloudLoginConnectionProfile.Azure.UseModernAuthentication = $UseModernAuth.IsPresent
@@ -235,6 +235,7 @@ function Connect-M365Tenant
             $Global:MSCloudLoginConnectionProfile.PnP.TenantId = $TenantId
             $Global:MSCloudLoginConnectionProfile.PnP.CertificateThumbprint = $CertificateThumbprint
             $Global:MSCloudLoginConnectionProfile.PnP.CertificatePath = $CertificatePath
+            $Global:MSCloudLoginConnectionProfile.PnP.Identity = $Identity
             $Global:MSCloudLoginConnectionProfile.PnP.CertificatePassword = $CertificatePassword
 
             # Mark as disconnected if we are trying to connect to a different url then we previously connected to.

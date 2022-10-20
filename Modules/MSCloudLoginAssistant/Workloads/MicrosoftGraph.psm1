@@ -53,7 +53,7 @@ function Connect-MSCloudLoginMicrosoftGraph
         Connect-MgGraph -AccessToken $accessToken `
             -Environment $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment
         $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime = [System.DateTime]::Now.ToString()
-        $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.MultiFactorAuthentication = $true
+        $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.MultiFactorAuthentication = $false
         $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected = $true
         $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.TenantId = (Get-MgContext).TenantId
     }
