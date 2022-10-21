@@ -155,7 +155,7 @@ class Workload
         }
         elseif ($this.ApplicationId -and $this.TenantId -and $this.CertificatePath -and $this.CertificatePassword)
         {
-            $this.AuthenticationType = 'ServicePrincipalWithPAth'
+            $this.AuthenticationType = 'ServicePrincipalWithPath'
         }
         elseif ($this.Credentials -and $this.ApplicationId)
         {
