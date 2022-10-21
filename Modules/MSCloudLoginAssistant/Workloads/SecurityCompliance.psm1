@@ -72,7 +72,20 @@ function Connect-MSCloudLoginSecurityCompliance
         }
     }
     elseif ($Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.AuthenticationType -eq 'ServicePrincipalWithPath') {
-        <# Action when this condition is true #>
+
+        try
+        {
+            Write-Verbose -Message "Connecting to Security & Compliance with Service Principal and Certificate Path"
+            Connect-IPPSSession -AppId $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ApplicationId `
+                -CertificateFilePath $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.CertificatePath `
+                -Organization $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.TenantId `
+                -CertificatePassword $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.CertificatePassword
+        }
+        catch
+        {
+            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Connected = $false
+            throw $_
+        }
     }
     else
     {
