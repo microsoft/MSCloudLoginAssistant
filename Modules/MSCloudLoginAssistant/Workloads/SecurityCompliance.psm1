@@ -71,6 +71,9 @@ function Connect-MSCloudLoginSecurityCompliance
             throw $_
         }
     }
+    elseif ($Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.AuthenticationType -eq 'ServicePrincipalWithPath') {
+        <# Action when this condition is true #>
+    }
     else
     {
         try
