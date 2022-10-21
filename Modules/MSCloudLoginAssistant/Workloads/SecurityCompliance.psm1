@@ -66,6 +66,9 @@ function Connect-MSCloudLoginSecurityCompliance
             Connect-IPPSSession -AppId $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ApplicationId `
                 -CertificateThumbprint $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.CertificateThumbprint `
                 -Organization $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.TenantId
+            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ConnectedDateTime         = [System.DateTime]::Now.ToString()
+            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.MultiFactorAuthentication = $false
+            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Connected                 = $true
         }
         catch
         {
@@ -82,6 +85,9 @@ function Connect-MSCloudLoginSecurityCompliance
                 -CertificateFilePath $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.CertificatePath `
                 -Organization $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.TenantId `
                 -CertificatePassword $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.CertificatePassword
+            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ConnectedDateTime         = [System.DateTime]::Now.ToString()
+            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.MultiFactorAuthentication = $false
+            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Connected                 = $true
         }
         catch
         {
@@ -98,7 +104,7 @@ function Connect-MSCloudLoginSecurityCompliance
                 -ConnectionUri $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ConnectionUrl `
                 -AzureADAuthorizationEndpointUri $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.AuthorizationUrl `
                 -Verbose:$false -ErrorAction Stop | Out-Null
-            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ConnectedDateTime         = [System.DateTime]::Now.TOString()
+            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ConnectedDateTime         = [System.DateTime]::Now.ToString()
             $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.MultiFactorAuthentication = $false
             $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Connected                 = $true
         }
@@ -133,7 +139,7 @@ function Connect-MSCloudLoginSecurityComplianceMFA
                 -Verbose:$false | Out-Null
         }
         Write-Verbose -Message "New Session with MFA created successfully"
-        $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ConnectedDateTime         = [System.DateTime]::Now.TOString()
+        $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ConnectedDateTime         = [System.DateTime]::Now.ToString()
         $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.MultiFactorAuthentication = $false
         $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Connected                 = $true
     }
