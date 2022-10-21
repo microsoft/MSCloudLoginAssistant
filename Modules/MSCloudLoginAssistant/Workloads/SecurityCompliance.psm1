@@ -62,8 +62,10 @@ function Connect-MSCloudLoginSecurityCompliance
         Write-Verbose -Message "Attempting to connect to Security and Compliance using AAD App {$($Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ApplicationID)}"
         try
         {
-            # TODO - When Security & Compliance supports CBA
-            throw "Security and COmpliance doesn't yet support authenticating with a Service Principal"
+            Write-Verbose -Message "Connecting to Security & Compliance with Service Principal and Certificate Thumbprint"
+            Connect-IPPSSession -AppId $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ApplicationId `
+                -CertificateThumbprint $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.CertificateThumbprint `
+                -Organization $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.TenantId
         }
         catch
         {
