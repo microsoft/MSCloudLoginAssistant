@@ -81,7 +81,7 @@ class Workload
     [string]
     $TenantId
 
-    [string]
+    [securestring]
     $CertificatePassword
 
     [string]
@@ -399,7 +399,7 @@ class PnP:Workload
                 -not[String]::IsNullOrEmpty($this.CertificatePath))
         )
         {
-            throw 'Cannot specific both a Certificate Thumbprint and Certificate Path and Password'
+            throw 'Cannot specify both a Certificate Thumbprint and Certificate Path and Password'
         }
     }
 
