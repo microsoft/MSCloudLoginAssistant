@@ -62,8 +62,32 @@ function Connect-MSCloudLoginSecurityCompliance
         Write-Verbose -Message "Attempting to connect to Security and Compliance using AAD App {$($Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ApplicationID)}"
         try
         {
-            # TODO - When Security & Compliance supports CBA
-            throw "Security and COmpliance doesn't yet support authenticating with a Service Principal"
+            Write-Verbose -Message "Connecting to Security & Compliance with Service Principal and Certificate Thumbprint"
+            Connect-IPPSSession -AppId $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ApplicationId `
+                -CertificateThumbprint $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.CertificateThumbprint `
+                -Organization $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.TenantId
+            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ConnectedDateTime         = [System.DateTime]::Now.ToString()
+            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.MultiFactorAuthentication = $false
+            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Connected                 = $true
+        }
+        catch
+        {
+            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Connected = $false
+            throw $_
+        }
+    }
+    elseif ($Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.AuthenticationType -eq 'ServicePrincipalWithPath') {
+
+        try
+        {
+            Write-Verbose -Message "Connecting to Security & Compliance with Service Principal and Certificate Path"
+            Connect-IPPSSession -AppId $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ApplicationId `
+                -CertificateFilePath $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.CertificatePath `
+                -Organization $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.TenantId `
+                -CertificatePassword $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.CertificatePassword
+            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ConnectedDateTime         = [System.DateTime]::Now.ToString()
+            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.MultiFactorAuthentication = $false
+            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Connected                 = $true
         }
         catch
         {
@@ -80,7 +104,7 @@ function Connect-MSCloudLoginSecurityCompliance
                 -ConnectionUri $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ConnectionUrl `
                 -AzureADAuthorizationEndpointUri $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.AuthorizationUrl `
                 -Verbose:$false -ErrorAction Stop | Out-Null
-            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ConnectedDateTime         = [System.DateTime]::Now.TOString()
+            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ConnectedDateTime         = [System.DateTime]::Now.ToString()
             $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.MultiFactorAuthentication = $false
             $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Connected                 = $true
         }
@@ -115,7 +139,7 @@ function Connect-MSCloudLoginSecurityComplianceMFA
                 -Verbose:$false | Out-Null
         }
         Write-Verbose -Message "New Session with MFA created successfully"
-        $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ConnectedDateTime         = [System.DateTime]::Now.TOString()
+        $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ConnectedDateTime         = [System.DateTime]::Now.ToString()
         $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.MultiFactorAuthentication = $false
         $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Connected                 = $true
     }

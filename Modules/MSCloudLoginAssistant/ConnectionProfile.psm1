@@ -81,7 +81,7 @@ class Workload
     [string]
     $TenantId
 
-    [string]
+    [securestring]
     $CertificatePassword
 
     [string]
@@ -155,7 +155,7 @@ class Workload
         }
         elseif ($this.ApplicationId -and $this.TenantId -and $this.CertificatePath -and $this.CertificatePassword)
         {
-            $this.AuthenticationType = 'ServicePrincipalWithPAth'
+            $this.AuthenticationType = 'ServicePrincipalWithPath'
         }
         elseif ($this.Credentials -and $this.ApplicationId)
         {
@@ -399,7 +399,7 @@ class PnP:Workload
                 -not[String]::IsNullOrEmpty($this.CertificatePath))
         )
         {
-            throw 'Cannot specific both a Certificate Thumbprint and Certificate Path and Password'
+            throw 'Cannot specify both a Certificate Thumbprint and Certificate Path and Password'
         }
     }
 
