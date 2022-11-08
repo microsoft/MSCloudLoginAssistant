@@ -65,7 +65,8 @@ function Connect-MSCloudLoginSecurityCompliance
             Write-Verbose -Message "Connecting to Security & Compliance with Service Principal and Certificate Thumbprint"
             Connect-IPPSSession -AppId $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ApplicationId `
                 -CertificateThumbprint $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.CertificateThumbprint `
-                -Organization $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.TenantId
+                -Organization $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.TenantId `
+                -ErrorAction Stop
             $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ConnectedDateTime         = [System.DateTime]::Now.ToString()
             $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.MultiFactorAuthentication = $false
             $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Connected                 = $true

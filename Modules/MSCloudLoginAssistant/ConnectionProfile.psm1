@@ -134,14 +134,28 @@ class Workload
                 }
                 default
                 {
-                    $this.EnvironmentName = 'AzureCloud'
+                    if ($null -ne $Global:CloudEnvironmentInfo -and $Global:CloudEnvironmentInfo.token_endpoint.StartsWith("https://login.partner.microsoftonline.cn"))
+                    {
+                        $this.EnvironmentName = "AzureChinaCloud"
+                    }
+                    else
+                    {
+                        $this.EnvironmentName = 'AzureCloud'
+                    }
                 }
             }
         }
 
         if ([System.String]::IsNullOrEmpty($this.EnvironmentName))
         {
-            $this.EnvironmentName = 'AzureCloud'
+            if ($null -ne $this.TenantId -and $this.TenantId.EndsWith(".cn"))
+            {
+                $this.EnvironmentName = 'AzureChinaCloud'
+            }
+            else
+            {
+                $this.EnvironmentName = 'AzureCloud'
+            }
         }
 
         # Determine the Authentication Type
@@ -248,6 +262,10 @@ class ExchangeOnline:Workload
             'AzureUSGovernment'
             {
                 $this.ExchangeEnvironmentName = 'O365USGovGCCHigh'
+            }
+            'AzureChinaCloud'
+            {
+                $this.ExchangeEnvironmentName = 'O365China'
             }
         }
 
@@ -367,6 +385,14 @@ class MicrosoftGraph:Workload
                 $this.TokenUrl = "https://login.microsoftonline.us/$($this.TenantId)/oauth2/v2.0/token"
                 $this.UserTokenUrl = "https://login.microsoftonline.us/$($this.TenantId)/oauth2/v2.0/authorize"
             }
+            'AzureChinaCloud'
+            {
+                $this.GraphEnvironment = 'China'
+                $this.ResourceUrl = 'https://microsoftgraph.chinacloudapi.cn/'
+                $this.Scope = 'https://microsoftgraph.chinacloudapi.cn/.default'
+                $this.TokenUrl = "https://login.chinacloudapi.cn/$($this.TenantId)/oauth2/v2.0/token"
+                $this.UserTokenUrl = "https://login.chinacloudapi.cn/$($this.TenantId)/oauth2/v2.0/authorize"
+            }
         }
         Connect-MSCloudLoginMicrosoftGraph
     }
@@ -485,6 +511,11 @@ class SecurityComplianceCenter:Workload
             {
                 $this.ConnectionUrl = 'https://ps.compliance.protection.outlook.de/powershell-liveid/'
                 $this.AuthorizationUrl = 'https://login.microsoftonline.de/organizations'
+            }
+            'AzureChinaCloud'
+            {
+                $this.ConnectionUrl = 'https://ps.compliance.protection.partner.outlook.cn/powershell-liveid/'
+                $this.AuthorizationUrl = 'https://login.chinacloudapi.cn/organizations'
             }
         }
         Connect-MSCloudLoginSecurityCompliance

@@ -194,7 +194,7 @@ function Connect-MSCloudLoginMSGraphWithUser
                 Connect-MgGraph -Environment $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment `
                     -TenantId $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.TenantId `
                     -ClientId $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationId `
-                    -Scopes .default -ErrorAction 'Stop' | Out-Null
+                    -Scopes 'Domain.Read.All' -ErrorAction 'Stop' | Out-Null
                 $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected = $true
             }
             catch
@@ -210,7 +210,7 @@ function Connect-MSCloudLoginMSGraphWithUser
                     Connect-MgGraph -Environment $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment `
                         -TenantId $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.TenantId `
                         -ClientId $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationId `
-                        -Scopes .default | Out-Null
+                        -Scopes 'Domain.Read.All' | Out-Null
                     $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected = $true
                 }
 
