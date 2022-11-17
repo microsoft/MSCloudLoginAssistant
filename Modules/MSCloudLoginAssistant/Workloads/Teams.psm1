@@ -70,10 +70,13 @@ function Connect-MSCloudLoginTeams
             {
                 $ConnectionParams.Add("TeamsEnvironmentName", 'TeamsGCCH')
             }
-
-            if ($Global:MSCloudLoginConnectionProfile.Teams.EnvironmentName -eq 'USGovernmentDoD')
+            elseif ($Global:MSCloudLoginConnectionProfile.Teams.EnvironmentName -eq 'USGovernmentDoD')
             {
                 $ConnectionParams.Add("TeamsEnvironmentName", 'TeamsDOD')
+            }
+            elseif ($Global:MSCloudLoginConnectionProfile.Teams.EnvironmentName -eq 'AzureChinaCloud')
+            {
+                $ConnectionParams.Add("TeamsEnvironmentName", 'TeamsChina')
             }
 
             Connect-MicrosoftTeams @ConnectionParams | Out-Null

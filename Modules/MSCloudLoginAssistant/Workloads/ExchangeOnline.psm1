@@ -54,6 +54,9 @@ function Connect-MSCloudLoginExchangeOnline
     }
     Write-Verbose -Message 'No active Exchange Online session found.'
 
+    # Make sure we disconnect from any existing connections
+    Disconnect-ExchangeOnline -Confirm:$false
+
     if ($Global:MSCloudLoginConnectionProfile.ExchangeOnline.AuthenticationType -eq 'ServicePrincipalWithThumbprint')
     {
         Write-Verbose -Message "Attempting to connect to Exchange Online using AAD App {$ApplicationID}"
