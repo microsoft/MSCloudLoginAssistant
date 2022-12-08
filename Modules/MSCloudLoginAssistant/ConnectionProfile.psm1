@@ -117,31 +117,30 @@ class Workload
             }
 
             Write-Verbose "Set environment to $Global:CloudEnvironmentInfo.tenant_region_sub_scope"
-
-            switch ($Global:CloudEnvironmentInfo.tenant_region_sub_scope)
+        }
+        switch ($Global:CloudEnvironmentInfo.tenant_region_sub_scope)
+        {
+            'AzureGermanyCloud'
             {
-                'AzureGermanyCloud'
+                $this.EnvironmentName = 'O365GermanyCloud'
+            }
+            'DOD'
+            {
+                $this.EnvironmentName = 'AzureDOD'
+            }
+            'DODCON'
+            {
+                $this.EnvironmentName = 'AzureUSGovernment'
+            }
+            default
+            {
+                if ($null -ne $Global:CloudEnvironmentInfo -and $Global:CloudEnvironmentInfo.token_endpoint.StartsWith("https://login.partner.microsoftonline.cn"))
                 {
-                    $this.EnvironmentName = 'O365GermanyCloud'
+                    $this.EnvironmentName = "AzureChinaCloud"
                 }
-                'DOD'
+                else
                 {
-                    $this.EnvironmentName = 'AzureDOD'
-                }
-                'DODCON'
-                {
-                    $this.EnvironmentName = 'AzureUSGovernment'
-                }
-                default
-                {
-                    if ($null -ne $Global:CloudEnvironmentInfo -and $Global:CloudEnvironmentInfo.token_endpoint.StartsWith("https://login.partner.microsoftonline.cn"))
-                    {
-                        $this.EnvironmentName = "AzureChinaCloud"
-                    }
-                    else
-                    {
-                        $this.EnvironmentName = 'AzureCloud'
-                    }
+                    $this.EnvironmentName = 'AzureCloud'
                 }
             }
         }
