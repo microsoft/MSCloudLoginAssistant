@@ -145,7 +145,7 @@ function Connect-MSCloudLoginPnP
         }
         elseif ($Global:MSCloudLoginConnectionProfile.PnP.AuthenticationType -eq 'ServicePrincipalWithSecret')
         {
-            if ($Url)
+            if ($Url -or $ForceRefreshConnection)
             {
                 Write-Information -Message 'Connecting with Service Principal - Secret'
                 Write-Information -Message "URL: $Url"
@@ -173,7 +173,7 @@ function Connect-MSCloudLoginPnP
         }
         elseif ($Global:MSCloudLoginConnectionProfile.PnP.AuthenticationType -eq 'Credentials')
         {
-            if ($Url)
+            if ($Url -or $ForceRefreshConnection)
             {
                 Write-Information -Message 'Connecting with Credentials'
                 Write-Information -Message "URL: $Url"
