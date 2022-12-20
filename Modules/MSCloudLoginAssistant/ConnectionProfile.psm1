@@ -270,6 +270,13 @@ class ExchangeOnline:Workload
 
         Connect-MSCloudLoginExchangeOnline
     }
+
+    [void] Disconnect()
+    {
+        Write-Verbose -Message "Disconnecting from Exchange Online Connection"
+        Disconnect-ExchangeOnline -Confirm:$false
+        $this.Connected = $false
+    }
 }
 
 class Intune:Workload
