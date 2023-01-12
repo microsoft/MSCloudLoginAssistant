@@ -334,6 +334,7 @@ function Connect-M365Tenant
             $Global:MSCloudLoginConnectionProfile.PowerPlatform.ApplicationId = $ApplicationId
             $Global:MSCloudLoginConnectionProfile.PowerPlatform.TenantId = $TenantId
             $Global:MSCloudLoginConnectionProfile.PowerPlatform.CertificateThumbprint = $CertificateThumbprint
+            $Global:MSCloudLoginConnectionProfile.PowerPlatform.ApplicationSecret = $ApplicationSecret
             $Global:MSCloudLoginConnectionProfile.PowerPlatform.Connect()
         }
         'SecurityComplianceCenter'

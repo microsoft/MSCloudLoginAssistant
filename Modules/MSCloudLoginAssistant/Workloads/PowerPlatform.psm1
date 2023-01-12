@@ -51,6 +51,17 @@ function Connect-MSCloudLoginPowerPlatform
             $Global:MSCloudLoginConnectionProfile.PowerPlatform.MultiFactorAuthentication = $false
             $Global:MSCloudLoginConnectionProfile.PowerPlatform.Connected                 = $true
         }
+        elseif ($Global:MSCloudLoginConnectionProfile.PowerPlatform.AuthenticationType -eq 'ServicePrincipalWithSecret')
+        {
+            Add-PowerAppsAccount -ApplicationId $Global:MSCloudLoginConnectionProfile.PowerPlatform.ApplicationId `
+                -TenantId $Global:MSCloudLoginConnectionProfile.PowerPlatform.TenantId `
+                -ClientSecret $Global:MSCloudLoginConnectionProfile.PowerPlatform.ApplicationSecret `
+                -Endpoint $Global:MSCloudLoginConnectionProfile.PowerPlatform.Endpoint `
+                -ErrorAction Stop | Out-Null
+            $Global:MSCloudLoginConnectionProfile.PowerPlatform.ConnectedDateTime         = [System.DateTime]::Now.ToString()
+            $Global:MSCloudLoginConnectionProfile.PowerPlatform.MultiFactorAuthentication = $false
+            $Global:MSCloudLoginConnectionProfile.PowerPlatform.Connected                 = $true
+        }
         else
         {
             Add-PowerAppsAccount -UserName $Global:MSCloudLoginConnectionProfile.PowerPlatform.Credentials.UserName `
