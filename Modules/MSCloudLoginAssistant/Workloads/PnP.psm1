@@ -16,6 +16,7 @@ function Connect-MSCloudLoginPnP
         return
     }
 
+    $requiresWindowsPowerShell = $false
     if ($psversiontable.PSVersion.Major -ge 7)
     {
         try
@@ -29,11 +30,21 @@ function Connect-MSCloudLoginPnP
         {
             Write-Verbose -Message "Couldn't get results back from the command"
             Write-Verbose -Message 'Using PowerShell 7 or above. Loading the PnP.PowerShell module using Windows PowerShell.'
-            if ($psversiontable.PSVersion.Major -ge 7)
+            try
             {
-                Import-Module PnP.PowerShell -UseWindowsPowerShell -Global -Force | Out-Null
+                Import-Module PnP.PowerShell -UseWindowsPowerShell -Global -Force -ErrorAction Stop | Out-Null
             }
+            catch
+            {
+                $requiresWindowsPowerShell = $true
+            }
+
         }
+    }
+
+    if ($requiresWindowsPowerShell)
+    {
+        throw "Powershell 7+ was detected. We need to load the PnP.PowerShell module using the -UseWindowsPowerShell switch which requires the module to be installed under C:\Program Files\WindowsPowerShell\Modules. You can either move the module to that location or use PowerShell 5.1 to install the modules using 'Install-Module Pnp.PowerShell -Force -Scope AllUsers'."
     }
 
     if ([string]::IsNullOrEmpty($Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl))
