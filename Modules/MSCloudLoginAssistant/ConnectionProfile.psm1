@@ -30,6 +30,9 @@ class MSCloudLoginConnectionProfile
     [SecurityComplianceCenter]
     $SecurityComplianceCenter
 
+    [Tasks]
+    $Tasks
+
     [Teams]
     $Teams
 
@@ -46,6 +49,7 @@ class MSCloudLoginConnectionProfile
         $this.PnP = New-Object PnP
         $this.PowerPlatform = New-Object PowerPlatform
         $this.SecurityComplianceCenter = New-Object SecurityComplianceCenter
+        $this.Tasks = New-Object Tasks
         $this.Teams = New-Object Teams
     }
 }
@@ -338,10 +342,6 @@ class MicrosoftGraph:Workload
     $GraphEnvironment = 'Global'
 
     [string]
-    [ValidateSet('v1.0', 'beta')]
-    $ProfileName = 'v1.0'
-
-    [string]
     $ResourceUrl
 
     [string]
@@ -525,6 +525,22 @@ class SecurityComplianceCenter:Workload
             }
         }
         Connect-MSCloudLoginSecurityCompliance
+    }
+}
+
+class Tasks:Workload
+{
+    [string]
+    $AccessToken
+
+    Tasks()
+    {
+    }
+
+    [void] Connect()
+    {
+        ([Workload]$this).Setup()
+        Connect-MSCloudLoginTasks
     }
 }
 

@@ -76,6 +76,7 @@
         'Workloads\PnP.psm1',
         'Workloads\PowerPlatform.psm1',
         'Workloads\SecurityCompliance.psm1',
+        'Workloads\Tasks.psm1',
         'Workloads\Teams.psm1'
     )
 
