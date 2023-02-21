@@ -26,7 +26,10 @@ function Connect-MSCloudLoginMicrosoftGraph
 
     if ($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected)
     {
-        if ($null -eq (Get-MgContext))
+        if ($null -eq (Get-MgContext) -or `
+            ($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AuthenticationType -eq 'ServicePrincipalWithSecret' `
+                    -and (Get-Date -Date $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime) -gt [System.DateTime]::Now.AddMinutes(-10))
+        )
         {
             $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected = $false
         }
