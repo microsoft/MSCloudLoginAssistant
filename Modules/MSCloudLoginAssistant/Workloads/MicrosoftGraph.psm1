@@ -26,17 +26,13 @@ function Connect-MSCloudLoginMicrosoftGraph
 
     if ($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected)
     {
-        if ($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AuthenticationType -eq 'ServicePrincipalWithSecret' `
+        if (($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AuthenticationType -eq 'ServicePrincipalWithSecret' `
+                    -or $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AuthenticationType -eq 'Identity') `
                 -and (Get-Date -Date $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime) -lt [System.DateTime]::Now.AddMinutes(-50))
         {
             Write-Verbose -Message 'Token is about to expire, renewing'
 
             $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected = $false
-
-            Request-MSGraphOauthToken
-
-            return
-
         }
         elseif ($null -eq (Get-MgContext))
         {
