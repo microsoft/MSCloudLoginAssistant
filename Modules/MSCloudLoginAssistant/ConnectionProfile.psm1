@@ -488,6 +488,9 @@ class SecurityComplianceCenter:Workload
     [string]
     $AuthorizationUrl
 
+    [string]
+    $AzureADAuthorizationEndpointUri
+
     SecurityComplianceCenter()
     {
     }
@@ -507,11 +510,13 @@ class SecurityComplianceCenter:Workload
             {
                 $this.ConnectionUrl = 'https://ps.compliance.protection.office365.us/powershell-liveid/'
                 $this.AuthorizationUrl = 'https://login.microsoftonline.us/organizations'
+                $this.AzureADAuthorizationEndpointUri = 'https://login.microsoftonline.us/common'
             }
             'AzureDOD'
             {
                 $this.ConnectionUrl = 'https://l5.ps.compliance.protection.office365.us/powershell-liveid/'
                 $this.AuthorizationUrl = 'https://login.microsoftonline.us/organizations'
+                $this.AzureADAuthorizationEndpointUri = 'https://login.microsoftonline.us/common'
             }
             'AzureGermany'
             {

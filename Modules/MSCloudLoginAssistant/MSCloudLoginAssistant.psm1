@@ -420,7 +420,7 @@ function Get-SPOAdminUrl
         elseif ($Global:CloudEnvironment -eq 'GCCHigh')
         {
             [Array]$defaultDomain = Get-MgDomain | Where-Object { $_.Id -like '*.onmicrosoft.*' -and $_.IsInitial -eq $true }
-            if($defaultDomain.Id -like '*.onmicrosoft.us')
+            if ($defaultDomain.Id -like '*.onmicrosoft.us')
             {
                 $domain = '.onmicrosoft.us'
             }
@@ -434,7 +434,7 @@ function Get-SPOAdminUrl
         elseif ($Global:CloudEnvironment -eq 'DOD')
         {
             [Array]$defaultDomain = Get-MgDomain | Where-Object { $_.Id -like '*.onmicrosoft.*' -and $_.IsInitial -eq $true }
-            if($defaultDomain.Id -like '*.onmicrosoft.us')
+            if ($defaultDomain.Id -like '*.onmicrosoft.us')
             {
                 $domain = '.onmicrosoft.us'
             }
@@ -467,7 +467,8 @@ function Get-SPOAdminUrl
         elseif ($Global:CloudEnvironment -eq 'GCCHigh')
         {
             $extension = 'sharepoint.us'
-        }elseif ($Global:CloudEnvironment -eq 'DOD')
+        }
+        elseif ($Global:CloudEnvironment -eq 'DOD')
         {
             $extension = 'sharepoint-mil.us'
         }
@@ -841,21 +842,12 @@ function Get-CloudEnvironmentInfo
         {
             $tenantName = $Credentials.UserName.Split('@')[1]
         }
-        elseif (-not [string]::IsNullOrEmpty($ApplicationId) -and -not [System.String]::IsNullOrEmpty($CertificateThumbprint))
-        {
-            $tenantName = Get-MSCloudLoginOrganizationName -ApplicationId $ApplicationId `
-                -TenantId $TenantId `
-                -CertificateThumbprint $CertificateThumbprint
-        }
-        elseif (-not [string]::IsNullOrEmpty($ApplicationId) -and -not [System.String]::IsNullOrEmpty($ApplicationSecret))
-        {
-            $tenantName = Get-MSCloudLoginOrganizationName -ApplicationId $ApplicationId `
-                -TenantId $TenantId `
-                -ApplicationSecret $ApplicationSecret
-        }
-        elseif ($Identity.IsPresent)
+        elseif (-not [string]::IsNullOrEmpty($TenantId))
         {
             $tenantName = $TenantId
+        }
+        else{
+            throw "TenantId or Credentials must be provided"
         }
         ## endpoint will work with TenantId or tenantName
         $response = Invoke-WebRequest -Uri "https://login.microsoftonline.com/$tenantName/v2.0/.well-known/openid-configuration" -Method Get -UseBasicParsing
@@ -930,22 +922,20 @@ function Get-MSCloudLoginOrganizationName
         [switch]
         $Identity
     )
-
-    if (-not [string]::IsNullOrEmpty($ApplicationId) -and -not [System.String]::IsNullOrEmpty($CertificateThumbprint))
-    {
-        Connect-M365Tenant -Workload MicrosoftGraph -ApplicationId $ApplicationId -TenantId $TenantId -CertificateThumbprint $CertificateThumbprint
-    }
-    elseif (-not [string]::IsNullOrEmpty($ApplicationId) -and -not [System.String]::IsNullOrEmpty($ApplicationSecret))
-    {
-        Connect-M365Tenant -Workload MicrosoftGraph -ApplicationId $ApplicationId -TenantId $TenantId -ApplicationSecret $ApplicationSecret
-    }
-    elseif ($Identity.IsPresent)
-    {
-        Connect-M365Tenant -Workload MicrosoftGraph -Identity -TenantId $TenantId
-    }
-
     try
     {
+        if (-not [string]::IsNullOrEmpty($ApplicationId) -and -not [System.String]::IsNullOrEmpty($CertificateThumbprint))
+        {
+            Connect-M365Tenant -Workload MicrosoftGraph -ApplicationId $ApplicationId -TenantId $TenantId -CertificateThumbprint $CertificateThumbprint
+        }
+        elseif (-not [string]::IsNullOrEmpty($ApplicationId) -and -not [System.String]::IsNullOrEmpty($ApplicationSecret))
+        {
+            Connect-M365Tenant -Workload MicrosoftGraph -ApplicationId $ApplicationId -TenantId $TenantId -ApplicationSecret $ApplicationSecret
+        }
+        elseif ($Identity.IsPresent)
+        {
+            Connect-M365Tenant -Workload MicrosoftGraph -Identity -TenantId $TenantId
+        }
         $domain = Get-MgDomain -ErrorAction Stop | Where-Object { $_.IsInitial -eq $True }
 
         if ($null -ne $domain)
