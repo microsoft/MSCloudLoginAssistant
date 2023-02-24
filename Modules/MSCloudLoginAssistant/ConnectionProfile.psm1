@@ -342,6 +342,10 @@ class MicrosoftGraph:Workload
     $GraphEnvironment = 'Global'
 
     [string]
+    [ValidateSet('v1.0', 'beta')]
+    $ProfileName = 'v1.0'
+
+    [string]
     $ResourceUrl
 
     [string]
@@ -533,12 +537,16 @@ class Tasks:Workload
     [string]
     $AccessToken
 
+    [string]
+    $HostUrl
+
     Tasks()
     {
     }
 
     [void] Connect()
     {
+        $this.HostUrl = "https://tasks.office.com"
         ([Workload]$this).Setup()
         Connect-MSCloudLoginTasks
     }

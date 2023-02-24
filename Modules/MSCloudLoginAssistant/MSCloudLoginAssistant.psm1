@@ -96,7 +96,7 @@ function Connect-M365Tenant
         [ValidateSet('Azure', 'AzureAD', `
                 'ExchangeOnline', 'Intune', `
                 'SecurityComplianceCenter', 'PnP', 'PowerPlatforms', `
-                'MicrosoftTeams', 'MicrosoftGraph')]
+                'MicrosoftTeams', 'MicrosoftGraph', 'Tasks')]
         [System.String]
         $Workload,
 
