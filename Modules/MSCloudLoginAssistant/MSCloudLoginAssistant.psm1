@@ -278,6 +278,49 @@ function Connect-M365Tenant
                 }
             }
 
+            <#
+                Ref https://learn.microsoft.com/en-us/sharepoint/change-your-sharepoint-domain-name
+                Customers that have changed their SharePoint domain name will have a redirector in place.
+                If so, the AdminURL calculated by MsCloudLoginAssistant will not be the AdminUrl, but a redirector.
+                Get-PnpTenant, used by all SharePoint Online and OneDrive resources, will fail if connected to the
+                redirector. The following code tests the connected URL, and if the target is a redirect-site, it
+                resolves the Url it redirects to. To not affect anything else, the Invoke-WebRequest is run with
+                -ErrorAction Ignore, so it will have effect only if the StatusCode is 308.
+            #>
+            $contextUrl = (Get-PnPContext).Url
+            try
+            {
+                $redirectSite = $null
+                $redirectSite = Invoke-WebRequest -Uri $contextUrl -UseBasicParsing -MaximumRedirection 0 -ErrorAction Ignore
+                #The $redirectSite.StatusCode is 308 if the url we are connected to is a redirector. If it is not, continue as normal.
+                if ($redirectSite.StatusCode -eq 308)
+                {
+                    Write-Verbose -Message "The url '$contextUrl' is redirected - the target seems to be '$($redirectSite.Headers.Location)'"
+                    $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl = $redirectSite.Headers.Location
+                    if (-not $Url) {
+                        Write-Verbose -Message "The param 'Url' is unspecified - assuming the redirected site we're connecting to is the AdminUrl"
+                        $Global:MSCloudLoginConnectionProfile.PnP.AdminUrl = $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl
+                    }
+                    else {
+                        Write-Verbose -Message "The param 'Url' was specified, assuming the redirected site we're connecting to is not the AdminUrl"
+                    }
+                    #Force the reconnection
+                    $ForceRefresh = $true
+                    $Global:MSCloudLoginConnectionProfile.PnP.Connected = $false
+                    Write-Verbose -Message "Reconnecting to the Url '$($Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl)'"
+                    $Global:MSCloudLoginConnectionProfile.PnP.Connect($ForceRefresh)
+                }
+            }
+            catch
+            {
+                Write-Verbose $_
+            }
+            finally
+            {
+                $redirectSite = $null
+                $contextUrl = $null
+            }
+
             # If the AdminUrl is empty and a URL was provided, assume that the url
             # provided is the admin center;
             if (-not $Global:MSCloudLoginConnectionProfile.PnP.AdminUrl -and $Url)

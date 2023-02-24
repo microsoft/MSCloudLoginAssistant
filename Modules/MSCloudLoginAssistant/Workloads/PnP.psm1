@@ -96,7 +96,7 @@ function Connect-MSCloudLoginPnP
     {
         if ($Global:MSCloudLoginConnectionProfile.PnP.AuthenticationType -eq 'ServicePrincipalWithThumbprint')
         {
-            if (-not $Url)
+            if ($Url)
             {
                 Write-Information -Message 'Connecting with Service Principal - Thumbprint'
                 Write-Information -Message "URL: $Url"
