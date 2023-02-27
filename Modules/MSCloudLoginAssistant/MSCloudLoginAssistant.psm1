@@ -87,6 +87,7 @@ function Test-MSCloudLogin
 
     Connect-M365Tenant @parametersToPass
 }
+
 function Connect-M365Tenant
 {
     [CmdletBinding()]
@@ -278,49 +279,6 @@ function Connect-M365Tenant
                 }
             }
 
-            <#
-                Ref https://learn.microsoft.com/en-us/sharepoint/change-your-sharepoint-domain-name
-                Customers that have changed their SharePoint domain name will have a redirector in place.
-                If so, the AdminURL calculated by MsCloudLoginAssistant will not be the AdminUrl, but a redirector.
-                Get-PnpTenant, used by all SharePoint Online and OneDrive resources, will fail if connected to the
-                redirector. The following code tests the connected URL, and if the target is a redirect-site, it
-                resolves the Url it redirects to. To not affect anything else, the Invoke-WebRequest is run with
-                -ErrorAction Ignore, so it will have effect only if the StatusCode is 308.
-            #>
-            $contextUrl = (Get-PnPContext).Url
-            try
-            {
-                $redirectSite = $null
-                $redirectSite = Invoke-WebRequest -Uri $contextUrl -UseBasicParsing -MaximumRedirection 0 -ErrorAction Ignore
-                #The $redirectSite.StatusCode is 308 if the url we are connected to is a redirector. If it is not, continue as normal.
-                if ($redirectSite.StatusCode -eq 308)
-                {
-                    Write-Verbose -Message "The url '$contextUrl' is redirected - the target seems to be '$($redirectSite.Headers.Location)'"
-                    $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl = $redirectSite.Headers.Location
-                    if (-not $Url) {
-                        Write-Verbose -Message "The param 'Url' is unspecified - assuming the redirected site we're connecting to is the AdminUrl"
-                        $Global:MSCloudLoginConnectionProfile.PnP.AdminUrl = $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl
-                    }
-                    else {
-                        Write-Verbose -Message "The param 'Url' was specified, assuming the redirected site we're connecting to is not the AdminUrl"
-                    }
-                    #Force the reconnection
-                    $ForceRefresh = $true
-                    $Global:MSCloudLoginConnectionProfile.PnP.Connected = $false
-                    Write-Verbose -Message "Reconnecting to the Url '$($Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl)'"
-                    $Global:MSCloudLoginConnectionProfile.PnP.Connect($ForceRefresh)
-                }
-            }
-            catch
-            {
-                Write-Verbose $_
-            }
-            finally
-            {
-                $redirectSite = $null
-                $contextUrl = $null
-            }
-
             # If the AdminUrl is empty and a URL was provided, assume that the url
             # provided is the admin center;
             if (-not $Global:MSCloudLoginConnectionProfile.PnP.AdminUrl -and $Url)
@@ -365,11 +323,11 @@ function Get-SPOAdminUrl
     Write-Verbose -Message 'Connection to Microsoft Graph is required to automatically determine SharePoint Online admin URL...'
     try
     {
-        $defaultDomain = Get-MgDomain -ErrorAction Stop | Where-Object { $_.Id -like '*.onmicrosoft.*' -and $_.IsInitial -eq $true } # We don't use IsDefault here because the default could be a custom domain
-        if (-not $defaultDomain)
+        $weburl = (Invoke-MgGraphRequest -Uri /v1.0/sites/root).webUrl
+        if (-not $weburl)
         {
             Connect-M365Tenant -Workload 'MicrosoftGraph' -Credential $Credential
-            [Array]$defaultDomain = Get-MgDomain | Where-Object { $_.Id -like '*.onmicrosoft.*' -and $_.IsInitial -eq $true } # We don't use IsDefault here because the default could be a custom domain
+            $weburl = (Invoke-MgGraphRequest -Uri /v1.0/sites/root).webUrl
         }
     }
     catch
@@ -377,7 +335,7 @@ function Get-SPOAdminUrl
         Connect-M365Tenant -Workload 'MicrosoftGraph' -Credential $Credential
         try
         {
-            [Array]$defaultDomain = Get-MgDomain -ErrorAction Stop | Where-Object { $_.Id -like '*.onmicrosoft.*' -and $_.IsInitial -eq $true }
+            $weburl = (Invoke-MgGraphRequest -Uri /v1.0/sites/root).webUrl
         }
         catch
         {
@@ -385,97 +343,27 @@ function Get-SPOAdminUrl
             {
                 # Only run interactive command when Exporting
                 Write-Verbose -Message 'Requesting access to read information about the domain'
-                Connect-MgGraph -Scopes Domain.Read.All -ErrorAction 'Stop'
-                [Array]$defaultDomain = Get-MgDomain | Where-Object { $_.Id -like '*.onmicrosoft.*' -and $_.IsInitial -eq $true }
+                Connect-MgGraph -Scopes Sites.Read.All -ErrorAction 'Stop'
+                $weburl = (Invoke-MgGraphRequest -Uri /v1.0/sites/root).webUrl
             }
             else
             {
                 if ($_.Exception.Message -eq 'Insufficient privileges to complete the operation.')
                 {
-                    throw "The Graph application does not have the correct permissions to access Domains. Make sure you run 'Connect-MgGraph -Scopes Domain.Read.All' first!"
+                    throw "The Graph application does not have the correct permissions to access Domains. Make sure you run 'Connect-MgGraph -Scopes Sites.Read.All' first!"
                 }
             }
         }
     }
 
-    if ($Global:CloudEnvironmentInfo.tenant_region_sub_scope -eq 'DODCON')
+    if ($null -eq $weburl)
     {
-        $Global:CloudEnvironment = 'GCCHigh'
+        throw 'Unable to retrieve SPO Admin URL. Please check connectivity and if you have the Sites.Read.All permission.'
     }
 
-    if ($Global:CloudEnvironmentInfo.tenant_region_sub_scope -eq 'DOD')
-    {
-        $Global:CloudEnvironment = 'DOD'
-    }
-
-    if ($null -eq $defaultDomain)
-    {
-        if ($Global:CloudEnvironment -eq 'Germany')
-        {
-            [Array]$defaultDomain = Get-MgDomain | Where-Object { $_.Id -like '*.onmicrosoft.de' -and $_.IsInitial -eq $true }
-            $domain = '.onmicrosoft.de'
-            $tenantName = $defaultDomain.Id.Replace($domain, '')
-            $spoAdminUrl = "https://$tenantName-admin.sharepoint.de"
-        }
-        elseif ($Global:CloudEnvironment -eq 'GCCHigh')
-        {
-            [Array]$defaultDomain = Get-MgDomain | Where-Object { $_.Id -like '*.onmicrosoft.*' -and $_.IsInitial -eq $true }
-            if ($defaultDomain.Id -like '*.onmicrosoft.us')
-            {
-                $domain = '.onmicrosoft.us'
-            }
-            else
-            {
-                $domain = '.onmicrosoft.com'
-            }
-            $tenantName = $defaultDomain.Id.Replace($domain, '')
-            $spoAdminUrl = "https://$tenantName-admin.sharepoint.us"
-        }
-        elseif ($Global:CloudEnvironment -eq 'DOD')
-        {
-            [Array]$defaultDomain = Get-MgDomain | Where-Object { $_.Id -like '*.onmicrosoft.*' -and $_.IsInitial -eq $true }
-            if ($defaultDomain.Id -like '*.onmicrosoft.us')
-            {
-                $domain = '.onmicrosoft.us'
-            }
-            else
-            {
-                $domain = '.onmicrosoft.com'
-            }
-            $tenantName = $defaultDomain.Id.Replace($domain, '')
-            $spoAdminUrl = "https://$tenantName-admin.sharepoint-mil.us"
-        }
-        Write-Verbose -Message "SharePoint Online admin URL is $spoAdminUrl"
-        return $spoAdminUrl
-    }
-    else
-    {
-        if ($defaultDomain.Id -like '*.onmicrosoft.us')
-        {
-            $domain = '.onmicrosoft.us'
-        }
-        else
-        {
-            $domain = '.onmicrosoft.com'
-        }
-        $tenantName = $defaultDomain.Id.Replace($domain, '')
-        $extension = 'sharepoint.com'
-        if ($Global:CloudEnvironment -eq 'Germany')
-        {
-            $extension = 'sharepoint.de'
-        }
-        elseif ($Global:CloudEnvironment -eq 'GCCHigh')
-        {
-            $extension = 'sharepoint.us'
-        }
-        elseif ($Global:CloudEnvironment -eq 'DOD')
-        {
-            $extension = 'sharepoint-mil.us'
-        }
-        $spoAdminUrl = "https://$tenantName-admin.$extension"
-        Write-Verbose -Message "SharePoint Online admin URL is $spoAdminUrl"
-        return $spoAdminUrl
-    }
+    $spoAdminUrl = $webUrl -replace '^https:\/\/(\w*)\.', 'https://$1-admin.'
+    Write-Verbose -Message "SharePoint Online admin URL is $spoAdminUrl"
+    return $spoAdminUrl
 }
 
 function Get-AzureADDLL
@@ -743,18 +631,18 @@ function Get-PowerPlatformTokenInfo
         {
             $WarningPreference = 'SilentlyContinue'
             Import-Module -Name 'Microsoft.PowerApps.Administration.PowerShell' -Force
-            $authContext = New-Object Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext('https://login.windows.net/common');
+            $authContext = New-Object Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext('https://login.windows.net/common')
             $credential = [Microsoft.IdentityModel.Clients.ActiveDirectory.UserCredential]::new($O365Credentials.Username, $O365Credentials.Password)
-            $authResult = $authContext.AcquireToken($Audience, '1950a258-227b-4e31-a9cf-717495945fc2', $credential);
+            $authResult = $authContext.AcquireToken($Audience, '1950a258-227b-4e31-a9cf-717495945fc2', $credential)
 
             $JwtToken = $authResult.IdToken
             $tokenSplit = $JwtToken.Split('.')
-            $claimsSegment = $tokenSplit[1].Replace(' ', '+');
+            $claimsSegment = $tokenSplit[1].Replace(' ', '+')
 
             $mod = $claimsSegment.Length % 4
             if ($mod -gt 0)
             {
-                $paddingCount = 4 - $mod;
+                $paddingCount = 4 - $mod
                 for ($i = 0; $i -lt $paddingCount; $i++)
                 {
                     $claimsSegment += '='
@@ -846,8 +734,9 @@ function Get-CloudEnvironmentInfo
         {
             $tenantName = $TenantId
         }
-        else{
-            throw "TenantId or Credentials must be provided"
+        else
+        {
+            throw 'TenantId or Credentials must be provided'
         }
         ## endpoint will work with TenantId or tenantName
         $response = Invoke-WebRequest -Uri "https://login.microsoftonline.com/$tenantName/v2.0/.well-known/openid-configuration" -Method Get -UseBasicParsing
