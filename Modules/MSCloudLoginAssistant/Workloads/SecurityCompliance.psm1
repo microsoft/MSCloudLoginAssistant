@@ -66,7 +66,7 @@ function Connect-MSCloudLoginSecurityCompliance
 
             switch ($Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.EnvironmentName)
             {
-                {$_ -eq "AzureUSGovernment" -or $_ -eq "AzureDOD"}
+                { $_ -eq 'AzureUSGovernment' -or $_ -eq 'AzureDOD' }
                 {
                     Connect-IPPSSession -AppId $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ApplicationId `
                         -CertificateThumbprint $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.CertificateThumbprint `
@@ -104,7 +104,7 @@ function Connect-MSCloudLoginSecurityCompliance
             Write-Verbose -Message 'Connecting to Security & Compliance with Service Principal and Certificate Path'
             switch ($Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.EnvironmentName)
             {
-                {$_ -eq "AzureUSGovernment" -or $_ -eq "AzureDOD"}
+                { $_ -eq 'AzureUSGovernment' -or $_ -eq 'AzureDOD' }
                 {
                     Connect-IPPSSession -AppId $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ApplicationId `
                         -CertificateFilePath $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.CertificatePath `
