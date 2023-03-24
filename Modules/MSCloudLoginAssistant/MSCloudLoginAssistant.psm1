@@ -158,6 +158,11 @@ function Connect-M365Tenant
         $Global:MSCloudLoginConnectionProfile = New-Object MSCloudLoginConnectionProfile
     }
 
+    if (Compare-InputParametersForChange -CurrentParamSet @PSBoundParameters)
+    {
+        $Global:MSCloudLoginConnectionProfile[$Workload].Connected = $false
+    }
+
     Write-Verbose -Message "Trying to connect to platform {$Workload}"
     switch ($Workload)
     {
@@ -309,6 +314,104 @@ function Connect-M365Tenant
     }
 }
 
+function Compare-InputParametersForChange
+{
+    param (
+        [Parameter()]
+        [System.Collections.Hashtable]
+        $CurrentParamSet
+    )
+
+    $currentParameters = $currentParamSet
+    $currentParameters.Add('UserName', $currentParameters['Credential'].UserName)
+    $currentParameters.Remove('Workload') | Out-Null
+    $currentParameters.Remove('Credential') | Out-Null
+    $currentParameters.Remove('SkipModuleReload') | Out-Null
+    $currentParameters.Remote('UseModernAuth') | Out-Null
+    $currentParameters.Remote('ProfileName') | Out-Null
+
+    $globalParameters = @{}
+
+
+    if ($null -ne $Global:MSCloudLoginConnectionProfile[$CurrentParamSet.Workload].Credentials)
+    {
+        $globalParameters.Add('UserName', $Global:MSCloudLoginConnectionProfile[$CurrentParamSet.Workload].Credentials.UserName)
+    }
+    if ($null -ne $Global:MSCloudLoginConnectionProfile[$CurrentParamSet.Workload].ApplicationId)
+    {
+        $globalParameters.Add('ApplicationId', $Global:MSCloudLoginConnectionProfile[$CurrentParamSet.Workload].ApplicationId)
+    }
+    if ($null -ne $Global:MSCloudLoginConnectionProfile[$CurrentParamSet.Workload].TenantId)
+    {
+        $globalParameters.Add('TenantId', $Global:MSCloudLoginConnectionProfile[$CurrentParamSet.Workload].TenantId)
+    }
+    if ($null -ne $Global:MSCloudLoginConnectionProfile[$CurrentParamSet.Workload].ApplicationSecret)
+    {
+        $globalParameters.Add('ApplicationSecret', $Global:MSCloudLoginConnectionProfile[$CurrentParamSet.Workload].ApplicationSecret)
+    }
+    if ($null -ne $Global:MSCloudLoginConnectionProfile[$CurrentParamSet.Workload].CertificateThumbprint)
+    {
+        $globalParameters.Add('CertificateThumbprint', $Global:MSCloudLoginConnectionProfile[$CurrentParamSet.Workload].CertificateThumbprint)
+    }
+    if ($null -ne $Global:MSCloudLoginConnectionProfile[$CurrentParamSet.Workload].CertificatePassword)
+    {
+        $globalParameters.Add('CertificatePassword', $Global:MSCloudLoginConnectionProfile[$CurrentParamSet.Workload].CertificatePassword)
+    }
+    if ($null -ne $Global:MSCloudLoginConnectionProfile[$CurrentParamSet.Workload].CertificatePath)
+    {
+        $globalParameters.Add('CertificatePath', $Global:MSCloudLoginConnectionProfile[$CurrentParamSet.Workload].CertificatePath)
+    }
+    if ($null -ne $Global:MSCloudLoginConnectionProfile[$CurrentParamSet.Workload].Identity)
+    {
+        $globalParameters.Add('Identity', $Global:MSCloudLoginConnectionProfile[$CurrentParamSet.Workload].Identity)
+    }
+
+    $propertiesToCompare = @('UserName', 'ApplicationId', 'TenantId', 'ApplicationSecret', 'CertificateThumbprint', 'CertificatePassword', 'CertificatePath', 'Identity')
+
+    $diff = Compare-Object -ReferenceObject $currentParameters -DifferenceObject $globalParameters -Property $propertiesToCompare -PassThru
+
+    if ($diff.Count -gt 0)
+    {
+        # changes were found
+        return $true
+    }
+    else
+    {
+        return $false
+    }
+
+}
+
+$globalParameters = @{
+    Workload = $Global:MSCloudLoginConnectionProfile[$CurrentParamSet.Workload].Workload
+
+    Url = $Global:MSCloudLoginConnectionProfile[$CurrentParamSet.Workload].ConnectionUrl
+
+    UserName = $Global:MSCloudLoginConnectionProfile[$CurrentParamSet.Workload].Credentials.UserName
+
+    ApplicationId = $Global:MSCloudLoginConnectionProfile[$CurrentParamSet.Workload].ApplicationId
+
+    TenantId = $Global:MSCloudLoginConnectionProfile[$CurrentParamSet.Workload].TenantId
+
+    ApplicationSecret = $Global:MSCloudLoginConnectionProfile[$CurrentParamSet.Workload].ApplicationSecret
+
+    CertificateThumbprint = $Global:MSCloudLoginConnectionProfile[$CurrentParamSet.Workload].CertificateThumbprint
+
+    UseModernAuth = $Global:MSCloudLoginConnectionProfile[$CurrentParamSet.Workload].UseModernAuth
+
+    CertificatePassword,
+
+    CertificatePath,
+
+    SkipModuleReload = $false,
+
+    Identity,
+
+    ProfileName
+}
+
+}
+
 function Get-SPOAdminUrl
 {
     [CmdletBinding()]
@@ -377,7 +480,7 @@ function Get-SPOAdminUrl
         elseif ($Global:CloudEnvironment -eq 'GCCHigh')
         {
             [Array]$defaultDomain = Get-MgDomain | Where-Object { $_.Id -like '*.onmicrosoft.*' -and $_.IsInitial -eq $true }
-            if($defaultDomain.Id -like '*.onmicrosoft.us')
+            if ($defaultDomain.Id -like '*.onmicrosoft.us')
             {
                 $domain = '.onmicrosoft.us'
             }
@@ -391,7 +494,7 @@ function Get-SPOAdminUrl
         elseif ($Global:CloudEnvironment -eq 'DOD')
         {
             [Array]$defaultDomain = Get-MgDomain | Where-Object { $_.Id -like '*.onmicrosoft.*' -and $_.IsInitial -eq $true }
-            if($defaultDomain.Id -like '*.onmicrosoft.us')
+            if ($defaultDomain.Id -like '*.onmicrosoft.us')
             {
                 $domain = '.onmicrosoft.us'
             }
@@ -424,7 +527,8 @@ function Get-SPOAdminUrl
         elseif ($Global:CloudEnvironment -eq 'GCCHigh')
         {
             $extension = 'sharepoint.us'
-        }elseif ($Global:CloudEnvironment -eq 'DOD')
+        }
+        elseif ($Global:CloudEnvironment -eq 'DOD')
         {
             $extension = 'sharepoint-mil.us'
         }
