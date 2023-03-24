@@ -158,7 +158,7 @@ function Connect-M365Tenant
         $Global:MSCloudLoginConnectionProfile = New-Object MSCloudLoginConnectionProfile
     }
 
-    if (Compare-InputParametersForChange -CurrentParamSet @PSBoundParameters)
+    if (Compare-InputParametersForChange -CurrentParamSet $PSBoundParameters)
     {
         $Global:MSCloudLoginConnectionProfile[$Workload].Connected = $false
     }
@@ -323,92 +323,73 @@ function Compare-InputParametersForChange
     )
 
     $currentParameters = $currentParamSet
-    $currentParameters.Add('UserName', $currentParameters['Credential'].UserName)
+    if ($null -ne $currentParameters['Credential'].UserName)
+    {
+        $currentParameters.Add('UserName', $currentParameters['Credential'].UserName)
+    }
     $currentParameters.Remove('Workload') | Out-Null
     $currentParameters.Remove('Credential') | Out-Null
     $currentParameters.Remove('SkipModuleReload') | Out-Null
-    $currentParameters.Remote('UseModernAuth') | Out-Null
-    $currentParameters.Remote('ProfileName') | Out-Null
+    $currentParameters.Remove('UseModernAuth') | Out-Null
+    $currentParameters.Remove('ProfileName') | Out-Null
+    $currentParameters.Remove('Verbose') | Out-Null
 
     $globalParameters = @{}
 
 
-    if ($null -ne $Global:MSCloudLoginConnectionProfile[$CurrentParamSet.Workload].Credentials)
-    {
-        $globalParameters.Add('UserName', $Global:MSCloudLoginConnectionProfile[$CurrentParamSet.Workload].Credentials.UserName)
-    }
-    if ($null -ne $Global:MSCloudLoginConnectionProfile[$CurrentParamSet.Workload].ApplicationId)
-    {
-        $globalParameters.Add('ApplicationId', $Global:MSCloudLoginConnectionProfile[$CurrentParamSet.Workload].ApplicationId)
-    }
-    if ($null -ne $Global:MSCloudLoginConnectionProfile[$CurrentParamSet.Workload].TenantId)
-    {
-        $globalParameters.Add('TenantId', $Global:MSCloudLoginConnectionProfile[$CurrentParamSet.Workload].TenantId)
-    }
-    if ($null -ne $Global:MSCloudLoginConnectionProfile[$CurrentParamSet.Workload].ApplicationSecret)
-    {
-        $globalParameters.Add('ApplicationSecret', $Global:MSCloudLoginConnectionProfile[$CurrentParamSet.Workload].ApplicationSecret)
-    }
-    if ($null -ne $Global:MSCloudLoginConnectionProfile[$CurrentParamSet.Workload].CertificateThumbprint)
-    {
-        $globalParameters.Add('CertificateThumbprint', $Global:MSCloudLoginConnectionProfile[$CurrentParamSet.Workload].CertificateThumbprint)
-    }
-    if ($null -ne $Global:MSCloudLoginConnectionProfile[$CurrentParamSet.Workload].CertificatePassword)
-    {
-        $globalParameters.Add('CertificatePassword', $Global:MSCloudLoginConnectionProfile[$CurrentParamSet.Workload].CertificatePassword)
-    }
-    if ($null -ne $Global:MSCloudLoginConnectionProfile[$CurrentParamSet.Workload].CertificatePath)
-    {
-        $globalParameters.Add('CertificatePath', $Global:MSCloudLoginConnectionProfile[$CurrentParamSet.Workload].CertificatePath)
-    }
-    if ($null -ne $Global:MSCloudLoginConnectionProfile[$CurrentParamSet.Workload].Identity)
-    {
-        $globalParameters.Add('Identity', $Global:MSCloudLoginConnectionProfile[$CurrentParamSet.Workload].Identity)
-    }
+    $workloadProfile = $Global:MSCloudLoginConnectionProfile
 
-    $propertiesToCompare = @('UserName', 'ApplicationId', 'TenantId', 'ApplicationSecret', 'CertificateThumbprint', 'CertificatePassword', 'CertificatePath', 'Identity')
-
-    $diff = Compare-Object -ReferenceObject $currentParameters -DifferenceObject $globalParameters -Property $propertiesToCompare -PassThru
-
-    if ($diff.Count -gt 0)
+    if ($null -eq $workloadProfile)
     {
-        # changes were found
         return $true
     }
     else
     {
-        return $false
+        $workloadProfile = $Global:MSCloudLoginConnectionProfile.$Workload
     }
 
-}
+    if ($null -ne $workloadProfile.Credentials)
+    {
+        $globalParameters.Add('UserName', $workloadProfile.Credentials.UserName)
+    }
+    if ($null -ne $workloadProfile.ApplicationId)
+    {
+        $globalParameters.Add('ApplicationId', $workloadProfile.ApplicationId)
+    }
+    if ($null -ne $workloadProfile.TenantId)
+    {
+        $globalParameters.Add('TenantId', $workloadProfile.TenantId)
+    }
+    if (-not [String]::IsNullOrWhiteSpace($workloadProfile.ApplicationSecret))
+    {
+        $globalParameters.Add('ApplicationSecret', $workloadProfile.ApplicationSecret)
+    }
+    if ($null -ne $workloadProfile.CertificateThumbprint)
+    {
+        $globalParameters.Add('CertificateThumbprint', $workloadProfile.CertificateThumbprint)
+    }
+    if ($null -ne $workloadProfile.CertificatePassword)
+    {
+        $globalParameters.Add('CertificatePassword', $workloadProfile.CertificatePassword)
+    }
+    if ($null -ne $workloadProfile.CertificatePath)
+    {
+        $globalParameters.Add('CertificatePath', $workloadProfile.CertificatePath)
+    }
 
-$globalParameters = @{
-    Workload = $Global:MSCloudLoginConnectionProfile[$CurrentParamSet.Workload].Workload
 
-    Url = $Global:MSCloudLoginConnectionProfile[$CurrentParamSet.Workload].ConnectionUrl
+    $diffKeys = Compare-Object -ReferenceObject @($currentParameters.Keys) -DifferenceObject @($globalParameters.Keys) -PassThru
+    $diffValues = Compare-Object -ReferenceObject @($currentParameters.Values) -DifferenceObject @($globalParameters.Values) -PassThru
 
-    UserName = $Global:MSCloudLoginConnectionProfile[$CurrentParamSet.Workload].Credentials.UserName
-
-    ApplicationId = $Global:MSCloudLoginConnectionProfile[$CurrentParamSet.Workload].ApplicationId
-
-    TenantId = $Global:MSCloudLoginConnectionProfile[$CurrentParamSet.Workload].TenantId
-
-    ApplicationSecret = $Global:MSCloudLoginConnectionProfile[$CurrentParamSet.Workload].ApplicationSecret
-
-    CertificateThumbprint = $Global:MSCloudLoginConnectionProfile[$CurrentParamSet.Workload].CertificateThumbprint
-
-    UseModernAuth = $Global:MSCloudLoginConnectionProfile[$CurrentParamSet.Workload].UseModernAuth
-
-    CertificatePassword,
-
-    CertificatePath,
-
-    SkipModuleReload = $false,
-
-    Identity,
-
-    ProfileName
-}
+    if ($null -eq $diffKeys -and $null -eq $diffValues)
+    {
+        # no differences were found
+        return $false
+    }
+    else
+    {
+        return $true
+    }
 
 }
 
