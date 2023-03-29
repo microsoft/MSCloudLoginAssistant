@@ -33,6 +33,9 @@ class MSCloudLoginConnectionProfile
     [Teams]
     $Teams
 
+    [Whiteboard]
+    $Whiteboard
+
     MSCloudLoginConnectionProfile()
     {
         $this.CreatedTime = [System.DateTime]::Now.ToString()
@@ -47,6 +50,7 @@ class MSCloudLoginConnectionProfile
         $this.PowerPlatform = New-Object PowerPlatform
         $this.SecurityComplianceCenter = New-Object SecurityComplianceCenter
         $this.Teams = New-Object Teams
+        $this.Whiteboard = New-Object Whiteboard
     }
 }
 
@@ -543,5 +547,35 @@ class Teams:Workload
     {
         ([Workload]$this).Setup()
         Connect-MSCloudLoginTeams
+    }
+}
+
+class Whiteboard:Workload
+{
+    [string]
+    $AccessToken
+
+    [string]
+    $WhiteboardAppId
+
+    [string]
+    $ResourceUrl
+
+    [string]
+    $Scope
+
+    Whiteboard()
+    {
+    }
+
+    [void] Connect()
+    {
+        ([Workload]$this).Setup()
+
+        $this.WhiteboardAppId = "1950a258-227b-4e31-a9cf-717495945fc2"
+        $this.ResourceUrl = "whiteboard.microsoft.com"
+        $this.Scope = "https://whiteboard.microsoft.com/.default"
+
+        Connect-MSCloudLoginWhiteboard
     }
 }
