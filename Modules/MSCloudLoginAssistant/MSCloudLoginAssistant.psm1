@@ -161,7 +161,7 @@ function Connect-M365Tenant
 
     if (Compare-InputParametersForChange -CurrentParamSet $PSBoundParameters)
     {
-        $Global:MSCloudLoginConnectionProfile[$Workload].Connected = $false
+        $Global:MSCloudLoginConnectionProfile = $null
     }
 
     Write-Verbose -Message "Trying to connect to platform {$Workload}"
