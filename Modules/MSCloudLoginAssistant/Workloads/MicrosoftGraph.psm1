@@ -53,10 +53,25 @@ function Connect-MSCloudLoginMicrosoftGraph
     elseif ($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AuthenticationType -eq 'Identity')
     {
         Write-Verbose 'Connecting with managed identity'
-        # Get correct endopint based on provided environment
+
         $resourceEndpoint = ($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ResourceUrl -split '/')[2]
-        $oauth2 = Invoke-RestMethod -Uri "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https%3A%2F%2F$($resourceEndpoint)%2F" -Headers @{Metadata = 'true' }
-        $accessToken = $oauth2.access_token
+        if ('AzureAutomation/' -eq $env:AZUREPS_HOST_ENVIRONMENT)
+        {
+            $url = $env:IDENTITY_ENDPOINT
+            $headers = New-Object 'System.Collections.Generic.Dictionary[[String],[String]]'
+            $headers.Add('X-IDENTITY-HEADER', $env:IDENTITY_HEADER)
+            $headers.Add('Metadata', 'True')
+            $body = @{resource = $resourceEndPoint }
+            $oauth2 = Invoke-RestMethod $url -Method 'POST' -Headers $headers -ContentType 'application/x-www-form-urlencoded' -Body $body
+            $accessToken = $oauth2.access_token
+        }
+        else
+        {
+            # Get correct endopint for AzureVM
+            $oauth2 = Invoke-RestMethod -Uri "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https%3A%2F%2F$($resourceEndpoint)%2F" -Headers @{Metadata = 'true' }
+            $accessToken = $oauth2.access_token
+
+        }
 
         Connect-MgGraph -AccessToken $accessToken `
             -Environment $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment
