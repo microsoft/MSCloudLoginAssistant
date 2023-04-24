@@ -161,7 +161,7 @@ function Connect-M365Tenant
 
     if (Compare-InputParametersForChange -CurrentParamSet $PSBoundParameters)
     {
-        $Global:MSCloudLoginConnectionProfile = $null
+        $Global:MSCloudLoginConnectionProfile[$Workload].Connected = $false
     }
 
     Write-Verbose -Message "Trying to connect to platform {$Workload}"
@@ -328,7 +328,6 @@ function Compare-InputParametersForChange
     {
         $currentParameters.Add('UserName', $currentParameters['Credential'].UserName)
     }
-    $currentParameters.Remove('Workload') | Out-Null
     $currentParameters.Remove('Credential') | Out-Null
     $currentParameters.Remove('SkipModuleReload') | Out-Null
     $currentParameters.Remove('UseModernAuth') | Out-Null
@@ -346,7 +345,9 @@ function Compare-InputParametersForChange
     }
     else
     {
-        $workloadProfile = $Global:MSCloudLoginConnectionProfile.$Workload
+        $workload = $currentParameters['Workload']
+        $currentParameters.Remove('Workload') | Out-Null
+        $workloadProfile = $Global:MSCloudLoginConnectionProfile.$workload
     }
 
     if ($null -ne $workloadProfile.Credentials)
@@ -377,7 +378,6 @@ function Compare-InputParametersForChange
     {
         $globalParameters.Add('CertificatePath', $workloadProfile.CertificatePath)
     }
-
 
     $diffKeys = Compare-Object -ReferenceObject @($currentParameters.Keys) -DifferenceObject @($globalParameters.Keys) -PassThru
     $diffValues = Compare-Object -ReferenceObject @($currentParameters.Values) -DifferenceObject @($globalParameters.Values) -PassThru
