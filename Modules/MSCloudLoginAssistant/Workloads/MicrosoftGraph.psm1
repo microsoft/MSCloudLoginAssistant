@@ -61,7 +61,7 @@ function Connect-MSCloudLoginMicrosoftGraph
             $headers = New-Object 'System.Collections.Generic.Dictionary[[String],[String]]'
             $headers.Add('X-IDENTITY-HEADER', $env:IDENTITY_HEADER)
             $headers.Add('Metadata', 'True')
-            $body = @{resource = $resourceEndPoint }
+            $body = @{resource = "https://$resourceEndPoint/" }
             $oauth2 = Invoke-RestMethod $url -Method 'POST' -Headers $headers -ContentType 'application/x-www-form-urlencoded' -Body $body
             $accessToken = $oauth2.access_token
         }
