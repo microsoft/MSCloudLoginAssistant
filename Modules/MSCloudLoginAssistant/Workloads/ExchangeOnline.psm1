@@ -71,7 +71,7 @@ function Connect-MSCloudLoginExchangeOnline
             }
 
             Connect-ExchangeOnline -AppId $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ApplicationId `
-                -Organization $Global:MSCloudLoginConnectionProfile.OrganizationName `
+                -DelegatedOrganization $Global:MSCloudLoginConnectionProfile.OrganizationName `
                 -CertificateThumbprint $Global:MSCloudLoginConnectionProfile.ExchangeOnline.CertificateThumbprint `
                 -ShowBanner:$false `
                 -ShowProgress:$false `
@@ -94,11 +94,20 @@ function Connect-MSCloudLoginExchangeOnline
         {
             Write-Verbose -Message 'Attempting to connect to Exchange Online using Credentials without MFA'
 
-            Connect-ExchangeOnline -Credential $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Credentials `
-                -ShowProgress:$false `
-                -ShowBanner:$false `
-                -ExchangeEnvironmentName $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ExchangeEnvironmentName `
-                -Verbose:$false -ErrorAction Stop | Out-Null
+            $authParams = @{
+                Credential              = $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Credentials
+                ShowProgress            = $false
+                ShowBanner              = $false
+                ExchangeEnvironmentName = $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ExchangeEnvironmentName
+                Verbose                 = $false
+                ErrorAction             = 'Stop'
+            }
+
+            if (-not [System.String]::IsNullOrEmpty($Global:MSCloudLoginConnectionProfile.ExchangeOnline.TenantId))
+            {
+                $authParams.Add("DelegatedOrganization", $Global:MSCloudLoginConnectionProfile.ExchangeOnline.TenantId)
+            }
+            Connect-ExchangeOnline @authParams | Out-Null
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ConnectedDateTime = [System.DateTime]::Now.ToString()
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connected = $true
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.MultiFactorAuthentication = $false
@@ -162,12 +171,19 @@ function Connect-MSCloudLoginExchangeOnlineMFA
     try
     {
         Write-Verbose -Message 'Creating a new ExchangeOnline Session using MFA'
-        Connect-ExchangeOnline -UserPrincipalName $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Credentials.UserName `
-            -ShowBanner:$false `
-            -ShowProgress:$false `
-            -ExchangeEnvironmentName $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ExchangeEnvironmentName `
-            -Verbose:$false | Out-Null
+        $authParams = @{
+            UserPrincipalName       = $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Credentials.UserName
+            ShowBanner              = $false
+            ShowProgress            = $false
+            ExchangeEnvironmentName = $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ExchangeEnvironmentName
+            Verbose                 = $false
+        }
 
+        if (-not [System.String]::IsNullOrEmpty($Global:MSCloudLoginConnectionProfile.ExchangeOnline.TenantId))
+        {
+            $authParams.Add("DelegatedOrganization", $Global:MSCloudLoginConnectionProfile.ExchangeOnline.TenantId)
+        }
+        Connect-ExchangeOnline @authParams | Out-Null
         $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ConnectedDateTime = [System.DateTime]::Now.ToString()
         $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connected = $true
         $Global:MSCloudLoginConnectionProfile.ExchangeOnline.MultiFactorAuthentication = $true
