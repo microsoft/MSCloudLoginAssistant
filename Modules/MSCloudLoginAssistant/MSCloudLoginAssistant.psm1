@@ -159,6 +159,11 @@ function Connect-M365Tenant
         $Global:MSCloudLoginConnectionProfile = New-Object MSCloudLoginConnectionProfile
     }
 
+    if (Compare-InputParametersForChange -CurrentParamSet $PSBoundParameters)
+    {
+        $Global:MSCloudLoginConnectionProfile[$Workload].Connected = $false
+    }
+
     Write-Verbose -Message "Trying to connect to platform {$Workload}"
     switch ($Workload)
     {
@@ -308,6 +313,85 @@ function Connect-M365Tenant
             $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Connect()
         }
     }
+}
+
+function Compare-InputParametersForChange
+{
+    param (
+        [Parameter()]
+        [System.Collections.Hashtable]
+        $CurrentParamSet
+    )
+
+    $currentParameters = $currentParamSet
+    if ($null -ne $currentParameters['Credential'].UserName)
+    {
+        $currentParameters.Add('UserName', $currentParameters['Credential'].UserName)
+    }
+    $currentParameters.Remove('Credential') | Out-Null
+    $currentParameters.Remove('SkipModuleReload') | Out-Null
+    $currentParameters.Remove('UseModernAuth') | Out-Null
+    $currentParameters.Remove('ProfileName') | Out-Null
+    $currentParameters.Remove('Verbose') | Out-Null
+
+    $globalParameters = @{}
+
+
+    $workloadProfile = $Global:MSCloudLoginConnectionProfile
+
+    if ($null -eq $workloadProfile)
+    {
+        return $true
+    }
+    else
+    {
+        $workload = $currentParameters['Workload']
+        $currentParameters.Remove('Workload') | Out-Null
+        $workloadProfile = $Global:MSCloudLoginConnectionProfile.$workload
+    }
+
+    if ($null -ne $workloadProfile.Credentials)
+    {
+        $globalParameters.Add('UserName', $workloadProfile.Credentials.UserName)
+    }
+    if ($null -ne $workloadProfile.ApplicationId)
+    {
+        $globalParameters.Add('ApplicationId', $workloadProfile.ApplicationId)
+    }
+    if ($null -ne $workloadProfile.TenantId)
+    {
+        $globalParameters.Add('TenantId', $workloadProfile.TenantId)
+    }
+    if (-not [String]::IsNullOrWhiteSpace($workloadProfile.ApplicationSecret))
+    {
+        $globalParameters.Add('ApplicationSecret', $workloadProfile.ApplicationSecret)
+    }
+    if ($null -ne $workloadProfile.CertificateThumbprint)
+    {
+        $globalParameters.Add('CertificateThumbprint', $workloadProfile.CertificateThumbprint)
+    }
+    if ($null -ne $workloadProfile.CertificatePassword)
+    {
+        $globalParameters.Add('CertificatePassword', $workloadProfile.CertificatePassword)
+    }
+    if ($null -ne $workloadProfile.CertificatePath)
+    {
+        $globalParameters.Add('CertificatePath', $workloadProfile.CertificatePath)
+    }
+
+    $diffKeys = Compare-Object -ReferenceObject @($currentParameters.Keys) -DifferenceObject @($globalParameters.Keys) -PassThru
+    $diffValues = Compare-Object -ReferenceObject @($currentParameters.Values) -DifferenceObject @($globalParameters.Values) -PassThru
+
+    if ($null -eq $diffKeys -and $null -eq $diffValues)
+    {
+        # no differences were found
+        return $false
+    }
+    else
+    {
+        return $true
+    }
+
 }
 
 function Get-SPOAdminUrl
