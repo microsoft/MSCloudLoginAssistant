@@ -389,8 +389,6 @@ function Compare-InputParametersForChange
         $workloadProfile = $Global:MSCloudLoginConnectionProfile.$workloadInternalName
     }
 
-    Write-Host $workloadProfile
-
     # Clean the global Params
     if (-not [System.String]::IsNullOrEmpty($workloadProfile.TenantId))
     {
@@ -471,16 +469,6 @@ function Compare-InputParametersForChange
         $currentParameters.Remove('Identity') | Out-Null
     }
 
-    Write-Host 'Current Parameters'
-    foreach ($param in $currentParameters.GetEnumerator())
-    {
-        Write-Host $param.Key $param.Value
-    }
-    Write-Host 'Global Parameters'
-    foreach ($param in $globalParameters.GetEnumerator())
-    {
-        Write-Host $param.Key $param.Value
-    }
 
 
     if ($null -ne $globalParameters)
@@ -492,11 +480,10 @@ function Compare-InputParametersForChange
     if ($null -eq $diffKeys -and $null -eq $diffValues)
     {
         # no differences were found
-        Write-Host 'ok'
         return $false
     }
 
-    Write-Host 'oops'
+    # We found differences, so we need to connect
     return $true
 }
 
