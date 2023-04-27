@@ -409,7 +409,7 @@ function Compare-InputParametersForChange
 
     # This is the global graph application id. If it is something different, it means that we should compare the parameters
     if (-not [System.String]::IsNullOrEmpty($workloadProfile.ApplicationId) `
-            -and ($workloadInternalName -ne 'MicrosoftGraph' -or $workloadProfile.ApplicationId -ne '14d82eec-204b-4c2f-b7e8-296a70dab67e'))
+            -and -not($workloadInternalName -eq 'MicrosoftGraph' -and $workloadProfile.ApplicationId -eq '14d82eec-204b-4c2f-b7e8-296a70dab67e'))
     {
         $globalParameters.Add('ApplicationId', $workloadProfile.ApplicationId)
     }
