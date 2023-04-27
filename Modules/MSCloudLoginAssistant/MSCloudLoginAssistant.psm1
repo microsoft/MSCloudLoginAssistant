@@ -160,7 +160,18 @@ function Connect-M365Tenant
     }
     elseif (Compare-InputParametersForChange -CurrentParamSet $PSBoundParameters)
     {
-        $Global:MSCloudLoginConnectionProfile.$Workload.Connected = $false
+        if ($Workload -eq 'MicrosoftTeams')
+        {
+            $Global:MSCloudLoginConnectionProfile.Teams.Connected = $false
+        }
+        elseif ($Workload -eq 'PowerPlatforms')
+        {
+            $Global:MSCloudLoginConnectionProfile.PowerPlatform.Connected = $false
+        }
+        else
+        {
+            $Global:MSCloudLoginConnectionProfile.$Workload.Connected = $false
+        }
     }
 
     Write-Verbose -Message "Trying to connect to platform {$Workload}"
@@ -223,14 +234,14 @@ function Connect-M365Tenant
         }
         'MicrosoftTeams'
         {
-            $Global:MSCloudLoginConnectionProfile.MicrosoftTeams.Credentials = $Credential
-            $Global:MSCloudLoginConnectionProfile.MicrosoftTeams.ApplicationId = $ApplicationId
-            $Global:MSCloudLoginConnectionProfile.MicrosoftTeams.ApplicationSecret = $ApplicationSecret
-            $Global:MSCloudLoginConnectionProfile.MicrosoftTeams.TenantId = $TenantId
-            $Global:MSCloudLoginConnectionProfile.MicrosoftTeams.CertificateThumbprint = $CertificateThumbprint
-            $Global:MSCloudLoginConnectionProfile.MicrosoftTeams.CertificatePath = $CertificatePath
-            $Global:MSCloudLoginConnectionProfile.MicrosoftTeams.CertificatePassword = $CertificatePassword
-            $Global:MSCloudLoginConnectionProfile.MicrosoftTeams.Connect()
+            $Global:MSCloudLoginConnectionProfile.Teams.Credentials = $Credential
+            $Global:MSCloudLoginConnectionProfile.Teams.ApplicationId = $ApplicationId
+            $Global:MSCloudLoginConnectionProfile.Teams.ApplicationSecret = $ApplicationSecret
+            $Global:MSCloudLoginConnectionProfile.Teams.TenantId = $TenantId
+            $Global:MSCloudLoginConnectionProfile.Teams.CertificateThumbprint = $CertificateThumbprint
+            $Global:MSCloudLoginConnectionProfile.Teams.CertificatePath = $CertificatePath
+            $Global:MSCloudLoginConnectionProfile.Teams.CertificatePassword = $CertificatePassword
+            $Global:MSCloudLoginConnectionProfile.Teams.Connect()
         }
         'PnP'
         {
