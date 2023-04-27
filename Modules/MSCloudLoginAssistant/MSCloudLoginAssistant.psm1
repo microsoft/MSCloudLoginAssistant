@@ -154,24 +154,27 @@ function Connect-M365Tenant
 
     $VerbosePreference = 'SilentlyContinue'
 
+    $workloadInternalName = $Workload
+
+    if ($Workload -eq 'MicrosoftTeams')
+    {
+        $workloadInternalName = 'Teams'
+    }
+    elseif ($Workload -eq 'PowerPlatforms')
+    {
+        $workloadInternalName = 'PowerPlatform'
+    }
+
     if ($null -eq $Global:MSCloudLoginConnectionProfile)
     {
         $Global:MSCloudLoginConnectionProfile = New-Object MSCloudLoginConnectionProfile
     }
-    elseif (Compare-InputParametersForChange -CurrentParamSet $PSBoundParameters)
+    # Only validate the parameters if we are not already connected
+    elseif ( $Global:MSCloudLoginConnectionProfile.$workloadInternalName.Connected `
+            -and (Compare-InputParametersForChange -CurrentParamSet $PSBoundParameters))
     {
-        if ($Workload -eq 'MicrosoftTeams')
-        {
-            $Global:MSCloudLoginConnectionProfile.Teams.Connected = $false
-        }
-        elseif ($Workload -eq 'PowerPlatforms')
-        {
-            $Global:MSCloudLoginConnectionProfile.PowerPlatform.Connected = $false
-        }
-        else
-        {
-            $Global:MSCloudLoginConnectionProfile.$Workload.Connected = $false
-        }
+        Write-Host 'Resetting connection profile' -ForegroundColor Yellow
+        $Global:MSCloudLoginConnectionProfile.$workloadInternalName.Connected = $false
     }
 
     Write-Verbose -Message "Trying to connect to platform {$Workload}"
@@ -325,6 +328,17 @@ function Connect-M365Tenant
     }
 }
 
+<#
+.SYNOPSIS
+    This functions compares the authentication parameters for a change compared to the currently used parameters.
+.DESCRIPTION
+    This functions compares the authentication parameters for a change compared to the currently used parameters.
+    It is used to determine if a new connection needs to be made.
+.OUTPUTS
+    Boolean. Compare-InputParametersForChange returns $true if something changed, $false otherwise.
+.EXAMPLE
+    Compare-InputParametersForChange -CurrentParamSet $PSBoundParameters
+#>
 function Compare-InputParametersForChange
 {
     param (
@@ -334,6 +348,7 @@ function Compare-InputParametersForChange
     )
 
     $currentParameters = $currentParamSet
+
     if ($null -ne $currentParameters['Credential'].UserName)
     {
         $currentParameters.Add('UserName', $currentParameters['Credential'].UserName)
@@ -346,33 +361,61 @@ function Compare-InputParametersForChange
 
     $globalParameters = @{}
 
-
     $workloadProfile = $Global:MSCloudLoginConnectionProfile
 
     if ($null -eq $workloadProfile)
     {
-        return $true
+        # No Workload profile yet, so we need to connect
+        # This should not happen, but just in case
+        # We are not able to detect a change, so we return $false
+        return $false
     }
     else
     {
         $workload = $currentParameters['Workload']
-        $currentParameters.Remove('Workload') | Out-Null
-        $workloadProfile = $Global:MSCloudLoginConnectionProfile.$workload
+
+        if ($Workload -eq 'MicrosoftTeams')
+        {
+            $workloadInternalName = 'Teams'
+        }
+        elseif ($Workload -eq 'PowerPlatforms')
+        {
+            $workloadInternalName = 'PowerPlatform'
+        }
+        else
+        {
+            $workloadInternalName = $workload
+        }
+        $workloadProfile = $Global:MSCloudLoginConnectionProfile.$workloadInternalName
     }
 
+    Write-Host $workloadProfile
+
     # Clean the global Params
-    if (-not [System.String]::IsNullOrEmpty($workloadProfile.Credentials))
-    {
-        $globalParameters.Add('UserName', $workloadProfile.Credentials.UserName)
-    }
-    if (-not [System.String]::IsNullOrEmpty($workloadProfile.ApplicationId))
-    {
-        $globalParameters.Add('ApplicationId', $workloadProfile.ApplicationId)
-    }
     if (-not [System.String]::IsNullOrEmpty($workloadProfile.TenantId))
     {
         $globalParameters.Add('TenantId', $workloadProfile.TenantId)
     }
+    if (-not [System.String]::IsNullOrEmpty($workloadProfile.Credentials.UserName))
+    {
+        $globalParameters.Add('UserName', $workloadProfile.Credentials.UserName)
+
+        # If the tenant id is part of the username, we need to remove it from the global parameters
+        if ($workloadInternalName -eq 'MicrosoftGraph' `
+                -and $globalParameters.ContainsKey('TenantId') `
+                -and $globalParameters.TenantId -eq $workloadProfile.Credentials.UserName.Split('@')[1])
+        {
+            $globalParameters.Remove('TenantId') | Out-Null
+        }
+    }
+
+    # This is the global graph application id. If it is something different, it means that we should compare the parameters
+    if (-not [System.String]::IsNullOrEmpty($workloadProfile.ApplicationId) `
+            -and ($workloadInternalName -ne 'MicrosoftGraph' -or $workloadProfile.ApplicationId -ne '14d82eec-204b-4c2f-b7e8-296a70dab67e'))
+    {
+        $globalParameters.Add('ApplicationId', $workloadProfile.ApplicationId)
+    }
+
     if (-not [System.String]::IsNullOrEmpty($workloadProfile.ApplicationSecret))
     {
         $globalParameters.Add('ApplicationSecret', $workloadProfile.ApplicationSecret)
@@ -389,8 +432,16 @@ function Compare-InputParametersForChange
     {
         $globalParameters.Add('CertificatePath', $workloadProfile.CertificatePath)
     }
+    if ($workloadProfile.Identity)
+    {
+        $globalParameters.Add('Identity', $workloadProfile.Identity)
+    }
 
     # Clean the current parameters
+
+    # Remove the workload, as we don't need to compare that
+    $currentParameters.Remove('Workload') | Out-Null
+
     if ([System.String]::IsNullOrEmpty($currentParameters.ApplicationId))
     {
         $currentParameters.Remove('ApplicationId') | Out-Null
@@ -415,40 +466,38 @@ function Compare-InputParametersForChange
     {
         $currentParameters.Remove('CertificatePath') | Out-Null
     }
-
-    # Check both the global and current parameters are specifying Identity, otherwise remove it from the evaluation
-    if (-not ($globalParameters.ContainsKey('Identity') -and $currentParameters.ContainsKey('Identity')))
+    if ($currentParameters.ContainsKey('Identity') -and -not ($currentParameters.Identity))
     {
-        if ($globalParameters.ContainsKey('Identity'))
-        {
-            $globalParameters.Remove('Identity') | Out-Null
-        }
-        elseif ($currentParameters.ContainsKey('Identity'))
-        {
-            $currentParameters.Remove('Identity') | Out-Null
-        }
+        $currentParameters.Remove('Identity') | Out-Null
     }
+
+    Write-Host 'Current Parameters'
+    foreach ($param in $currentParameters.GetEnumerator())
+    {
+        Write-Host $param.Key $param.Value
+    }
+    Write-Host 'Global Parameters'
+    foreach ($param in $globalParameters.GetEnumerator())
+    {
+        Write-Host $param.Key $param.Value
+    }
+
 
     if ($null -ne $globalParameters)
     {
         $diffKeys = Compare-Object -ReferenceObject @($currentParameters.Keys) -DifferenceObject @($globalParameters.Keys) -PassThru
         $diffValues = Compare-Object -ReferenceObject @($currentParameters.Values) -DifferenceObject @($globalParameters.Values) -PassThru
     }
-    else
-    {
-        return $true
-    }
 
     if ($null -eq $diffKeys -and $null -eq $diffValues)
     {
         # no differences were found
+        Write-Host 'ok'
         return $false
     }
-    else
-    {
-        return $true
-    }
 
+    Write-Host 'oops'
+    return $true
 }
 
 function Get-SPOAdminUrl
