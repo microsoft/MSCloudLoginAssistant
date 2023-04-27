@@ -158,8 +158,7 @@ function Connect-M365Tenant
     {
         $Global:MSCloudLoginConnectionProfile = New-Object MSCloudLoginConnectionProfile
     }
-
-    if (Compare-InputParametersForChange -CurrentParamSet $PSBoundParameters)
+    elseif (Compare-InputParametersForChange -CurrentParamSet $PSBoundParameters)
     {
         $Global:MSCloudLoginConnectionProfile.$Workload.Connected = $false
     }
@@ -224,14 +223,14 @@ function Connect-M365Tenant
         }
         'MicrosoftTeams'
         {
-            $Global:MSCloudLoginConnectionProfile.Teams.Credentials = $Credential
-            $Global:MSCloudLoginConnectionProfile.Teams.ApplicationId = $ApplicationId
-            $Global:MSCloudLoginConnectionProfile.Teams.ApplicationSecret = $ApplicationSecret
-            $Global:MSCloudLoginConnectionProfile.Teams.TenantId = $TenantId
-            $Global:MSCloudLoginConnectionProfile.Teams.CertificateThumbprint = $CertificateThumbprint
-            $Global:MSCloudLoginConnectionProfile.Teams.CertificatePath = $CertificatePath
-            $Global:MSCloudLoginConnectionProfile.Teams.CertificatePassword = $CertificatePassword
-            $Global:MSCloudLoginConnectionProfile.Teams.Connect()
+            $Global:MSCloudLoginConnectionProfile.MicrosoftTeams.Credentials = $Credential
+            $Global:MSCloudLoginConnectionProfile.MicrosoftTeams.ApplicationId = $ApplicationId
+            $Global:MSCloudLoginConnectionProfile.MicrosoftTeams.ApplicationSecret = $ApplicationSecret
+            $Global:MSCloudLoginConnectionProfile.MicrosoftTeams.TenantId = $TenantId
+            $Global:MSCloudLoginConnectionProfile.MicrosoftTeams.CertificateThumbprint = $CertificateThumbprint
+            $Global:MSCloudLoginConnectionProfile.MicrosoftTeams.CertificatePath = $CertificatePath
+            $Global:MSCloudLoginConnectionProfile.MicrosoftTeams.CertificatePassword = $CertificatePassword
+            $Global:MSCloudLoginConnectionProfile.MicrosoftTeams.Connect()
         }
         'PnP'
         {
@@ -350,37 +349,84 @@ function Compare-InputParametersForChange
         $workloadProfile = $Global:MSCloudLoginConnectionProfile.$workload
     }
 
-    if ($null -ne $workloadProfile.Credentials)
+    # Clean the global Params
+    if (-not [System.String]::IsNullOrEmpty($workloadProfile.Credentials))
     {
         $globalParameters.Add('UserName', $workloadProfile.Credentials.UserName)
     }
-    if ($null -ne $workloadProfile.ApplicationId)
+    if (-not [System.String]::IsNullOrEmpty($workloadProfile.ApplicationId))
     {
         $globalParameters.Add('ApplicationId', $workloadProfile.ApplicationId)
     }
-    if ($null -ne $workloadProfile.TenantId)
+    if (-not [System.String]::IsNullOrEmpty($workloadProfile.TenantId))
     {
         $globalParameters.Add('TenantId', $workloadProfile.TenantId)
     }
-    if (-not [String]::IsNullOrWhiteSpace($workloadProfile.ApplicationSecret))
+    if (-not [System.String]::IsNullOrEmpty($workloadProfile.ApplicationSecret))
     {
         $globalParameters.Add('ApplicationSecret', $workloadProfile.ApplicationSecret)
     }
-    if ($null -ne $workloadProfile.CertificateThumbprint)
+    if (-not [System.String]::IsNullOrEmpty($workloadProfile.CertificateThumbprint))
     {
         $globalParameters.Add('CertificateThumbprint', $workloadProfile.CertificateThumbprint)
     }
-    if ($null -ne $workloadProfile.CertificatePassword)
+    if (-not [System.String]::IsNullOrEmpty($workloadProfile.CertificatePassword))
     {
         $globalParameters.Add('CertificatePassword', $workloadProfile.CertificatePassword)
     }
-    if ($null -ne $workloadProfile.CertificatePath)
+    if (-not [System.String]::IsNullOrEmpty($workloadProfile.CertificatePath))
     {
         $globalParameters.Add('CertificatePath', $workloadProfile.CertificatePath)
     }
 
-    $diffKeys = Compare-Object -ReferenceObject @($currentParameters.Keys) -DifferenceObject @($globalParameters.Keys) -PassThru
-    $diffValues = Compare-Object -ReferenceObject @($currentParameters.Values) -DifferenceObject @($globalParameters.Values) -PassThru
+    # Clean the current parameters
+    if ([System.String]::IsNullOrEmpty($currentParameters.ApplicationId))
+    {
+        $currentParameters.Remove('ApplicationId') | Out-Null
+    }
+    if ([System.String]::IsNullOrEmpty($currentParameters.TenantId))
+    {
+        $currentParameters.Remove('TenantId') | Out-Null
+    }
+    if ([System.String]::IsNullOrEmpty($currentParameters.ApplicationSecret))
+    {
+        $currentParameters.Remove('ApplicationSecret') | Out-Null
+    }
+    if ([System.String]::IsNullOrEmpty($currentParameters.CertificateThumbprint))
+    {
+        $currentParameters.Remove('CertificateThumbprint') | Out-Null
+    }
+    if ([System.String]::IsNullOrEmpty($currentParameters.CertificatePassword))
+    {
+        $currentParameters.Remove('CertificatePassword') | Out-Null
+    }
+    if ([System.String]::IsNullOrEmpty($currentParameters.CertificatePath))
+    {
+        $currentParameters.Remove('CertificatePath') | Out-Null
+    }
+
+    # Check both the global and current parameters are specifying Identity, otherwise remove it from the evaluation
+    if (-not ($globalParameters.ContainsKey('Identity') -and $currentParameters.ContainsKey('Identity')))
+    {
+        if ($globalParameters.ContainsKey('Identity'))
+        {
+            $globalParameters.Remove('Identity') | Out-Null
+        }
+        elseif ($currentParameters.ContainsKey('Identity'))
+        {
+            $currentParameters.Remove('Identity') | Out-Null
+        }
+    }
+
+    if ($null -ne $globalParameters)
+    {
+        $diffKeys = Compare-Object -ReferenceObject @($currentParameters.Keys) -DifferenceObject @($globalParameters.Keys) -PassThru
+        $diffValues = Compare-Object -ReferenceObject @($currentParameters.Values) -DifferenceObject @($globalParameters.Values) -PassThru
+    }
+    else
+    {
+        return $true
+    }
 
     if ($null -eq $diffKeys -and $null -eq $diffValues)
     {

@@ -17,22 +17,24 @@ function Connect-MSCloudLoginTeams
             Write-Verbose -Message "Using PowerShell 7 or above. Loading the MicrosoftTeams module using Windows PowerShell."
             Import-Module MicrosoftTeams -UseWindowsPowerShell -Global | Out-Null
         }
+        
         $results = Get-CsTeamsCallingPolicy
 
         if ($null -ne $results)
         {
             Write-Verbose -Message "Succeeded"
-            $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connected = $true
+            $Global:MSCloudLoginConnectionProfile.MicrosoftTeams.Connected = $true
             return
         }
     }
     catch
     {
         Write-Verbose -Message "Failed"
+        $Global:MSCloudLoginConnectionProfile.MicrosoftTeams.Connected = $false
     }
     $Global:ErrorActionPreference = $currentErrorPreference
 
-    if ($Global:MSCloudLoginConnectionProfile.Teams.Connected)
+    if ($Global:MSCloudLoginConnectionProfile.MicrosoftTeams.Connected)
     {
         Write-Verbose -Message "Already connected to Microsoft Teams. Not attempting to re-connect."
         return
@@ -49,79 +51,79 @@ function Connect-MSCloudLoginTeams
                 -AllowClobber
         Write-Verbose -Message "Imported session into $ProxyModule"
         Import-Module $ProxyModule -Global | Out-Null
-        $Global:MSCloudLoginConnectionProfile.Teams.Connected = $true
+        $Global:MSCloudLoginConnectionProfile.MicrosoftTeams.Connected = $true
         Write-Verbose "Reloaded the Microsoft Teams Module"
         return
     }
     Write-Verbose -Message 'No Active Connections to Microsoft Teams were found.'
 
-    if ($Global:MSCloudLoginConnectionProfile.Teams.AuthenticationType -eq 'ServicePrincipalWithThumbprint')
+    if ($Global:MSCloudLoginConnectionProfile.MicrosoftTeams.AuthenticationType -eq 'ServicePrincipalWithThumbprint')
     {
-        Write-Verbose -Message "Connecting to Microsoft Teams using AzureAD Application {$($Global:MSCloudLoginConnectionProfile.Teams.ApplicationId)}"
+        Write-Verbose -Message "Connecting to Microsoft Teams using AzureAD Application {$($Global:MSCloudLoginConnectionProfile.MicrosoftTeams.ApplicationId)}"
         try
         {
             $ConnectionParams = @{
-                ApplicationId         = $Global:MSCloudLoginConnectionProfile.Teams.ApplicationId
-                TenantId              = $Global:MSCloudLoginConnectionProfile.Teams.TenantId
-                CertificateThumbprint = $Global:MSCloudLoginConnectionProfile.Teams.CertificateThumbprint
+                ApplicationId         = $Global:MSCloudLoginConnectionProfile.MicrosoftTeams.ApplicationId
+                TenantId              = $Global:MSCloudLoginConnectionProfile.MicrosoftTeams.TenantId
+                CertificateThumbprint = $Global:MSCloudLoginConnectionProfile.MicrosoftTeams.CertificateThumbprint
             }
 
-            if ($Global:MSCloudLoginConnectionProfile.Teams.EnvironmentName -eq 'AzureUSGovernment')
+            if ($Global:MSCloudLoginConnectionProfile.MicrosoftTeams.EnvironmentName -eq 'AzureUSGovernment')
             {
                 $ConnectionParams.Add("TeamsEnvironmentName", 'TeamsGCCH')
             }
-            elseif ($Global:MSCloudLoginConnectionProfile.Teams.EnvironmentName -eq 'USGovernmentDoD')
+            elseif ($Global:MSCloudLoginConnectionProfile.MicrosoftTeams.EnvironmentName -eq 'USGovernmentDoD')
             {
                 $ConnectionParams.Add("TeamsEnvironmentName", 'TeamsDOD')
             }
-            elseif ($Global:MSCloudLoginConnectionProfile.Teams.EnvironmentName -eq 'AzureChinaCloud')
+            elseif ($Global:MSCloudLoginConnectionProfile.MicrosoftTeams.EnvironmentName -eq 'AzureChinaCloud')
             {
                 $ConnectionParams.Add("TeamsEnvironmentName", 'TeamsChina')
             }
 
             Connect-MicrosoftTeams @ConnectionParams | Out-Null
-            $Global:MSCloudLoginConnectionProfile.Teams.ConnectedDateTime         = [System.DateTime]::Now.ToString()
-            $Global:MSCloudLoginConnectionProfile.Teams.MultiFactorAuthentication = $false
-            $Global:MSCloudLoginConnectionProfile.Teams.Connected                 = $true
+            $Global:MSCloudLoginConnectionProfile.MicrosoftTeams.ConnectedDateTime         = [System.DateTime]::Now.ToString()
+            $Global:MSCloudLoginConnectionProfile.MicrosoftTeams.MultiFactorAuthentication = $false
+            $Global:MSCloudLoginConnectionProfile.MicrosoftTeams.Connected                 = $true
         }
         catch
         {
-            $Global:MSCloudLoginConnectionProfile.Teams.Connected = $false
+            $Global:MSCloudLoginConnectionProfile.MicrosoftTeams.Connected = $false
             throw $_
         }
     }
-    elseif ($Global:MSCloudLoginConnectionProfile.Teams.AuthenticationType -eq 'Credentials')
+    elseif ($Global:MSCloudLoginConnectionProfile.MicrosoftTeams.AuthenticationType -eq 'Credentials')
     {
-        if ($Global:MSCloudLoginConnectionProfile.Teams.EnvironmentName -eq 'AzureGermany')
+        if ($Global:MSCloudLoginConnectionProfile.MicrosoftTeams.EnvironmentName -eq 'AzureGermany')
         {
             Write-Warning 'Microsoft Teams is not supported in the Germany Cloud'
-            $Global:MSCloudLoginConnectionProfile.Teams.Connected = $false
+            $Global:MSCloudLoginConnectionProfile.MicrosoftTeams.Connected = $false
             return
         }
 
         try
         {
             $ConnectionParams = @{
-                Credential = $Global:MSCloudLoginConnectionProfile.Teams.Credentials
+                Credential = $Global:MSCloudLoginConnectionProfile.MicrosoftTeams.Credentials
             }
 
-            if ($Global:MSCloudLoginConnectionProfile.Teams.EnvironmentName -eq 'AzureUSGovernment')
+            if ($Global:MSCloudLoginConnectionProfile.MicrosoftTeams.EnvironmentName -eq 'AzureUSGovernment')
             {
                 $ConnectionParams.Add("TeamsEnvironmentName", 'TeamsGCCH')
             }
 
-            if ($Global:MSCloudLoginConnectionProfile.Teams.EnvironmentName -eq 'USGovernmentDoD')
+            if ($Global:MSCloudLoginConnectionProfile.MicrosoftTeams.EnvironmentName -eq 'USGovernmentDoD')
             {
                 $ConnectionParams.Add("TeamsEnvironmentName", 'TeamsDOD')
             }
 
             Write-Verbose -Message "Connecting to Microsoft Teams using credentials."
             Write-Verbose -Message "Params: $($ConnectionParams | Out-String)"
-            Write-Verbose -Message "User: $($Global:MSCloudLoginConnectionProfile.Teams.Credentials.Username)"
-            Connect-MicrosoftTeams @ConnectionParams -ErrorAction Stop | Out-Null
-            $Global:MSCloudLoginConnectionProfile.Teams.ConnectedDateTime         = [System.DateTime]::Now.ToString()
-            $Global:MSCloudLoginConnectionProfile.Teams.MultiFactorAuthentication = $false
-            $Global:MSCloudLoginConnectionProfile.Teams.Connected                 = $true
+            Write-Verbose -Message "User: $($Global:MSCloudLoginConnectionProfile.MicrosoftTeams.Credentials.Username)"
+            Connect-MicrosoftTeams @ConnectionParams -ErrorAction Stop
+            $Global:MSCloudLoginConnectionProfile.MicrosoftTeams.ConnectedDateTime         = [System.DateTime]::Now.ToString()
+            $Global:MSCloudLoginConnectionProfile.MicrosoftTeams.MultiFactorAuthentication = $false
+            $Global:MSCloudLoginConnectionProfile.MicrosoftTeams.Connected                 = $true
         }
         catch
         {
@@ -132,7 +134,7 @@ function Connect-MSCloudLoginTeams
             }
             else
             {
-                $Global:MSCloudLoginConnectionProfile.Teams.Connected = $false
+                $Global:MSCloudLoginConnectionProfile.MicrosoftTeams.Connected = $false
                 Write-Verbose -Message $_
                 throw $_
             }
@@ -149,11 +151,11 @@ function Connect-MSCloudLoginTeamsMFA
     try
     {
         $ConnectionParams = @{}
-        if ($Global:MSCloudLoginConnectionProfile.Teams.EnvironmentName -eq 'AzureUSGovernment')
+        if ($Global:MSCloudLoginConnectionProfile.MicrosoftTeams.EnvironmentName -eq 'AzureUSGovernment')
         {
             $ConnectionParams.Add("TeamsEnvironmentName", "TeamsGCCH")
         }
-        if ($Global:MSCloudLoginConnectionProfile.Teams.EnvironmentName -eq 'USGovernmentDoD')
+        if ($Global:MSCloudLoginConnectionProfile.MicrosoftTeams.EnvironmentName -eq 'USGovernmentDoD')
         {
             $ConnectionParams.Add("TeamsEnvironmentName", 'TeamsDOD')
         }
@@ -162,14 +164,14 @@ function Connect-MSCloudLoginTeamsMFA
 
         Write-Verbose -Message "Connecting to Microsoft Teams using MFA credentials"
         Connect-MicrosoftTeams @ConnectionParams -ErrorAction Stop | Out-Null
-        $Global:MSCloudLoginConnectionProfile.Teams.ConnectedDateTime         = [System.DateTime]::Now.ToString()
-        $Global:MSCloudLoginConnectionProfile.Teams.MultiFactorAuthentication = $true
-        $Global:MSCloudLoginConnectionProfile.Teams.Connected                 = $true
+        $Global:MSCloudLoginConnectionProfile.MicrosoftTeams.ConnectedDateTime         = [System.DateTime]::Now.ToString()
+        $Global:MSCloudLoginConnectionProfile.MicrosoftTeams.MultiFactorAuthentication = $true
+        $Global:MSCloudLoginConnectionProfile.MicrosoftTeams.Connected                 = $true
     }
     catch
     {
         Write-Verbose -Message "Error from MFA logic Path: $_"
-        $Global:MSCloudLoginConnectionProfile.Teams.Connected = $false
+        $Global:MSCloudLoginConnectionProfile.MicrosoftTeams.Connected = $false
         throw $_
     }
 }

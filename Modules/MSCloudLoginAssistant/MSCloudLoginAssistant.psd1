@@ -73,10 +73,10 @@
         'Workloads\ExchangeOnline.psm1',
         'Workloads\Intune.psm1',
         'Workloads\MicrosoftGraph.psm1',
+        'Workloads\MicrosoftTeams.psm1',
         'Workloads\PnP.psm1',
         'Workloads\PowerPlatform.psm1',
-        'Workloads\SecurityCompliance.psm1',
-        'Workloads\Teams.psm1'
+        'Workloads\SecurityCompliance.psm1'
     )
 
     # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.

@@ -30,8 +30,8 @@ class MSCloudLoginConnectionProfile
     [SecurityComplianceCenter]
     $SecurityComplianceCenter
 
-    [Teams]
-    $Teams
+    [MicrosoftTeams]
+    $MicrosoftTeams
 
     MSCloudLoginConnectionProfile()
     {
@@ -43,10 +43,10 @@ class MSCloudLoginConnectionProfile
         $this.ExchangeOnline = New-Object ExchangeOnline
         $this.Intune = New-Object Intune
         $this.MicrosoftGraph = New-Object MicrosoftGraph
+        $this.MicrosoftTeams = New-Object MicrosoftTeams
         $this.PnP = New-Object PnP
         $this.PowerPlatform = New-Object PowerPlatform
         $this.SecurityComplianceCenter = New-Object SecurityComplianceCenter
-        $this.Teams = New-Object Teams
     }
 }
 
@@ -533,9 +533,9 @@ class SecurityComplianceCenter:Workload
     }
 }
 
-class Teams:Workload
+class MicrosoftTeams:Workload
 {
-    Teams()
+    MicrosoftTeams()
     {
     }
 
