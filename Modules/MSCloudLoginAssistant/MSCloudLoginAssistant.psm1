@@ -173,7 +173,7 @@ function Connect-M365Tenant
     elseif ( $Global:MSCloudLoginConnectionProfile.$workloadInternalName.Connected `
             -and (Compare-InputParametersForChange -CurrentParamSet $PSBoundParameters))
     {
-        Write-Host 'Resetting connection profile' -ForegroundColor Yellow
+        Write-Verbose -Message 'Resetting connection profile'
         $Global:MSCloudLoginConnectionProfile.$workloadInternalName.Connected = $false
     }
 
