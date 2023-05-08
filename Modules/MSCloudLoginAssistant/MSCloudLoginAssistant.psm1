@@ -406,6 +406,11 @@ function Compare-InputParametersForChange
             $globalParameters.Remove('TenantId') | Out-Null
         }
     }
+    if ($workloadInternalName -eq 'PNP' -and $currentParameters.ContainsKey("Url") -and `
+        -not [System.String]::IsNullOrEmpty($currentParameters.Url))
+    {
+        $globalParameters.Add('Url', $workloadProfile.ConnectionUrl)
+    }
 
     # This is the global graph application id. If it is something different, it means that we should compare the parameters
     if (-not [System.String]::IsNullOrEmpty($workloadProfile.ApplicationId) `
@@ -468,8 +473,6 @@ function Compare-InputParametersForChange
     {
         $currentParameters.Remove('Identity') | Out-Null
     }
-
-
 
     if ($null -ne $globalParameters)
     {
