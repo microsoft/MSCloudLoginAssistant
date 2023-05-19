@@ -263,7 +263,8 @@ function Connect-M365Tenant
                     $Url -or (-not $Url -and -not $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl))
             {
                 $ForceRefresh = $false
-                if ($Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl -ne $Url)
+                if ($Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl -ne $Url -and `
+                    -not [System.String]::IsNullOrEmpty($url))
                 {
                     $ForceRefresh = $true
                 }
@@ -276,6 +277,14 @@ function Connect-M365Tenant
                 try
                 {
                     $contextUrl = (Get-PnPContext).Url
+                    if ([System.String]::IsNullOrEmpty($url))
+                    {
+                        $Url = $Global:MSCloudLoginConnectionProfile.PnP.AdminUrl
+                        if (-not $Url.EndsWith('/') -and $contextUrl.EndsWith('/'))
+                        {
+                            $Url += '/'
+                        }
+                    }
                     if ($contextUrl -ne $Url)
                     {
                         $ForceRefresh = $true
