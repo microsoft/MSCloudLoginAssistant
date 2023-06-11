@@ -65,6 +65,32 @@ function Connect-MSCloudLoginMicrosoftGraph
             $oauth2 = Invoke-RestMethod $url -Method 'POST' -Headers $headers -ContentType 'application/x-www-form-urlencoded' -Body $body
             $accessToken = $oauth2.access_token
         }
+        elseif('http://localhost:40342' -eq $env:IMDS_ENDPOINT)
+        {
+            #Get endpoint for Azure Arc Connected Device
+            $apiVersion = "2020-06-01"
+            $resource = "https://$resourceEndpoint"
+            $endpoint = "{0}?resource={1}&api-version={2}" -f $env:IDENTITY_ENDPOINT,$resource,$apiVersion
+            $secretFile = ""
+            try
+            {
+                Invoke-WebRequest -Method GET -Uri $endpoint -Headers @{Metadata='True'} -UseBasicParsing
+            }
+            catch
+            {
+                $wwwAuthHeader = $_.Exception.Response.Headers["WWW-Authenticate"]
+                if ($wwwAuthHeader -match "Basic realm=.+")
+                {
+                    $secretFile = ($wwwAuthHeader -split "Basic realm=")[1]
+                }
+            }
+            $secret = Get-Content -Raw $secretFile
+            $response = Invoke-WebRequest -Method GET -Uri $endpoint -Headers @{Metadata='True'; Authorization="Basic $secret"} -UseBasicParsing
+            if ($response)
+            {
+                $accessToken = (ConvertFrom-Json -InputObject $response.Content).access_token
+            }
+        }
         else
         {
             # Get correct endopint for AzureVM
