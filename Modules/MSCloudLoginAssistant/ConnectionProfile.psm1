@@ -30,6 +30,9 @@ class MSCloudLoginConnectionProfile
     [SecurityComplianceCenter]
     $SecurityComplianceCenter
 
+    [Tasks]
+    $Tasks
+
     [Teams]
     $Teams
 
@@ -47,6 +50,8 @@ class MSCloudLoginConnectionProfile
         $this.PnP = New-Object PnP
         $this.PowerPlatform = New-Object PowerPlatform
         $this.SecurityComplianceCenter = New-Object SecurityComplianceCenter
+        $this.Tasks = New-Object Tasks
+        $this.Teams = New-Object Teams
     }
 }
 
@@ -530,6 +535,26 @@ class SecurityComplianceCenter:Workload
             }
         }
         Connect-MSCloudLoginSecurityCompliance
+    }
+}
+
+class Tasks:Workload
+{
+    [string]
+    $AccessToken
+
+    [string]
+    $HostUrl
+
+    Tasks()
+    {
+    }
+
+    [void] Connect()
+    {
+        $this.HostUrl = "https://tasks.office.com"
+        ([Workload]$this).Setup()
+        Connect-MSCloudLoginTasks
     }
 }
 

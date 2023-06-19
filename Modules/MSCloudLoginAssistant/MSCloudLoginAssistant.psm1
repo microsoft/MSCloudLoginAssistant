@@ -21,7 +21,7 @@ function Test-MSCloudLogin
         [ValidateSet('Azure', 'AzureAD', `
                 'ExchangeOnline', 'Intune', `
                 'SecurityComplianceCenter', 'PnP', 'PowerPlatforms', `
-                'MicrosoftTeams', 'MicrosoftGraph')]
+                'MicrosoftTeams', 'MicrosoftGraph', 'Tasks')]
         [System.String]
         $Platform,
 
@@ -97,7 +97,7 @@ function Connect-M365Tenant
         [ValidateSet('Azure', 'AzureAD', `
                 'ExchangeOnline', 'Intune', `
                 'SecurityComplianceCenter', 'PnP', 'PowerPlatforms', `
-                'MicrosoftTeams', 'MicrosoftGraph')]
+                'MicrosoftTeams', 'MicrosoftGraph', 'Tasks')]
         [System.String]
         $Workload,
 
@@ -333,6 +333,17 @@ function Connect-M365Tenant
             $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.CertificatePassword = $CertificatePassword
             $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.SkipModuleReload = $SkipModuleReload
             $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Connect()
+        }
+        'Tasks'
+        {
+            $Global:MSCloudLoginConnectionProfile.Tasks.Credentials = $Credential
+            $Global:MSCloudLoginConnectionProfile.Tasks.ApplicationId = $ApplicationId
+            $Global:MSCloudLoginConnectionProfile.Tasks.ApplicationSecret = $ApplicationSecret
+            $Global:MSCloudLoginConnectionProfile.Tasks.TenantId = $TenantId
+            $Global:MSCloudLoginConnectionProfile.Tasks.CertificateThumbprint = $CertificateThumbprint
+            $Global:MSCloudLoginConnectionProfile.Tasks.CertificatePath = $CertificatePath
+            $Global:MSCloudLoginConnectionProfile.Tasks.CertificatePassword = $CertificatePassword
+            $Global:MSCloudLoginConnectionProfile.Tasks.Connect()
         }
     }
 }
