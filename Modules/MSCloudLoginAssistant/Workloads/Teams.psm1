@@ -17,18 +17,20 @@ function Connect-MSCloudLoginTeams
             Write-Verbose -Message "Using PowerShell 7 or above. Loading the MicrosoftTeams module using Windows PowerShell."
             Import-Module MicrosoftTeams -UseWindowsPowerShell -Global | Out-Null
         }
+
         $results = Get-CsTeamsCallingPolicy
 
         if ($null -ne $results)
         {
             Write-Verbose -Message "Succeeded"
-            $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connected = $true
+            $Global:MSCloudLoginConnectionProfile.Teams.Connected = $true
             return
         }
     }
     catch
     {
         Write-Verbose -Message "Failed"
+        $Global:MSCloudLoginConnectionProfile.Teams.Connected = $false
     }
     $Global:ErrorActionPreference = $currentErrorPreference
 
@@ -118,7 +120,7 @@ function Connect-MSCloudLoginTeams
             Write-Verbose -Message "Connecting to Microsoft Teams using credentials."
             Write-Verbose -Message "Params: $($ConnectionParams | Out-String)"
             Write-Verbose -Message "User: $($Global:MSCloudLoginConnectionProfile.Teams.Credentials.Username)"
-            Connect-MicrosoftTeams @ConnectionParams -ErrorAction Stop | Out-Null
+            Connect-MicrosoftTeams @ConnectionParams -ErrorAction Stop
             $Global:MSCloudLoginConnectionProfile.Teams.ConnectedDateTime         = [System.DateTime]::Now.ToString()
             $Global:MSCloudLoginConnectionProfile.Teams.MultiFactorAuthentication = $false
             $Global:MSCloudLoginConnectionProfile.Teams.Connected                 = $true

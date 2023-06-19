@@ -46,6 +46,7 @@ class MSCloudLoginConnectionProfile
         $this.ExchangeOnline = New-Object ExchangeOnline
         $this.Intune = New-Object Intune
         $this.MicrosoftGraph = New-Object MicrosoftGraph
+        $this.Teams = New-Object Teams
         $this.PnP = New-Object PnP
         $this.PowerPlatform = New-Object PowerPlatform
         $this.SecurityComplianceCenter = New-Object SecurityComplianceCenter
@@ -138,9 +139,9 @@ class Workload
             }
             default
             {
-                if ($null -ne $Global:CloudEnvironmentInfo -and $Global:CloudEnvironmentInfo.token_endpoint.StartsWith("https://login.partner.microsoftonline.cn"))
+                if ($null -ne $Global:CloudEnvironmentInfo -and $Global:CloudEnvironmentInfo.token_endpoint.StartsWith('https://login.partner.microsoftonline.cn'))
                 {
-                    $this.EnvironmentName = "AzureChinaCloud"
+                    $this.EnvironmentName = 'AzureChinaCloud'
                 }
                 else
                 {
@@ -151,7 +152,7 @@ class Workload
 
         if ([System.String]::IsNullOrEmpty($this.EnvironmentName))
         {
-            if ($null -ne $this.TenantId -and $this.TenantId.EndsWith(".cn"))
+            if ($null -ne $this.TenantId -and $this.TenantId.EndsWith('.cn'))
             {
                 $this.EnvironmentName = 'AzureChinaCloud'
             }
@@ -277,7 +278,7 @@ class ExchangeOnline:Workload
 
     [void] Disconnect()
     {
-        Write-Verbose -Message "Disconnecting from Exchange Online Connection"
+        Write-Verbose -Message 'Disconnecting from Exchange Online Connection'
         Disconnect-ExchangeOnline -Confirm:$false
         $this.Connected = $false
     }
@@ -492,6 +493,9 @@ class SecurityComplianceCenter:Workload
     [string]
     $AuthorizationUrl
 
+    [string]
+    $AzureADAuthorizationEndpointUri
+
     SecurityComplianceCenter()
     {
     }
@@ -511,11 +515,13 @@ class SecurityComplianceCenter:Workload
             {
                 $this.ConnectionUrl = 'https://ps.compliance.protection.office365.us/powershell-liveid/'
                 $this.AuthorizationUrl = 'https://login.microsoftonline.us/organizations'
+                $this.AzureADAuthorizationEndpointUri = 'https://login.microsoftonline.us/common'
             }
             'AzureDOD'
             {
                 $this.ConnectionUrl = 'https://l5.ps.compliance.protection.office365.us/powershell-liveid/'
                 $this.AuthorizationUrl = 'https://login.microsoftonline.us/organizations'
+                $this.AzureADAuthorizationEndpointUri = 'https://login.microsoftonline.us/common'
             }
             'AzureGermany'
             {
