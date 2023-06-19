@@ -546,6 +546,9 @@ class Tasks:Workload
     [string]
     $HostUrl
 
+    [string]
+    $Scope
+
     Tasks()
     {
     }
@@ -553,6 +556,7 @@ class Tasks:Workload
     [void] Connect()
     {
         $this.HostUrl = "https://tasks.office.com"
+        $this.Scope   = "https://tasks.office.com/.default"
         ([Workload]$this).Setup()
         Connect-MSCloudLoginTasks
     }
