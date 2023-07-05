@@ -68,12 +68,7 @@ function Test-MSCloudLogin
 
         [Parameter()]
         [Switch]
-        $Identity,
-
-        [Parameter()]
-        [System.String]
-        [ValidateSet('v1.0', 'beta')]
-        $ProfileName = 'v1.0'
+        $Identity
     )
     $parametersToPass = $PSBoundParameters
     $parametersToPass.Add('Workload', $Platform)
@@ -144,12 +139,7 @@ function Connect-M365Tenant
 
         [Parameter()]
         [Switch]
-        $Identity,
-
-        [Parameter()]
-        [System.String]
-        [ValidateSet('v1.0', 'beta')]
-        $ProfileName = 'v1.0'
+        $Identity
     )
 
     $VerbosePreference = 'SilentlyContinue'
@@ -231,7 +221,6 @@ function Connect-M365Tenant
             $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationSecret = $ApplicationSecret
             $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.TenantId = $TenantId
             $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.CertificateThumbprint = $CertificateThumbprint
-            $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ProfileName = $ProfileName
             $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Identity = $Identity
             $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connect()
         }

@@ -8,22 +8,6 @@ function Connect-MSCloudLoginMicrosoftGraph
     $VerbosePreference = 'SilentlyContinue'
 
     # If the current profile is not the same we expect, make the switch.
-    $currentProfile = (Get-MgProfile).Name
-    Write-Verbose -Message "Current Profile: $currentProfile"
-    Write-Verbose -Message "Requested Profile: $($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ProfileName)"
-    if ($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ProfileName -ne $currentProfile)
-    {
-        Write-Verbose -Message "There are currently {$((Get-ChildItem function: | Measure-Object).Count) functions}"
-        Write-Verbose -Message 'Removing Graph Modules from Runspace'
-        Remove-Module Microsoft.Graph.* -Force
-        Write-Verbose -Message "There are now {$((Get-ChildItem function: | Measure-Object).Count) functions}"
-
-        Write-Verbose -Message 'Switching to Beta profile'
-        Select-MgProfile $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ProfileName | Out-Null
-        Write-Verbose -Message "There are {$((Get-ChildItem function: | Measure-Object).Count) functions}"
-        $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected = $false
-    }
-
     if ($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected)
     {
         if (($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AuthenticationType -eq 'ServicePrincipalWithSecret' `
@@ -217,7 +201,7 @@ function Connect-MSCloudLoginMSGraphWithUser
     try
     {
         $OAuthReq = Invoke-RestMethod -Uri $url -Method Post -Body $body
-        $AccessToken = $OAuthReq.access_token
+        $AccessToken = ConvertTo-SecureString $OAuthReq.access_token -AsPlainText -Force
 
         Write-Verbose -Message "Connecting to Microsoft Graph - Environment {$($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment)}"
 
