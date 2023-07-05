@@ -21,7 +21,7 @@ function Test-MSCloudLogin
         [ValidateSet('Azure', 'AzureAD', `
                 'ExchangeOnline', 'Intune', `
                 'SecurityComplianceCenter', 'PnP', 'PowerPlatforms', `
-                'MicrosoftTeams', 'MicrosoftGraph')]
+                'MicrosoftTeams', 'MicrosoftGraph', 'Tasks')]
         [System.String]
         $Platform,
 
@@ -82,6 +82,7 @@ function Test-MSCloudLogin
 
     Connect-M365Tenant @parametersToPass
 }
+
 function Connect-M365Tenant
 {
     [CmdletBinding()]
@@ -143,9 +144,27 @@ function Connect-M365Tenant
 
     $VerbosePreference = 'SilentlyContinue'
 
+    $workloadInternalName = $Workload
+
+    if ($Workload -eq 'MicrosoftTeams')
+    {
+        $workloadInternalName = 'Teams'
+    }
+    elseif ($Workload -eq 'PowerPlatforms')
+    {
+        $workloadInternalName = 'PowerPlatform'
+    }
+
     if ($null -eq $Global:MSCloudLoginConnectionProfile)
     {
         $Global:MSCloudLoginConnectionProfile = New-Object MSCloudLoginConnectionProfile
+    }
+    # Only validate the parameters if we are not already connected
+    elseif ( $Global:MSCloudLoginConnectionProfile.$workloadInternalName.Connected `
+            -and (Compare-InputParametersForChange -CurrentParamSet $PSBoundParameters))
+    {
+        Write-Verbose -Message 'Resetting connection profile'
+        $Global:MSCloudLoginConnectionProfile.$workloadInternalName.Connected = $false
     }
 
     Write-Verbose -Message "Trying to connect to platform {$Workload}"
@@ -233,7 +252,8 @@ function Connect-M365Tenant
                     $Url -or (-not $Url -and -not $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl))
             {
                 $ForceRefresh = $false
-                if ($Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl -ne $Url)
+                if ($Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl -ne $Url -and `
+                    -not [System.String]::IsNullOrEmpty($url))
                 {
                     $ForceRefresh = $true
                 }
@@ -246,6 +266,14 @@ function Connect-M365Tenant
                 try
                 {
                     $contextUrl = (Get-PnPContext).Url
+                    if ([System.String]::IsNullOrEmpty($url))
+                    {
+                        $Url = $Global:MSCloudLoginConnectionProfile.PnP.AdminUrl
+                        if (-not $Url.EndsWith('/') -and $contextUrl.EndsWith('/'))
+                        {
+                            $Url += '/'
+                        }
+                    }
                     if ($contextUrl -ne $Url)
                     {
                         $ForceRefresh = $true
@@ -309,6 +337,168 @@ function Connect-M365Tenant
     }
 }
 
+<#
+.SYNOPSIS
+    This functions compares the authentication parameters for a change compared to the currently used parameters.
+.DESCRIPTION
+    This functions compares the authentication parameters for a change compared to the currently used parameters.
+    It is used to determine if a new connection needs to be made.
+.OUTPUTS
+    Boolean. Compare-InputParametersForChange returns $true if something changed, $false otherwise.
+.EXAMPLE
+    Compare-InputParametersForChange -CurrentParamSet $PSBoundParameters
+#>
+function Compare-InputParametersForChange
+{
+    param (
+        [Parameter()]
+        [System.Collections.Hashtable]
+        $CurrentParamSet
+    )
+
+    $currentParameters = $currentParamSet
+
+    if ($null -ne $currentParameters['Credential'].UserName)
+    {
+        $currentParameters.Add('UserName', $currentParameters['Credential'].UserName)
+    }
+    $currentParameters.Remove('Credential') | Out-Null
+    $currentParameters.Remove('SkipModuleReload') | Out-Null
+    $currentParameters.Remove('UseModernAuth') | Out-Null
+    $currentParameters.Remove('ProfileName') | Out-Null
+    $currentParameters.Remove('Verbose') | Out-Null
+
+    $globalParameters = @{}
+
+    $workloadProfile = $Global:MSCloudLoginConnectionProfile
+
+    if ($null -eq $workloadProfile)
+    {
+        # No Workload profile yet, so we need to connect
+        # This should not happen, but just in case
+        # We are not able to detect a change, so we return $false
+        return $false
+    }
+    else
+    {
+        $workload = $currentParameters['Workload']
+
+        if ($Workload -eq 'MicrosoftTeams')
+        {
+            $workloadInternalName = 'Teams'
+        }
+        elseif ($Workload -eq 'PowerPlatforms')
+        {
+            $workloadInternalName = 'PowerPlatform'
+        }
+        else
+        {
+            $workloadInternalName = $workload
+        }
+        $workloadProfile = $Global:MSCloudLoginConnectionProfile.$workloadInternalName
+    }
+
+    # Clean the global Params
+    if (-not [System.String]::IsNullOrEmpty($workloadProfile.TenantId))
+    {
+        $globalParameters.Add('TenantId', $workloadProfile.TenantId)
+    }
+    if (-not [System.String]::IsNullOrEmpty($workloadProfile.Credentials.UserName))
+    {
+        $globalParameters.Add('UserName', $workloadProfile.Credentials.UserName)
+
+        # If the tenant id is part of the username, we need to remove it from the global parameters
+        if ($workloadInternalName -eq 'MicrosoftGraph' `
+                -and $globalParameters.ContainsKey('TenantId') `
+                -and $globalParameters.TenantId -eq $workloadProfile.Credentials.UserName.Split('@')[1])
+        {
+            $globalParameters.Remove('TenantId') | Out-Null
+        }
+    }
+    if ($workloadInternalName -eq 'PNP' -and $currentParameters.ContainsKey("Url") -and `
+        -not [System.String]::IsNullOrEmpty($currentParameters.Url))
+    {
+        $globalParameters.Add('Url', $workloadProfile.ConnectionUrl)
+    }
+
+    # This is the global graph application id. If it is something different, it means that we should compare the parameters
+    if (-not [System.String]::IsNullOrEmpty($workloadProfile.ApplicationId) `
+            -and -not($workloadInternalName -eq 'MicrosoftGraph' -and $workloadProfile.ApplicationId -eq '14d82eec-204b-4c2f-b7e8-296a70dab67e'))
+    {
+        $globalParameters.Add('ApplicationId', $workloadProfile.ApplicationId)
+    }
+
+    if (-not [System.String]::IsNullOrEmpty($workloadProfile.ApplicationSecret))
+    {
+        $globalParameters.Add('ApplicationSecret', $workloadProfile.ApplicationSecret)
+    }
+    if (-not [System.String]::IsNullOrEmpty($workloadProfile.CertificateThumbprint))
+    {
+        $globalParameters.Add('CertificateThumbprint', $workloadProfile.CertificateThumbprint)
+    }
+    if (-not [System.String]::IsNullOrEmpty($workloadProfile.CertificatePassword))
+    {
+        $globalParameters.Add('CertificatePassword', $workloadProfile.CertificatePassword)
+    }
+    if (-not [System.String]::IsNullOrEmpty($workloadProfile.CertificatePath))
+    {
+        $globalParameters.Add('CertificatePath', $workloadProfile.CertificatePath)
+    }
+    if ($workloadProfile.Identity)
+    {
+        $globalParameters.Add('Identity', $workloadProfile.Identity)
+    }
+
+    # Clean the current parameters
+
+    # Remove the workload, as we don't need to compare that
+    $currentParameters.Remove('Workload') | Out-Null
+
+    if ([System.String]::IsNullOrEmpty($currentParameters.ApplicationId))
+    {
+        $currentParameters.Remove('ApplicationId') | Out-Null
+    }
+    if ([System.String]::IsNullOrEmpty($currentParameters.TenantId))
+    {
+        $currentParameters.Remove('TenantId') | Out-Null
+    }
+    if ([System.String]::IsNullOrEmpty($currentParameters.ApplicationSecret))
+    {
+        $currentParameters.Remove('ApplicationSecret') | Out-Null
+    }
+    if ([System.String]::IsNullOrEmpty($currentParameters.CertificateThumbprint))
+    {
+        $currentParameters.Remove('CertificateThumbprint') | Out-Null
+    }
+    if ([System.String]::IsNullOrEmpty($currentParameters.CertificatePassword))
+    {
+        $currentParameters.Remove('CertificatePassword') | Out-Null
+    }
+    if ([System.String]::IsNullOrEmpty($currentParameters.CertificatePath))
+    {
+        $currentParameters.Remove('CertificatePath') | Out-Null
+    }
+    if ($currentParameters.ContainsKey('Identity') -and -not ($currentParameters.Identity))
+    {
+        $currentParameters.Remove('Identity') | Out-Null
+    }
+
+    if ($null -ne $globalParameters)
+    {
+        $diffKeys = Compare-Object -ReferenceObject @($currentParameters.Keys) -DifferenceObject @($globalParameters.Keys) -PassThru
+        $diffValues = Compare-Object -ReferenceObject @($currentParameters.Values) -DifferenceObject @($globalParameters.Values) -PassThru
+    }
+
+    if ($null -eq $diffKeys -and $null -eq $diffValues)
+    {
+        # no differences were found
+        return $false
+    }
+
+    # We found differences, so we need to connect
+    return $true
+}
+
 function Get-SPOAdminUrl
 {
     [CmdletBinding()]
@@ -322,11 +512,11 @@ function Get-SPOAdminUrl
     Write-Verbose -Message 'Connection to Microsoft Graph is required to automatically determine SharePoint Online admin URL...'
     try
     {
-        $defaultDomain = Get-MgDomain -ErrorAction Stop | Where-Object { $_.Id -like '*.onmicrosoft.*' -and $_.IsInitial -eq $true } # We don't use IsDefault here because the default could be a custom domain
-        if (-not $defaultDomain)
+        $weburl = (Invoke-MgGraphRequest -Uri /v1.0/sites/root).webUrl
+        if (-not $weburl)
         {
             Connect-M365Tenant -Workload 'MicrosoftGraph' -Credential $Credential
-            [Array]$defaultDomain = Get-MgDomain | Where-Object { $_.Id -like '*.onmicrosoft.*' -and $_.IsInitial -eq $true } # We don't use IsDefault here because the default could be a custom domain
+            $weburl = (Invoke-MgGraphRequest -Uri /v1.0/sites/root).webUrl
         }
     }
     catch
@@ -334,7 +524,7 @@ function Get-SPOAdminUrl
         Connect-M365Tenant -Workload 'MicrosoftGraph' -Credential $Credential
         try
         {
-            [Array]$defaultDomain = Get-MgDomain -ErrorAction Stop | Where-Object { $_.Id -like '*.onmicrosoft.*' -and $_.IsInitial -eq $true }
+            $weburl = (Invoke-MgGraphRequest -Uri /v1.0/sites/root).webUrl
         }
         catch
         {
@@ -342,96 +532,27 @@ function Get-SPOAdminUrl
             {
                 # Only run interactive command when Exporting
                 Write-Verbose -Message 'Requesting access to read information about the domain'
-                Connect-MgGraph -Scopes Domain.Read.All -ErrorAction 'Stop'
-                [Array]$defaultDomain = Get-MgDomain | Where-Object { $_.Id -like '*.onmicrosoft.*' -and $_.IsInitial -eq $true }
+                Connect-MgGraph -Scopes Sites.Read.All -ErrorAction 'Stop'
+                $weburl = (Invoke-MgGraphRequest -Uri /v1.0/sites/root).webUrl
             }
             else
             {
                 if ($_.Exception.Message -eq 'Insufficient privileges to complete the operation.')
                 {
-                    throw "The Graph application does not have the correct permissions to access Domains. Make sure you run 'Connect-MgGraph -Scopes Domain.Read.All' first!"
+                    throw "The Graph application does not have the correct permissions to access Domains. Make sure you run 'Connect-MgGraph -Scopes Sites.Read.All' first!"
                 }
             }
         }
     }
 
-    if ($Global:CloudEnvironmentInfo.tenant_region_sub_scope -eq 'DODCON')
+    if ($null -eq $weburl)
     {
-        $Global:CloudEnvironment = 'GCCHigh'
+        throw 'Unable to retrieve SPO Admin URL. Please check connectivity and if you have the Sites.Read.All permission.'
     }
 
-    if ($Global:CloudEnvironmentInfo.tenant_region_sub_scope -eq 'DOD')
-    {
-        $Global:CloudEnvironment = 'DOD'
-    }
-
-    if ($null -eq $defaultDomain)
-    {
-        if ($Global:CloudEnvironment -eq 'Germany')
-        {
-            [Array]$defaultDomain = Get-MgDomain | Where-Object { $_.Id -like '*.onmicrosoft.de' -and $_.IsInitial -eq $true }
-            $domain = '.onmicrosoft.de'
-            $tenantName = $defaultDomain.Id.Replace($domain, '')
-            $spoAdminUrl = "https://$tenantName-admin.sharepoint.de"
-        }
-        elseif ($Global:CloudEnvironment -eq 'GCCHigh')
-        {
-            [Array]$defaultDomain = Get-MgDomain | Where-Object { $_.Id -like '*.onmicrosoft.*' -and $_.IsInitial -eq $true }
-            if($defaultDomain.Id -like '*.onmicrosoft.us')
-            {
-                $domain = '.onmicrosoft.us'
-            }
-            else
-            {
-                $domain = '.onmicrosoft.com'
-            }
-            $tenantName = $defaultDomain.Id.Replace($domain, '')
-            $spoAdminUrl = "https://$tenantName-admin.sharepoint.us"
-        }
-        elseif ($Global:CloudEnvironment -eq 'DOD')
-        {
-            [Array]$defaultDomain = Get-MgDomain | Where-Object { $_.Id -like '*.onmicrosoft.*' -and $_.IsInitial -eq $true }
-            if($defaultDomain.Id -like '*.onmicrosoft.us')
-            {
-                $domain = '.onmicrosoft.us'
-            }
-            else
-            {
-                $domain = '.onmicrosoft.com'
-            }
-            $tenantName = $defaultDomain.Id.Replace($domain, '')
-            $spoAdminUrl = "https://$tenantName-admin.sharepoint-mil.us"
-        }
-        Write-Verbose -Message "SharePoint Online admin URL is $spoAdminUrl"
-        return $spoAdminUrl
-    }
-    else
-    {
-        if ($defaultDomain.Id -like '*.onmicrosoft.us')
-        {
-            $domain = '.onmicrosoft.us'
-        }
-        else
-        {
-            $domain = '.onmicrosoft.com'
-        }
-        $tenantName = $defaultDomain.Id.Replace($domain, '')
-        $extension = 'sharepoint.com'
-        if ($Global:CloudEnvironment -eq 'Germany')
-        {
-            $extension = 'sharepoint.de'
-        }
-        elseif ($Global:CloudEnvironment -eq 'GCCHigh')
-        {
-            $extension = 'sharepoint.us'
-        }elseif ($Global:CloudEnvironment -eq 'DOD')
-        {
-            $extension = 'sharepoint-mil.us'
-        }
-        $spoAdminUrl = "https://$tenantName-admin.$extension"
-        Write-Verbose -Message "SharePoint Online admin URL is $spoAdminUrl"
-        return $spoAdminUrl
-    }
+    $spoAdminUrl = $webUrl -replace '^https:\/\/(\w*)\.', 'https://$1-admin.'
+    Write-Verbose -Message "SharePoint Online admin URL is $spoAdminUrl"
+    return $spoAdminUrl
 }
 
 function Get-AzureADDLL
@@ -699,18 +820,18 @@ function Get-PowerPlatformTokenInfo
         {
             $WarningPreference = 'SilentlyContinue'
             Import-Module -Name 'Microsoft.PowerApps.Administration.PowerShell' -Force
-            $authContext = New-Object Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext('https://login.windows.net/common');
+            $authContext = New-Object Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext('https://login.windows.net/common')
             $credential = [Microsoft.IdentityModel.Clients.ActiveDirectory.UserCredential]::new($O365Credentials.Username, $O365Credentials.Password)
-            $authResult = $authContext.AcquireToken($Audience, '1950a258-227b-4e31-a9cf-717495945fc2', $credential);
+            $authResult = $authContext.AcquireToken($Audience, '1950a258-227b-4e31-a9cf-717495945fc2', $credential)
 
             $JwtToken = $authResult.IdToken
             $tokenSplit = $JwtToken.Split('.')
-            $claimsSegment = $tokenSplit[1].Replace(' ', '+');
+            $claimsSegment = $tokenSplit[1].Replace(' ', '+')
 
             $mod = $claimsSegment.Length % 4
             if ($mod -gt 0)
             {
-                $paddingCount = 4 - $mod;
+                $paddingCount = 4 - $mod
                 for ($i = 0; $i -lt $paddingCount; $i++)
                 {
                     $claimsSegment += '='
@@ -798,21 +919,13 @@ function Get-CloudEnvironmentInfo
         {
             $tenantName = $Credentials.UserName.Split('@')[1]
         }
-        elseif (-not [string]::IsNullOrEmpty($ApplicationId) -and -not [System.String]::IsNullOrEmpty($CertificateThumbprint))
-        {
-            $tenantName = Get-MSCloudLoginOrganizationName -ApplicationId $ApplicationId `
-                -TenantId $TenantId `
-                -CertificateThumbprint $CertificateThumbprint
-        }
-        elseif (-not [string]::IsNullOrEmpty($ApplicationId) -and -not [System.String]::IsNullOrEmpty($ApplicationSecret))
-        {
-            $tenantName = Get-MSCloudLoginOrganizationName -ApplicationId $ApplicationId `
-                -TenantId $TenantId `
-                -ApplicationSecret $ApplicationSecret
-        }
-        elseif ($Identity.IsPresent)
+        elseif (-not [string]::IsNullOrEmpty($TenantId))
         {
             $tenantName = $TenantId
+        }
+        else
+        {
+            throw 'TenantId or Credentials must be provided'
         }
         ## endpoint will work with TenantId or tenantName
         $response = Invoke-WebRequest -Uri "https://login.microsoftonline.com/$tenantName/v2.0/.well-known/openid-configuration" -Method Get -UseBasicParsing
@@ -887,22 +1000,20 @@ function Get-MSCloudLoginOrganizationName
         [switch]
         $Identity
     )
-
-    if (-not [string]::IsNullOrEmpty($ApplicationId) -and -not [System.String]::IsNullOrEmpty($CertificateThumbprint))
-    {
-        Connect-M365Tenant -Workload MicrosoftGraph -ApplicationId $ApplicationId -TenantId $TenantId -CertificateThumbprint $CertificateThumbprint
-    }
-    elseif (-not [string]::IsNullOrEmpty($ApplicationId) -and -not [System.String]::IsNullOrEmpty($ApplicationSecret))
-    {
-        Connect-M365Tenant -Workload MicrosoftGraph -ApplicationId $ApplicationId -TenantId $TenantId -ApplicationSecret $ApplicationSecret
-    }
-    elseif ($Identity.IsPresent)
-    {
-        Connect-M365Tenant -Workload MicrosoftGraph -Identity -TenantId $TenantId
-    }
-
     try
     {
+        if (-not [string]::IsNullOrEmpty($ApplicationId) -and -not [System.String]::IsNullOrEmpty($CertificateThumbprint))
+        {
+            Connect-M365Tenant -Workload MicrosoftGraph -ApplicationId $ApplicationId -TenantId $TenantId -CertificateThumbprint $CertificateThumbprint
+        }
+        elseif (-not [string]::IsNullOrEmpty($ApplicationId) -and -not [System.String]::IsNullOrEmpty($ApplicationSecret))
+        {
+            Connect-M365Tenant -Workload MicrosoftGraph -ApplicationId $ApplicationId -TenantId $TenantId -ApplicationSecret $ApplicationSecret
+        }
+        elseif ($Identity.IsPresent)
+        {
+            Connect-M365Tenant -Workload MicrosoftGraph -Identity -TenantId $TenantId
+        }
         $domain = Get-MgDomain -ErrorAction Stop | Where-Object { $_.IsInitial -eq $True }
 
         if ($null -ne $domain)

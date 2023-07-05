@@ -10,7 +10,15 @@ function Connect-MSCloudLoginMicrosoftGraph
     # If the current profile is not the same we expect, make the switch.
     if ($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected)
     {
-        if ($null -eq (Get-MgContext))
+        if (($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AuthenticationType -eq 'ServicePrincipalWithSecret' `
+                    -or $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AuthenticationType -eq 'Identity') `
+                -and (Get-Date -Date $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime) -lt [System.DateTime]::Now.AddMinutes(-50))
+        {
+            Write-Verbose -Message 'Token is about to expire, renewing'
+
+            $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected = $false
+        }
+        elseif ($null -eq (Get-MgContext))
         {
             $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected = $false
         }
@@ -29,10 +37,51 @@ function Connect-MSCloudLoginMicrosoftGraph
     elseif ($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AuthenticationType -eq 'Identity')
     {
         Write-Verbose 'Connecting with managed identity'
-        # Get correct endopint based on provided environment
+
         $resourceEndpoint = ($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ResourceUrl -split '/')[2]
-        $oauth2 = Invoke-RestMethod -Uri "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https%3A%2F%2F$($resourceEndpoint)%2F" -Headers @{Metadata = 'true' }
-        $accessToken = $oauth2.access_token
+        if ('AzureAutomation/' -eq $env:AZUREPS_HOST_ENVIRONMENT)
+        {
+            $url = $env:IDENTITY_ENDPOINT
+            $headers = New-Object 'System.Collections.Generic.Dictionary[[String],[String]]'
+            $headers.Add('X-IDENTITY-HEADER', $env:IDENTITY_HEADER)
+            $headers.Add('Metadata', 'True')
+            $body = @{resource = "https://$resourceEndPoint/" }
+            $oauth2 = Invoke-RestMethod $url -Method 'POST' -Headers $headers -ContentType 'application/x-www-form-urlencoded' -Body $body
+            $accessToken = $oauth2.access_token
+        }
+        elseif('http://localhost:40342' -eq $env:IMDS_ENDPOINT)
+        {
+            #Get endpoint for Azure Arc Connected Device
+            $apiVersion = "2020-06-01"
+            $resource = "https://$resourceEndpoint"
+            $endpoint = "{0}?resource={1}&api-version={2}" -f $env:IDENTITY_ENDPOINT,$resource,$apiVersion
+            $secretFile = ""
+            try
+            {
+                Invoke-WebRequest -Method GET -Uri $endpoint -Headers @{Metadata='True'} -UseBasicParsing
+            }
+            catch
+            {
+                $wwwAuthHeader = $_.Exception.Response.Headers["WWW-Authenticate"]
+                if ($wwwAuthHeader -match "Basic realm=.+")
+                {
+                    $secretFile = ($wwwAuthHeader -split "Basic realm=")[1]
+                }
+            }
+            $secret = Get-Content -Raw $secretFile
+            $response = Invoke-WebRequest -Method GET -Uri $endpoint -Headers @{Metadata='True'; Authorization="Basic $secret"} -UseBasicParsing
+            if ($response)
+            {
+                $accessToken = (ConvertFrom-Json -InputObject $response.Content).access_token
+            }
+        }
+        else
+        {
+            # Get correct endopint for AzureVM
+            $oauth2 = Invoke-RestMethod -Uri "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https%3A%2F%2F$($resourceEndpoint)%2F" -Headers @{Metadata = 'true' }
+            $accessToken = $oauth2.access_token
+
+        }
 
         Connect-MgGraph -AccessToken $accessToken `
             -Environment $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment
@@ -70,19 +119,10 @@ function Connect-MSCloudLoginMicrosoftGraph
             }
             else
             {
-                $body = @{
-                    scope         = $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Scope
-                    grant_type    = 'client_credentials'
-                    client_secret = $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationSecret
-                    client_info   = 1
-                    client_id     = $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationId
-                }
-                Write-Verbose -Message 'Requesting Access Token for Microsoft Graph'
-                $OAuthReq = Invoke-RestMethod -Uri $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.TokenUrl `
-                    -Method Post -Body $body
-                $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AccessToken = $OAuthReq.access_token
+                Request-MSGraphOauthToken
 
                 Write-Verbose -Message 'Connecting to Microsoft Graph'
+
                 Connect-MgGraph -AccessToken $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AccessToken | Out-Null
                 $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime = [System.DateTime]::Now.ToString()
                 $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.MultiFactorAuthentication = $false
@@ -96,6 +136,32 @@ function Connect-MSCloudLoginMicrosoftGraph
             throw $_
         }
     }
+}
+
+function Request-MSGraphOauthToken
+{
+    [CmdletBinding()]
+    Param(
+    )
+
+    $body = @{
+        client_id     = $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationId
+        client_secret = $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationSecret
+        client_info   = 1
+        scope         = $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Scope
+        grant_type    = 'client_credentials'
+    }
+
+    Write-Verbose -Message 'Requesting Access Token for Microsoft Graph'
+    $OAuthReq = Invoke-RestMethod -Uri $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.TokenUrl `
+        -Method Post -Body $body
+
+    $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AccessToken = $OAuthReq.access_token
+    $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime = [System.DateTime]::Now.ToString()
+    $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.MultiFactorAuthentication = $false
+    $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected = $true
+
+    Write-Verbose -Message 'Acquired token for Microsoft Graph'
 }
 
 function Connect-MSCloudLoginMSGraphWithUser
