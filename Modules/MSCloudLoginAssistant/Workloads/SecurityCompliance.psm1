@@ -73,7 +73,8 @@ function Connect-MSCloudLoginSecurityCompliance
                         -Organization $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.TenantId `
                         -ConnectionUri $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ConnectionUri `
                         -AzureADAuthorizationEndpointUri $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.AzureADAuthorizationEndpointUri `
-                        -ErrorAction Stop
+                        -ErrorAction Stop  `
+                        -ShowBanner:$false | Out-Null
                     $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ConnectedDateTime = [System.DateTime]::Now.ToString()
                     $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.MultiFactorAuthentication = $false
                     $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Connected = $true
@@ -83,7 +84,8 @@ function Connect-MSCloudLoginSecurityCompliance
                     Connect-IPPSSession -AppId $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ApplicationId `
                         -CertificateThumbprint $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.CertificateThumbprint `
                         -Organization $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.TenantId `
-                        -ErrorAction Stop
+                        -ErrorAction Stop  `
+                        -ShowBanner:$false | Out-Null
                     $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ConnectedDateTime = [System.DateTime]::Now.ToString()
                     $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.MultiFactorAuthentication = $false
                     $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Connected = $true
@@ -111,7 +113,8 @@ function Connect-MSCloudLoginSecurityCompliance
                         -Organization $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.TenantId `
                         -CertificatePassword $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.CertificatePassword `
                         -ConnectionUri $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ConnectionUri `
-                        -AzureADAuthorizationEndpointUri $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.AzureADAuthorizationEndpointUri
+                        -AzureADAuthorizationEndpointUri $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.AzureADAuthorizationEndpointUri  `
+                        -ShowBanner:$false | Out-Null
                     $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ConnectedDateTime = [System.DateTime]::Now.ToString()
                     $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.MultiFactorAuthentication = $false
                     $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Connected = $true
@@ -121,7 +124,8 @@ function Connect-MSCloudLoginSecurityCompliance
                     Connect-IPPSSession -AppId $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ApplicationId `
                         -CertificateFilePath $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.CertificatePath `
                         -Organization $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.TenantId `
-                        -CertificatePassword $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.CertificatePassword
+                        -CertificatePassword $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.CertificatePassword `
+                        -ShowBanner:$false | Out-Null
                     $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ConnectedDateTime = [System.DateTime]::Now.ToString()
                     $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.MultiFactorAuthentication = $false
                     $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Connected = $true
@@ -142,7 +146,8 @@ function Connect-MSCloudLoginSecurityCompliance
             Connect-IPPSSession -Credential $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Credentials `
                 -ConnectionUri $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ConnectionUrl `
                 -AzureADAuthorizationEndpointUri $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.AuthorizationUrl `
-                -Verbose:$false -ErrorAction Stop | Out-Null
+                -Verbose:$false -ErrorAction Stop  `
+                -ShowBanner:$false | Out-Null
             $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ConnectedDateTime = [System.DateTime]::Now.ToString()
             $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.MultiFactorAuthentication = $false
             $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Connected = $true
@@ -169,13 +174,15 @@ function Connect-MSCloudLoginSecurityComplianceMFA
         if ($Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.EnvironmentName -eq 'AzureCloud')
         {
             Connect-IPPSSession -UserPrincipalName $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Credentials.UserName `
-                -Verbose:$false | Out-Null
+                -Verbose:$false  `
+                -ShowBanner:$false | Out-Null
         }
         else
         {
             Connect-IPPSSession -UserPrincipalName $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Credentials.UserName `
                 -ConnectionUri $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ConnectionUrl `
-                -Verbose:$false | Out-Null
+                -Verbose:$false  `
+                -ShowBanner:$false | Out-Null
         }
         Write-Verbose -Message 'New Session with MFA created successfully'
         $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ConnectedDateTime = [System.DateTime]::Now.ToString()
