@@ -117,6 +117,11 @@ function Connect-MSCloudLoginTeams
                 $ConnectionParams.Add("TeamsEnvironmentName", 'TeamsDOD')
             }
 
+            if ($Global:MSCloudLoginConnectionProfile.Teams.EnvironmentName -eq 'AzureChinaCloud')
+            {
+                $ConnectionParams.Add("TeamsEnvironmentName", 'TeamsChina')
+            }
+
             Write-Verbose -Message "Connecting to Microsoft Teams using credentials."
             Write-Verbose -Message "Params: $($ConnectionParams | Out-String)"
             Write-Verbose -Message "User: $($Global:MSCloudLoginConnectionProfile.Teams.Credentials.Username)"
