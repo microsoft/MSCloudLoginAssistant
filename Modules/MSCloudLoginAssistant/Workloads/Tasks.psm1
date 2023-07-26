@@ -80,12 +80,14 @@ function Connect-MSCloudLoginTasksWithCertificateThumbprint
 
     try
     {
-        $Certificate = Get-Item "Cert:\CurrentUser\My\$($Global:MSCloudLoginConnectionProfile.Tasks.CertificateThumbprint)"
+        $Certificate = Get-Item "Cert:\CurrentUser\My\$($Global:MSCloudLoginConnectionProfile.Tasks.CertificateThumbprint)" -ErrorAction SilentlyContinue
 
         if ($null -eq $Certificate)
         {
             Write-Verbose 'Certificate not found in CurrentUser\My, trying LocalMachine\My'
-            $Certificate = Get-ChildItem "Cert:\LocalMachine\My\$($Global:MSCloudLoginConnectionProfile.Tasks.CertificateThumbprint)"
+
+            $Certificate = Get-ChildItem "Cert:\LocalMachine\My\$($Global:MSCloudLoginConnectionProfile.Tasks.CertificateThumbprint)" -ErrorAction SilentlyContinue
+
             if ($null -eq $Certificate)
             {
                 throw 'Certificate not found in LocalMachine\My nor CurrentUser\My'
