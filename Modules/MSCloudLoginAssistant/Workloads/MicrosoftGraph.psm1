@@ -122,8 +122,8 @@ function Connect-MSCloudLoginMicrosoftGraph
                 Request-MSGraphOauthToken
 
                 Write-Verbose -Message 'Connecting to Microsoft Graph'
-
-                Connect-MgGraph -AccessToken $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AccessToken | Out-Null
+                $token = ConvertTo-SecureString -String $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AccessToken -AsPlainText -Force
+                Connect-MgGraph -AccessToken $token | Out-Null
                 $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime = [System.DateTime]::Now.ToString()
                 $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.MultiFactorAuthentication = $false
                 $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected = $true
