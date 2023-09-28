@@ -85,6 +85,9 @@ class Workload
     [string]
     $TenantId
 
+    [string]
+    $TenantGUID
+
     [securestring]
     $CertificatePassword
 
@@ -141,6 +144,11 @@ class Workload
                 if ($null -ne $Global:CloudEnvironmentInfo -and $Global:CloudEnvironmentInfo.token_endpoint.StartsWith('https://login.partner.microsoftonline.cn'))
                 {
                     $this.EnvironmentName = 'AzureChinaCloud'
+
+                    # Converting tenant to GUID. This is a limitation of the PnP module which
+                    # can't recognize the tenant when FQDN is provided.
+                    $tenantGUIDValue = $Global:CloudEnvironmentInfo.token_endpoint.Split('/')[3]
+                    $this.TenantGUID = $tenantGUIDValue
                 }
                 else
                 {
@@ -459,6 +467,10 @@ class PnP:Workload
         elseif ($this.EnvironmentName -eq 'AzureGermany')
         {
             $this.PnPAzureEnvironment = 'Germany'
+        }
+        elseif ($this.EnvironmentName -eq 'AzureChinaCloud')
+        {
+            $this.PnPAzureEnvironment = 'China'
         }
 
         Connect-MSCloudLoginPnP -ForceRefreshConnection $ForceRefresh

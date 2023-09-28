@@ -80,6 +80,15 @@ function Connect-MSCloudLoginPnP
                     }
                     $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl = ("https://$domain").Replace('-admin', '')
                 }
+                elseif ($Global:MSCloudLoginConnectionProfile.PnP.TenantId.Contains('.onmschina.'))
+                {
+                    $domain = $Global:MSCloudLoginConnectionProfile.PnP.TenantId.Replace('.partner.onmschina.', '-admin.sharepoint.')
+                    if (-not $Global:MSCloudLoginConnectionProfile.PnP.AdminUrl)
+                    {
+                        $Global:MSCloudLoginConnectionProfile.PnP.AdminUrl = "https://$domain"
+                    }
+                    $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl = ("https://$domain").Replace('-admin', '')
+                }
                 else
                 {
                     throw 'TenantId must be in format contoso.onmicrosoft.com'
@@ -114,9 +123,16 @@ function Connect-MSCloudLoginPnP
                     Write-Information -Message 'Connecting with Service Principal - Thumbprint'
                     Write-Information -Message "URL: $Url"
                     Write-Information -Message "AdminUrl: $($Global:MSCloudLoginConnectionProfile.PnP.AdminUrl)"
+
+                    $tenantIdValue = $Global:MSCloudLoginConnectionProfile.PnP.TenantId
+                    if ($Global:MSCloudLoginConnectionProfile.PnP.EnvironmentName -eq 'AzureChinaCloud')
+                    {
+                        $tenantIdValue = $Global:MSCloudLoginConnectionProfile.PnP.TenantGUID
+                    }
+
                     Connect-PnPOnline -Url $Global:MSCloudLoginConnectionProfile.PnP.AdminUrl `
                         -ClientId $Global:MSCloudLoginConnectionProfile.PnP.ApplicationId `
-                        -Tenant $Global:MSCloudLoginConnectionProfile.PnP.TenantId `
+                        -Tenant $tenantIdValue `
                         -Thumbprint $Global:MSCloudLoginConnectionProfile.PnP.CertificateThumbprint `
                         -AzureEnvironment $Global:MSCloudLoginConnectionProfile.PnP.PnPAzureEnvironment | Out-Null
                 }
