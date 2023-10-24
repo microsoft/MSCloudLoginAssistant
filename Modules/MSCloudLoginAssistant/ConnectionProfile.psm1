@@ -342,7 +342,7 @@ class Intune:Workload
 
 class MicrosoftGraph:Workload
 {
-    [string]
+    [securestring]
     $AccessToken
 
     [string]
