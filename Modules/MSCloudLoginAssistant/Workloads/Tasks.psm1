@@ -8,7 +8,8 @@ function Connect-MSCloudLoginTasks
     $VerbosePreference = 'SilentlyContinue'
 
     if ($Global:MSCloudLoginConnectionProfile.Tasks.AuthenticationType -eq 'CredentialsWithApplicationId' -or
-        $Global:MSCloudLoginConnectionProfile.Tasks.AuthenticationType -eq 'Credentials')
+        $Global:MSCloudLoginConnectionProfile.Tasks.AuthenticationType -eq 'Credentials' -or
+        $Global:MSCloudLoginConnectionProfile.Tasks.AuthenticationType -eq 'CredentialsWithTenantId')
     {
         Write-Verbose -Message 'Will try connecting with user credentials'
         Connect-MSCloudLoginTasksWithUser
@@ -30,7 +31,14 @@ function Connect-MSCloudLoginTasksWithUser
     [CmdletBinding()]
     param()
 
-    $tenantid = $Global:MSCloudLoginConnectionProfile.Tasks.Credentials.UserName.Split('@')[1]
+    if ([System.String]::IsNullOrEmpty($Global:MSCloudLoginConnectionProfile.Tasks.TenantId))
+    {
+        $tenantid = $Global:MSCloudLoginConnectionProfile.Tasks.Credentials.UserName.Split('@')[1]
+    }
+    else
+    {
+        $tenantId = $Global:MSCloudLoginConnectionProfile.Tasks.TenantId
+    }
     $username = $Global:MSCloudLoginConnectionProfile.Tasks.Credentials.UserName
     $password = $Global:MSCloudLoginConnectionProfile.Tasks.Credentials.GetNetworkCredential().password
 

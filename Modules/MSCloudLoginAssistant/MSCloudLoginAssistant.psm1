@@ -1,96 +1,10 @@
-<#
-.SYNOPSIS
-    The Test-MSCloudLogin function is used to assist with checking authentication status of and logging in to various Microsoft Cloud services, such as Azure, Microsoft Graph and SharePoint Online (PnP).
-.EXAMPLE
-    Test-MSCloudLogin -Platform AzureAD -Verbose
-.EXAMPLE
-    Test-MSCloudLogin -Platform PnP
-.PARAMETER Platform
-    The Platform parameter specifies which cloud service for which we are testing the login state. Possible values are Azure, AzureAD, ExchangeOnline, SecurityComplianceCenter, PnP, PowerPlatforms, MicrosoftTeams, MicrosoftGraph.
-.NOTES
-    Created & maintained by the Microsoft365DSC Team, 2019-2020. (@BrianLala & @NikCharlebois)
-.LINK
-    https://github.com/Microsoft/MSCloudLoginAssistant
-#>
-function Test-MSCloudLogin
-{
-    [CmdletBinding()]
-    param
-    (
-        [Parameter(Mandatory = $true)]
-        [ValidateSet('Azure', 'AzureAD', `
-                'ExchangeOnline', 'Intune', `
-                'SecurityComplianceCenter', 'PnP', 'PowerPlatforms', `
-                'MicrosoftTeams', 'MicrosoftGraph', 'Tasks')]
-        [System.String]
-        $Platform,
-
-        [Parameter()]
-        [System.String]
-        $ConnectionUrl,
-
-        [Parameter()]
-        [Alias('o365Credential')]
-        [System.Management.Automation.PSCredential]
-        $CloudCredential,
-
-        [Parameter()]
-        [System.String]
-        $ApplicationId,
-
-        [Parameter()]
-        [System.String]
-        $TenantId,
-
-        [Parameter()]
-        [System.String]
-        $ApplicationSecret,
-
-        [Parameter()]
-        [System.String]
-        $CertificateThumbprint,
-
-        [Parameter()]
-        [Switch]
-        $UseModernAuth,
-
-        [Parameter()]
-        [SecureString]
-        $CertificatePassword,
-
-        [Parameter()]
-        [System.String]
-        $CertificatePath,
-
-        [Parameter()]
-        [System.Boolean]
-        $SkipModuleReload = $false,
-
-        [Parameter()]
-        [Switch]
-        $Identity
-    )
-    $parametersToPass = $PSBoundParameters
-    $parametersToPass.Add('Workload', $Platform)
-    $parametersToPass.Remove('Platform') | Out-Null
-
-    $parametersToPass.Add('Credential', $CloudCredential)
-    $parametersToPass.Remove('CloudCredential') | Out-Null
-
-    $parametersToPass.Add('Url', $ConnectionUrl)
-    $parametersToPass.Remove('ConnectionUrl') | Out-Null
-
-    Connect-M365Tenant @parametersToPass
-}
-
 function Connect-M365Tenant
 {
     [CmdletBinding()]
     param
     (
         [Parameter(Mandatory = $true)]
-        [ValidateSet('Azure', 'AzureAD', `
-                'ExchangeOnline', 'Intune', `
+        [ValidateSet('ExchangeOnline', `
                 'SecurityComplianceCenter', 'PnP', 'PowerPlatforms', `
                 'MicrosoftTeams', 'MicrosoftGraph', 'Tasks')]
         [System.String]
@@ -170,29 +84,6 @@ function Connect-M365Tenant
     Write-Verbose -Message "Trying to connect to platform {$Workload}"
     switch ($Workload)
     {
-        'Azure'
-        {
-            $Global:MSCloudLoginConnectionProfile.Azure.Credentials = $Credential
-            $Global:MSCloudLoginConnectionProfile.Azure.ApplicationId = $ApplicationId
-            $Global:MSCloudLoginConnectionProfile.Azure.ApplicationSecret = $ApplicationSecret
-            $Global:MSCloudLoginConnectionProfile.Azure.TenantId = $TenantId
-            $Global:MSCloudLoginConnectionProfile.Azure.CertificateThumbprint = $CertificateThumbprint
-            $Global:MSCloudLoginConnectionProfile.Azure.Identity = $Identity
-            if ($null -eq $UseModernAuth)
-            {
-                $Global:MSCloudLoginConnectionProfile.Azure.UseModernAuthentication = $UseModernAuth.IsPresent
-            }
-            $Global:MSCloudLoginConnectionProfile.Azure.Connect()
-        }
-        'AzureAD'
-        {
-            $Global:MSCloudLoginConnectionProfile.AzureAD.Credentials = $Credential
-            $Global:MSCloudLoginConnectionProfile.AzureAD.ApplicationId = $ApplicationId
-            $Global:MSCloudLoginConnectionProfile.AzureAD.ApplicationSecret = $ApplicationSecret
-            $Global:MSCloudLoginConnectionProfile.AzureAD.TenantId = $TenantId
-            $Global:MSCloudLoginConnectionProfile.AzureAD.CertificateThumbprint = $CertificateThumbprint
-            $Global:MSCloudLoginConnectionProfile.AzureAD.Connect()
-        }
         'ExchangeOnline'
         {
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Credentials = $Credential
@@ -203,16 +94,6 @@ function Connect-M365Tenant
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.SkipModuleReload = $SkipModuleReload
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Identity = $Identity
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connect()
-        }
-        'Intune'
-        {
-            $Global:MSCloudLoginConnectionProfile.Intune.Credentials = $Credential
-            $Global:MSCloudLoginConnectionProfile.Intune.ApplicationId = $ApplicationId
-            $Global:MSCloudLoginConnectionProfile.Intune.ApplicationSecret = $ApplicationSecret
-            $Global:MSCloudLoginConnectionProfile.Intune.TenantId = $TenantId
-            $Global:MSCloudLoginConnectionProfile.Intune.CertificateThumbprint = $CertificateThumbprint
-            $Global:MSCloudLoginConnectionProfile.Intune.Identity = $Identity
-            $Global:MSCloudLoginConnectionProfile.Intune.Connect()
         }
         'MicrosoftGraph'
         {

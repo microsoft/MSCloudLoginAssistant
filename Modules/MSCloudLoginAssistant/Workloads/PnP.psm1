@@ -200,6 +200,10 @@ function Connect-MSCloudLoginPnP
                 $Global:MSCloudLoginConnectionProfile.PnP.MultiFactorAuthentication = $false
                 $Global:MSCloudLoginConnectionProfile.PnP.Connected = $true
             }
+            elseif ($Global:MSCloudLoginConnectionProfile.PnP.AuthenticationType -eq 'CredentialsWithTenantId')
+            {
+                throw "You cannot specify TenantId with Credentials when connecting to PnP."
+            }
             elseif ($Global:MSCloudLoginConnectionProfile.PnP.AuthenticationType -eq 'Credentials')
             {
                 if ($Url -or $ForceRefreshConnection)

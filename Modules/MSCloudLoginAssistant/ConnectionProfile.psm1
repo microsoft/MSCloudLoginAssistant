@@ -6,17 +6,8 @@ class MSCloudLoginConnectionProfile
     [string]
     $OrganizationName
 
-    [Azure]
-    $Azure
-
-    [AzureAD]
-    $AzureAD
-
     [ExchangeOnline]
     $ExchangeOnline
-
-    [Intune]
-    $Intune
 
     [MicrosoftGraph]
     $MicrosoftGraph
@@ -41,10 +32,7 @@ class MSCloudLoginConnectionProfile
         $this.CreatedTime = [System.DateTime]::Now.ToString()
 
         # Workloads Object Creation
-        $this.Azure = New-Object Azure
-        $this.AzureAD = New-Object AzureAD
         $this.ExchangeOnline = New-Object ExchangeOnline
-        $this.Intune = New-Object Intune
         $this.MicrosoftGraph = New-Object MicrosoftGraph
         $this.PnP = New-Object PnP
         $this.PowerPlatform = New-Object PowerPlatform
@@ -57,7 +45,7 @@ class MSCloudLoginConnectionProfile
 class Workload
 {
     [string]
-    [ValidateSet('Credentials', 'CredentialsWithApplicationId', 'ServicePrincipalWithSecret', 'ServicePrincipalWithThumbprint', 'ServicePrincipalWithPath', 'Interactive', 'Identity')]
+    [ValidateSet('Credentials', 'CredentialsWithApplicationId', 'CredentialsWithTenantId', 'ServicePrincipalWithSecret', 'ServicePrincipalWithThumbprint', 'ServicePrincipalWithPath', 'Interactive', 'Identity')]
     $AuthenticationType
 
     [boolean]
@@ -186,6 +174,10 @@ class Workload
         {
             $this.AuthenticationType = 'CredentialsWithApplicationId'
         }
+        elseif ($this.Credentials -and $this.TenantId)
+        {
+            $this.AuthenticationType = 'CredentialsWithTenantId'
+        }
         elseif ($this.Credentials)
         {
             $this.AuthenticationType = 'Credentials'
@@ -198,44 +190,6 @@ class Workload
         {
             $this.AuthenticationType = 'Interactive'
         }
-    }
-}
-
-class Azure:Workload
-{
-    [string]
-    $ClientID = '1950a258-227b-4e31-a9cf-717495945fc2'
-
-    [string]
-    $ResourceURI = 'https://management.core.windows.net'
-
-    [string]
-    $RedirectURI = 'urn:ietf:wg:oauth:2.0:oob';
-
-    [switch]
-    $UseModernAuthentication
-
-    Azure()
-    {
-    }
-
-    [void] Connect()
-    {
-        ([Workload]$this).Setup()
-        Connect-MSCloudLoginAzure
-    }
-}
-
-class AzureAD:Workload
-{
-    AzureAD()
-    {
-    }
-
-    [void] Connect()
-    {
-        ([Workload]$this).Setup()
-        Connect-MSCloudLoginAzureAD
     }
 }
 
@@ -288,55 +242,6 @@ class ExchangeOnline:Workload
         Write-Verbose -Message 'Disconnecting from Exchange Online Connection'
         Disconnect-ExchangeOnline -Confirm:$false
         $this.Connected = $false
-    }
-}
-
-class Intune:Workload
-{
-    [string]
-    $AuthorizationUrl
-
-    [string]
-    $GraphResourceId
-
-    [string]
-    $GraphBaseUrl
-
-    Intune()
-    {
-    }
-
-    [void] Connect()
-    {
-        ([Workload]$this).Setup()
-
-        $tenantId = ''
-        if ($null -ne $this.Credentials)
-        {
-            $tenantId = $this.Credentials.Username.Split('@')[1]
-        }
-        switch ($this.EnvironmentName)
-        {
-            'AzureCloud'
-            {
-                $this.AuthorizationUrl = "https://login.microsoftonline.com/oauth/v2.0/token/$($this.TenantId)"
-                $this.GraphResourceId = 'https://graph.microsoft.com/'
-                $this.GraphBaseUrl = 'https://graph.microsoft.com'
-            }
-            'AzureUSGovernment'
-            {
-                $this.AuthorizationUrl = "https://login.microsoftonline.us/oauth/v2.0/token/$($this.TenantId)"
-                $this.GraphResourceId = 'https://graph.microsoft.us/'
-                $this.GraphBaseUrl = 'https://graph.microsoft.us'
-            }
-            'AzureDOD'
-            {
-                $this.AuthorizationUrl = "https://login.microsoftonline.us/oauth/v2.0/token/$($this.TenantId)"
-                $this.GraphResourceId = 'https://dod-graph.microsoft.us/'
-                $this.GraphBaseUrl = 'https://dod-graph.microsoft.us'
-            }
-        }
-        Connect-MSCloudLoginIntune
     }
 }
 

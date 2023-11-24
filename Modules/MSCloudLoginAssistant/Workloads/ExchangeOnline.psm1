@@ -117,6 +117,37 @@ function Connect-MSCloudLoginExchangeOnline
             }
         }
     }
+    elseif ($Global:MSCloudLoginConnectionProfile.ExchangeOnline.AuthenticationType -eq 'CredentialsWithTenantId')
+    {
+        try
+        {
+            Write-Verbose -Message 'Attempting to connect to Exchange Online using Credentials without MFA'
+
+            Connect-ExchangeOnline -Credential $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Credentials `
+                -ShowProgress:$false `
+                -ShowBanner:$false `
+                -DelegatedOrganization $Global:MSCloudLoginConnectionProfile.ExchangeOnline.TenantId `
+                -ExchangeEnvironmentName $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ExchangeEnvironmentName `
+                -Verbose:$false -ErrorAction Stop | Out-Null
+            $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ConnectedDateTime = [System.DateTime]::Now.ToString()
+            $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connected = $true
+            $Global:MSCloudLoginConnectionProfile.ExchangeOnline.MultiFactorAuthentication = $false
+            Write-Verbose -Message 'Successfully connected to Exchange Online using Credentials & TenantId without MFA'
+        }
+        catch
+        {
+            if ($_.Exception -like '*you must use multi-factor authentication to access*')
+            {
+                Connect-MSCloudLoginExchangeOnlineMFA -Credentials $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Credentials `
+                    -TenantId $Global:MSCloudLoginConnectionProfile.ExchangeOnline.TenantId
+            }
+            else
+            {
+                $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connected = $false
+                throw $_
+            }
+        }
+    }
     elseif ($Global:MSCloudLoginConnectionProfile.ExchangeOnline.AuthenticationType -eq 'Identity')
     {
         Write-Verbose -Message 'Attempting to connect to Exchange Online using Managed Identity'
@@ -153,7 +184,11 @@ function Connect-MSCloudLoginExchangeOnlineMFA
     Param(
         [Parameter(Mandatory = $true)]
         [System.Management.Automation.PSCredential]
-        $Credentials
+        $Credentials,
+
+        [Parameter()]
+        [System.String]
+        $TenantId
     )
     $WarningPreference = 'SilentlyContinue'
     $ProgressPreference = 'SilentlyContinue'
@@ -161,17 +196,31 @@ function Connect-MSCloudLoginExchangeOnlineMFA
 
     try
     {
-        Write-Verbose -Message 'Creating a new ExchangeOnline Session using MFA'
-        Connect-ExchangeOnline -UserPrincipalName $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Credentials.UserName `
-            -ShowBanner:$false `
-            -ShowProgress:$false `
-            -ExchangeEnvironmentName $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ExchangeEnvironmentName `
-            -Verbose:$false | Out-Null
-
+        if ([System.String]::IsNullOrEmpty($TenantId))
+        {
+            Write-Verbose -Message 'Creating a new ExchangeOnline Session using MFA'
+            Connect-ExchangeOnline -UserPrincipalName $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Credentials.UserName `
+                -ShowBanner:$false `
+                -ShowProgress:$false `
+                -ExchangeEnvironmentName $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ExchangeEnvironmentName `
+                -Verbose:$false | Out-Null
+            Write-Verbose -Message 'Successfully connected to Exchange Online using credentials with MFA'
+        }
+        else
+        {
+            Write-Verbose -Message 'Creating a new ExchangeOnline Session using MFA with Credentials and TenantId'
+            Connect-ExchangeOnline -UserPrincipalName $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Credentials.UserName `
+                -ShowBanner:$false `
+                -ShowProgress:$false `
+                -DelegatedOrganization $TenantId `
+                -ExchangeEnvironmentName $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ExchangeEnvironmentName `
+                -Verbose:$false | Out-Null
+            Write-Verbose -Message 'Successfully connected to Exchange Online using credentials and tenantId with MFA'
+        }
         $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ConnectedDateTime = [System.DateTime]::Now.ToString()
         $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connected = $true
         $Global:MSCloudLoginConnectionProfile.ExchangeOnline.MultiFactorAuthentication = $true
-        Write-Verbose -Message 'Successfully connected to Exchange Online using credentials with MFA'
+
     }
     catch
     {

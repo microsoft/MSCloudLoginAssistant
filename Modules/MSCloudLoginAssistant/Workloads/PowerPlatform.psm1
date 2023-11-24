@@ -62,6 +62,10 @@ function Connect-MSCloudLoginPowerPlatform
             $Global:MSCloudLoginConnectionProfile.PowerPlatform.MultiFactorAuthentication = $false
             $Global:MSCloudLoginConnectionProfile.PowerPlatform.Connected                 = $true
         }
+        elseif ($Global:MSCloudLoginConnectionProfile.PowerPlatform.AuthenticationType -eq 'CredentialsWithTenantId')
+        {
+            throw "You cannot specify TenantId with Credentials when connecting to PowerPlatforms."
+        }
         else
         {
             Add-PowerAppsAccount -UserName $Global:MSCloudLoginConnectionProfile.PowerPlatform.Credentials.UserName `

@@ -34,6 +34,11 @@ function Connect-MSCloudLoginMicrosoftGraph
         Write-Verbose -Message 'Will try connecting with user credentials'
         Connect-MSCloudLoginMSGraphWithUser
     }
+    elseif ($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AuthenticationType -eq 'CredentialsWithTenantId')
+    {
+        Write-Verbose -Message 'Will try connecting with user credentials and Tenant Id'
+        Connect-MSCloudLoginMSGraphWithUser -TenantId $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.TenantId
+    }
     elseif ($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AuthenticationType -eq 'Identity')
     {
         Write-Verbose 'Connecting with managed identity'
@@ -167,7 +172,11 @@ function Request-MSGraphOauthToken
 function Connect-MSCloudLoginMSGraphWithUser
 {
     [CmdletBinding()]
-    Param()
+    Param(
+        [Parameter()]
+        [System.String]
+        $TenantId
+    )
 
     if ($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Credentials.UserName -ne (Get-MgContext).Account)
     {
@@ -206,8 +215,17 @@ function Connect-MSCloudLoginMSGraphWithUser
         Write-Verbose -Message "Connecting to Microsoft Graph - Environment {$($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment)}"
 
         # Domain.Read.All permission Scope is required to get the domain name for the SPO Admin Center.
-        Connect-MgGraph -AccessToken $AccessToken `
-            -Environment $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment | Out-Null
+        if ([System.String]::IsNullOrEmpty($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.TenantId))
+        {
+            Connect-MgGraph -AccessToken $AccessToken `
+                -Environment $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment | Out-Null
+        }
+        else
+        {
+            Connect-MgGraph -AccessToken $AccessToken `
+                -TenantId $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.TenantId `
+                -Environment $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment | Out-Null
+        }
         $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime = [System.DateTime]::Now.ToString()
         $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.MultiFactorAuthentication = $false
         $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected = $true
@@ -271,117 +289,4 @@ function Connect-MSCloudLoginMSGraphWithUser
             }
         }
     }
-}
-
-function Invoke-MSCloudLoginMicrosoftGraphAPI
-{
-    [CmdletBinding()]
-    [OutputType([System.String])]
-    Param(
-        [Parameter(Mandatory = $true)]
-        [System.String]
-        $Uri,
-
-        [Parameter()]
-        [System.String]
-        $Body,
-
-        [Parameter()]
-        [System.Collections.Hashtable]
-        $Headers,
-
-        [Parameter()]
-        [System.String]
-        $Method,
-
-        [Parameter()]
-        [System.Management.Automation.PSCredential]
-        $Credential,
-
-        [Parameter()]
-        [System.String]
-        $ApplicationId,
-
-        [Parameter()]
-        [System.UInt32]
-        $CallCount = 1
-    )
-    Connect-MSCloudLoginMSGraphWithUser
-
-    $requestHeaders = @{
-        'Authorization' = 'Bearer ' + $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AccessToken
-        'Content-Type'  = 'application/json;charset=utf-8'
-    }
-    foreach ($key in $Headers.Keys)
-    {
-        Write-Verbose -Message "    $key = $($requestHeaders.$key)"
-        $requestHeaders.Add($key, $Headers.$key)
-    }
-
-    Write-Verbose -Message "URI: $Uri"
-    Write-Verbose -Message "Method: $Method"
-    $requestParams = @{
-        Method      = $Method
-        Uri         = $Uri
-        Headers     = $requestHeaders
-        ContentType = 'application/json;charset=utf-8'
-    }
-    if (-not [System.String]::IsNullOrEmpty($Body))
-    {
-        $requestParams.Add('Body', $Body)
-        Write-Verbose -Message "Body: $Body"
-    }
-
-    try
-    {
-        $Result = Invoke-RestMethod @requestParams
-    }
-    catch
-    {
-        Write-Verbose -Message $_
-        if ($_.Exception -like '*The remote server returned an error: (401) Unauthorized.*')
-        {
-            if ($CallCount -eq 1)
-            {
-                Write-Verbose -Message 'This is the first time the method is called. Wait 10 seconds and retry the call.'
-                Start-Sleep -Seconds 10
-            }
-            else
-            {
-                $newSleepTime = 10 * $CallCount
-                Write-Verbose -Message "The Access Token expired, waiting {$newSleepTime} and then regenerating a new one."
-                $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AccessToken = $null
-            }
-            $CallCount++
-            try
-            {
-                $PSBoundParameters.Remove('CallCount') | Out-Null
-            }
-            catch
-            {
-                Write-Verbose -Message 'CallCount was not already specified.'
-            }
-
-            # Check for a max CallCount to prevent call depth issues
-            if ($CallCount -ge 12)
-            {
-                throw $_
-            }
-
-            return (Invoke-MSCloudLoginMicrosoftGraphAPI @PSBoundParameters -CallCount $CallCount)
-        }
-        elseif ($_ -like '*Too many requests*' -and $CallCount -lt 12)
-        {
-            Write-Host "Too many request, waiting $(10*$callCount) seconds" -ForegroundColor Magenta
-            $newSleepTime = 10 * $CallCount
-            Start-Sleep -Seconds $newSleepTime
-            Invoke-MSCloudLoginMicrosoftGraphAPI -Uri $Uri -Body $Body -Headers $Headers -Method $Method -Credential $Credential `
-                -ApplicationId $ApplicationId -CallCount ($CallCount + 1)
-        }
-        else
-        {
-            throw $_
-        }
-    }
-    return $result
 }

@@ -100,7 +100,6 @@ function Connect-MSCloudLoginSecurityCompliance
     }
     elseif ($Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.AuthenticationType -eq 'ServicePrincipalWithPath')
     {
-
         try
         {
             Write-Verbose -Message 'Connecting to Security & Compliance with Service Principal and Certificate Path'
@@ -138,6 +137,29 @@ function Connect-MSCloudLoginSecurityCompliance
             throw $_
         }
     }
+    elseif ($Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.AuthenticationType -eq 'CredentialsWithTenantId')
+    {
+        try
+        {
+            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.AuthorizationUrl = `
+                $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.AuthorizationUrl.Replace('/organizations', "/$($Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.TenantId)")
+            Write-Verbose -Message 'Connecting to Security & Compliance with Credentials & TenantId'
+            Connect-IPPSSession -Credential $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Credentials `
+                -ConnectionUri $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ConnectionUrl `
+                -AzureADAuthorizationEndpointUri $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.AuthorizationUrl `
+                -Verbose:$false -ErrorAction Stop  `
+                -DelegatedOrganization $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.TenantId `
+                -ShowBanner:$false | Out-Null
+            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ConnectedDateTime = [System.DateTime]::Now.ToString()
+            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.MultiFactorAuthentication = $false
+            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Connected = $true
+        }
+        catch
+        {
+            Write-Verbose -Message "Could not connect connect IPPSSession with Credentials & TenantId: {$($_.Exception)}"
+            Connect-MSCloudLoginSecurityComplianceMFA -TenantId $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.TenantId
+        }
+    }
     else
     {
         try
@@ -163,7 +185,11 @@ function Connect-MSCloudLoginSecurityCompliance
 function Connect-MSCloudLoginSecurityComplianceMFA
 {
     [CmdletBinding()]
-    param()
+    param(
+        [Parameter()]
+        [System.String]
+        $TenantId
+    )
 
     $WarningPreference = 'SilentlyContinue'
     $ProgressPreference = 'SilentlyContinue'
@@ -173,16 +199,37 @@ function Connect-MSCloudLoginSecurityComplianceMFA
         Write-Verbose -Message 'Creating a new Security and Compliance Session using MFA'
         if ($Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.EnvironmentName -eq 'AzureCloud')
         {
-            Connect-IPPSSession -UserPrincipalName $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Credentials.UserName `
-                -Verbose:$false  `
-                -ShowBanner:$false | Out-Null
+            if ([System.String]::IsNullOrEmpty($TenantId))
+            {
+                Connect-IPPSSession -UserPrincipalName $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Credentials.UserName `
+                    -Verbose:$false  `
+                    -ShowBanner:$false | Out-Null
+            }
+            else
+            {
+                Connect-IPPSSession -UserPrincipalName $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Credentials.UserName `
+                    -Verbose:$false  `
+                    -DelegatedOrganization $TenantId `
+                    -ShowBanner:$false | Out-Null
+            }
         }
         else
         {
-            Connect-IPPSSession -UserPrincipalName $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Credentials.UserName `
-                -ConnectionUri $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ConnectionUrl `
-                -Verbose:$false  `
-                -ShowBanner:$false | Out-Null
+            if ([System.String]::IsNullOrEmpty($TenantId))
+            {
+                Connect-IPPSSession -UserPrincipalName $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Credentials.UserName `
+                    -ConnectionUri $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ConnectionUrl `
+                    -Verbose:$false  `
+                    -ShowBanner:$false | Out-Null
+            }
+            else
+            {
+                Connect-IPPSSession -UserPrincipalName $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Credentials.UserName `
+                    -ConnectionUri $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ConnectionUrl `
+                    -Verbose:$false `
+                    -DelegatedOrganization $TenantId `
+                    -ShowBanner:$false | Out-Null
+            }
         }
         Write-Verbose -Message 'New Session with MFA created successfully'
         $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ConnectedDateTime = [System.DateTime]::Now.ToString()

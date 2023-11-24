@@ -92,7 +92,8 @@ function Connect-MSCloudLoginTeams
             throw $_
         }
     }
-    elseif ($Global:MSCloudLoginConnectionProfile.Teams.AuthenticationType -eq 'Credentials')
+    elseif ($Global:MSCloudLoginConnectionProfile.Teams.AuthenticationType -eq 'Credentials' -or
+    $Global:MSCloudLoginConnectionProfile.Teams.AuthenticationType -eq 'CredentialsWithTenantId')
     {
         if ($Global:MSCloudLoginConnectionProfile.Teams.EnvironmentName -eq 'AzureGermany')
         {
@@ -120,6 +121,11 @@ function Connect-MSCloudLoginTeams
             if ($Global:MSCloudLoginConnectionProfile.Teams.EnvironmentName -eq 'AzureChinaCloud')
             {
                 $ConnectionParams.Add("TeamsEnvironmentName", 'TeamsChina')
+            }
+
+            if (-not [System.String]::IsNullOrEmpty($Global:MSCloudLoginConnectionProfile.Teams.TenantId))
+            {
+                $ConnectionParams.Add("TenantId", $Global:MSCloudLoginConnectionProfile.Teams.TenantId)
             }
 
             Write-Verbose -Message "Connecting to Microsoft Teams using credentials."
@@ -163,6 +169,10 @@ function Connect-MSCloudLoginTeamsMFA
         if ($Global:MSCloudLoginConnectionProfile.Teams.EnvironmentName -eq 'USGovernmentDoD')
         {
             $ConnectionParams.Add("TeamsEnvironmentName", 'TeamsDOD')
+        }
+        if (-not [System.String]::IsNullOrEmpty($Global:MSCloudLoginConnectionProfile.Teams.TenantId))
+        {
+            $ConnectionParams.Add("TenantId", $Global:MSCloudLoginConnectionProfile.Teams.TenantId)
         }
         Write-Verbose -Message "Disconnecting from Microsoft Teams"
         Disconnect-MicrosoftTeams | Out-Null
