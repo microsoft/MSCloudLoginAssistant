@@ -76,7 +76,8 @@ function Connect-MSCloudLoginExchangeOnline
                 -ShowBanner:$false `
                 -ShowProgress:$false `
                 -ExchangeEnvironmentName $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ExchangeEnvironmentName `
-                -Verbose:$false | Out-Null
+                -Verbose:$false `
+                -SkipLoadingCmdletHelp | Out-Null
 
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ConnectedDateTime = [System.DateTime]::Now.ToString()
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connected = $true
@@ -98,7 +99,9 @@ function Connect-MSCloudLoginExchangeOnline
                 -ShowProgress:$false `
                 -ShowBanner:$false `
                 -ExchangeEnvironmentName $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ExchangeEnvironmentName `
-                -Verbose:$false -ErrorAction Stop | Out-Null
+                -Verbose:$false `
+                -ErrorAction Stop `
+                -SkipLoadingCmdletHelp | Out-Null
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ConnectedDateTime = [System.DateTime]::Now.ToString()
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connected = $true
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.MultiFactorAuthentication = $false
@@ -128,7 +131,9 @@ function Connect-MSCloudLoginExchangeOnline
                 -ShowBanner:$false `
                 -DelegatedOrganization $Global:MSCloudLoginConnectionProfile.ExchangeOnline.TenantId `
                 -ExchangeEnvironmentName $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ExchangeEnvironmentName `
-                -Verbose:$false -ErrorAction Stop | Out-Null
+                -Verbose:$false `
+                -ErrorAction Stop `
+                -SkipLoadingCmdletHelp | Out-Null
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ConnectedDateTime = [System.DateTime]::Now.ToString()
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connected = $true
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.MultiFactorAuthentication = $false
@@ -164,7 +169,8 @@ function Connect-MSCloudLoginExchangeOnline
                 -ShowBanner:$false `
                 -ShowProgress:$false `
                 -ExchangeEnvironmentName $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ExchangeEnvironmentName `
-                -Verbose:$false | Out-Null
+                -Verbose:$false `
+                -SkipLoadingCmdletHelp | Out-Null
 
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ConnectedDateTime = [System.DateTime]::Now.ToString()
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connected = $false
@@ -203,7 +209,8 @@ function Connect-MSCloudLoginExchangeOnlineMFA
                 -ShowBanner:$false `
                 -ShowProgress:$false `
                 -ExchangeEnvironmentName $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ExchangeEnvironmentName `
-                -Verbose:$false | Out-Null
+                -Verbose:$false `
+                -SkipLoadingCmdletHelp | Out-Null
             Write-Verbose -Message 'Successfully connected to Exchange Online using credentials with MFA'
         }
         else
@@ -214,7 +221,8 @@ function Connect-MSCloudLoginExchangeOnlineMFA
                 -ShowProgress:$false `
                 -DelegatedOrganization $TenantId `
                 -ExchangeEnvironmentName $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ExchangeEnvironmentName `
-                -Verbose:$false | Out-Null
+                -Verbose:$false `
+                -SkipLoadingCmdletHelp | Out-Null
             Write-Verbose -Message 'Successfully connected to Exchange Online using credentials and tenantId with MFA'
         }
         $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ConnectedDateTime = [System.DateTime]::Now.ToString()
