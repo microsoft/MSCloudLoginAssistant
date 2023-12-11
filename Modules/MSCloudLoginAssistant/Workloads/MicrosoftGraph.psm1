@@ -161,7 +161,7 @@ function Request-MSGraphOauthToken
     $OAuthReq = Invoke-RestMethod -Uri $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.TokenUrl `
         -Method Post -Body $body
 
-    $secureOAuth = ConvertTo-SecureString $OAuthReq -AsPlainText -Force
+    $secureOAuth = ConvertTo-SecureString $OAuthReq.access_token -AsPlainText -Force
     $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AccessToken = $secureOAuth
     $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime = [System.DateTime]::Now.ToString()
     $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.MultiFactorAuthentication = $false
