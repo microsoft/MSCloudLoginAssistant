@@ -118,9 +118,6 @@ function Connect-MSCloudLoginMicrosoftGraph
                         -Environment $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment `
                         -Certificate $cert | Out-Null
                 }
-                $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime = [System.DateTime]::Now.ToString()
-                $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.MultiFactorAuthentication = $false
-                $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected = $true
             }
             else
             {
@@ -135,12 +132,11 @@ function Connect-MSCloudLoginMicrosoftGraph
                 {
                     throw $_
                 }
-
-                $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime = [System.DateTime]::Now.ToString()
-                $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.MultiFactorAuthentication = $false
-                $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected = $true
             }
 
+            $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime = [System.DateTime]::Now.ToString()
+            $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.MultiFactorAuthentication = $false
+            $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected = $true
             Write-Verbose -Message 'Connected'
         }
         catch
