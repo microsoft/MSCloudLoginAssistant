@@ -126,29 +126,19 @@ function Connect-MSCloudLoginMicrosoftGraph
             {
                 Request-MSGraphOauthToken
 
-                if (![String]::IsNullOrEmpty($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AccessToken))
+                Write-Verbose -Message 'Connecting to Microsoft Graph'
+                try
                 {
-                    Write-Verbose -Message 'Connecting to Microsoft Graph'
-
-                    try
-                    {
-                        Connect-MgGraph -AccessToken $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AccessToken | Out-Null
-                    }
-                    catch
-                    {
-                        throw $_
-                    }
-
-                    $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime = [System.DateTime]::Now.ToString()
-                    $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.MultiFactorAuthentication = $false
-                    $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected = $true
+                    Connect-MgGraph -AccessToken $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AccessToken | Out-Null
                 }
-                else
+                catch
                 {
-                    $Message = 'Could not acquire token to connect to Microsoft Graph, aborting'
-                    Write-Verbose -Message $Message
-                    throw $Message
+                    throw $_
                 }
+
+                $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime = [System.DateTime]::Now.ToString()
+                $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.MultiFactorAuthentication = $false
+                $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected = $true
             }
 
             Write-Verbose -Message 'Connected'
@@ -194,7 +184,9 @@ function Request-MSGraphOauthToken
     }
     else
     {
-        $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AccessToken = $null
+        $Message = 'Could not acquire token to connect to Microsoft Graph, aborting'
+        Write-Verbose -Message $Message
+        throw $Message
     }
 }
 
