@@ -126,13 +126,31 @@ function Connect-MSCloudLoginMicrosoftGraph
             {
                 Request-MSGraphOauthToken
 
-                Write-Verbose -Message 'Connecting to Microsoft Graph'
-                $token = ConvertTo-SecureString -String $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AccessToken -AsPlainText -Force
-                Connect-MgGraph -AccessToken $token | Out-Null
-                $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime = [System.DateTime]::Now.ToString()
-                $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.MultiFactorAuthentication = $false
-                $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected = $true
+                if (![String]::IsNullOrEmpty($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AccessToken))
+                {
+                    Write-Verbose -Message 'Connecting to Microsoft Graph'
+
+                    try
+                    {
+                        Connect-MgGraph -AccessToken $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AccessToken | Out-Null
+                    }
+                    catch
+                    {
+                        throw $_
+                    }
+
+                    $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime = [System.DateTime]::Now.ToString()
+                    $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.MultiFactorAuthentication = $false
+                    $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected = $true
+                }
+                else
+                {
+                    $Message = 'Could not acquire token to connect to Microsoft Graph, aborting'
+                    Write-Verbose -Message $Message
+                    throw $Message
+                }
             }
+
             Write-Verbose -Message 'Connected'
         }
         catch
@@ -158,16 +176,26 @@ function Request-MSGraphOauthToken
     }
 
     Write-Verbose -Message 'Requesting Access Token for Microsoft Graph'
-    $OAuthReq = Invoke-RestMethod -Uri $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.TokenUrl `
-        -Method Post -Body $body
+    try
+    {
+        $OAuthReq = Invoke-RestMethod -Uri $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.TokenUrl `
+            -Method Post -Body $body
+    }
+    catch
+    {
+        throw $_
+    }
 
-    $secureOAuth = ConvertTo-SecureString $OAuthReq.access_token -AsPlainText -Force
-    $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AccessToken = $secureOAuth
-    $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime = [System.DateTime]::Now.ToString()
-    $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.MultiFactorAuthentication = $false
-    $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected = $true
-
-    Write-Verbose -Message 'Acquired token for Microsoft Graph'
+    if (![String]::IsNullOrEmpty($OAuthReq.access_token))
+    {
+        $secureOAuth = ConvertTo-SecureString $OAuthReq.access_token -AsPlainText -Force
+        $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AccessToken = $secureOAuth
+        Write-Verbose -Message 'Acquired token for Microsoft Graph'
+    }
+    else
+    {
+        $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AccessToken = $null
+    }
 }
 
 function Connect-MSCloudLoginMSGraphWithUser
