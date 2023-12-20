@@ -122,13 +122,14 @@ function Connect-MSCloudLoginMicrosoftGraph
                 $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.MultiFactorAuthentication = $false
                 $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected = $true
             }
-            else
+            elseif($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AuthenticationType -eq 'ServicePrincipalWithSecret')
             {
-                Request-MSGraphOauthToken
-
-                Write-Verbose -Message 'Connecting to Microsoft Graph'
-                $token = ConvertTo-SecureString -String $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AccessToken -AsPlainText -Force
-                Connect-MgGraph -AccessToken $token | Out-Null
+                Write-Verbose -Message 'Connecting to Microsoft Graph with ApplicationSecret'
+                $secStringPassword = ConvertTo-SecureString -String $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationSecret -AsPlainText -Force
+                $userName = $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationId
+                [pscredential]$credObject = New-Object System.Management.Automation.PSCredential ($userName, $secStringPassword)
+                Connect-MgGraph -TenantId $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.TenantId `
+                                -ClientSecretCredential $credObject | Out-Null
                 $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime = [System.DateTime]::Now.ToString()
                 $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.MultiFactorAuthentication = $false
                 $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected = $true
@@ -141,33 +142,6 @@ function Connect-MSCloudLoginMicrosoftGraph
             throw $_
         }
     }
-}
-
-function Request-MSGraphOauthToken
-{
-    [CmdletBinding()]
-    Param(
-    )
-
-    $body = @{
-        client_id     = $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationId
-        client_secret = $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationSecret
-        client_info   = 1
-        scope         = $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Scope
-        grant_type    = 'client_credentials'
-    }
-
-    Write-Verbose -Message 'Requesting Access Token for Microsoft Graph'
-    $OAuthReq = Invoke-RestMethod -Uri $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.TokenUrl `
-        -Method Post -Body $body
-
-    $secureOAuth = ConvertTo-SecureString $OAuthReq.access_token -AsPlainText -Force
-    $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AccessToken = $secureOAuth
-    $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime = [System.DateTime]::Now.ToString()
-    $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.MultiFactorAuthentication = $false
-    $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected = $true
-
-    Write-Verbose -Message 'Acquired token for Microsoft Graph'
 }
 
 function Connect-MSCloudLoginMSGraphWithUser
