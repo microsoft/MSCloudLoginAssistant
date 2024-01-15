@@ -652,7 +652,7 @@ function Get-AccessToken
                 }
                 catch
                 {
-                    Write-Host "Error {Get-AccessToken}: $_"
+                    Write-Verbose -Message "Error {Get-AccessToken}: $_"
                     return $null
                 }
             } -ArgumentList @($targetUri, $AuthUri, $ClientId, $Credentials, $AzureADDLL) | Out-Null
