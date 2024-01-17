@@ -43,16 +43,86 @@ function Connect-MSCloudLoginTasksWithUser
     $password = $Global:MSCloudLoginConnectionProfile.Tasks.Credentials.GetNetworkCredential().password
 
     $clientId = '9ac8c0b3-2c30-497c-b4bc-cadfe9bd6eed'
-    $uri = 'https://login.microsoftonline.com/{0}/oauth2/token' -f $tenantid
-    $body = "resource=https://tasks.office.com/&client_id=$clientId&grant_type=password&username={1}&password={0}" -f [System.Web.HttpUtility]::UrlEncode($password), $username
+    $uri = "$($Global:MSCloudLoginConnectionProfile.Tasks.AuthorizationUrl)/{0}/oauth2/token" -f $tenantid
+    $body = "resource=$($Global:MSCloudLoginConnectionProfile.Tasks.HostUrl)/&client_id=$clientId&grant_type=password&username={1}&password={0}" -f [System.Web.HttpUtility]::UrlEncode($password), $username
 
     # Request token through ROPC
-    $managementToken = Invoke-RestMethod $uri `
-        -Method POST `
-        -Body $body `
-        -ContentType 'application/x-www-form-urlencoded' `
-        -ErrorAction SilentlyContinue
+    try
+    {
+        $managementToken = Invoke-RestMethod $uri `
+            -Method POST `
+            -Body $body `
+            -ContentType 'application/x-www-form-urlencoded' `
+            -ErrorAction SilentlyContinue
 
+        $Global:MSCloudLoginConnectionProfile.Tasks.AccessToken = $managementToken.token_type.ToString() + ' ' + $managementToken.access_token.ToString()
+    }
+    catch
+    {
+        if ($_.ErrorDetails.Message -like "*AADSTS50076*")
+        {
+            Write-Verbose -Message "Account used required MFA"
+            Connect-MSCloudLoginTasksWithUserMFA
+        }
+    }
+}
+
+function Connect-MSCloudLoginTasksWithUserMFA
+{
+    [CmdletBinding()]
+    param()
+
+    if ([System.String]::IsNullOrEmpty($Global:MSCloudLoginConnectionProfile.Tasks.TenantId))
+    {
+        $tenantid = $Global:MSCloudLoginConnectionProfile.Tasks.Credentials.UserName.Split('@')[1]
+    }
+    else
+    {
+        $tenantId = $Global:MSCloudLoginConnectionProfile.Tasks.TenantId
+    }
+    $clientId = '9ac8c0b3-2c30-497c-b4bc-cadfe9bd6eed'
+    $deviceCodeUri = "$($Global:MSCloudLoginConnectionProfile.Tasks.AuthorizationUrl)/$tenantId/oauth2/devicecode"
+
+    $body = @{
+        client_id = $clientId
+        resource  = $Global:MSCloudLoginConnectionProfile.Tasks.ResourceUrl
+    }
+    $DeviceCodeRequest = Invoke-RestMethod $deviceCodeUri `
+            -Method POST `
+            -Body $body
+
+    Write-Host "`r`n$($DeviceCodeRequest.message)" -ForegroundColor Yellow
+
+    $TokenRequestParams = @{
+        Method = 'POST'
+        Uri    = "$($Global:MSCloudLoginConnectionProfile.Tasks.AuthorizationUrl)/$TenantId/oauth2/token"
+        Body   = @{
+            grant_type = "urn:ietf:params:oauth:grant-type:device_code"
+            code       = $DeviceCodeRequest.device_code
+            client_id  = $clientId
+        }
+    }
+    $TimeoutTimer = [System.Diagnostics.Stopwatch]::StartNew()
+    while ([string]::IsNullOrEmpty($managementToken.access_token))
+    {
+        if ($TimeoutTimer.Elapsed.TotalSeconds -gt 300)
+        {
+            throw 'Login timed out, please try again.'
+        }
+        $managementToken = try
+        {
+            Invoke-RestMethod @TokenRequestParams -ErrorAction Stop
+        }
+        catch
+        {
+            $Message = $_.ErrorDetails.Message | ConvertFrom-Json
+            if ($Message.error -ne "authorization_pending")
+            {
+                throw
+            }
+        }
+        Start-Sleep -Seconds 1
+    }
     $Global:MSCloudLoginConnectionProfile.Tasks.AccessToken = $managementToken.token_type.ToString() + ' ' + $managementToken.access_token.ToString()
 }
 
@@ -62,8 +132,8 @@ function Connect-MSCloudLoginTasksWithAppSecret
     param()
 
 
-    $uri = 'https://login.microsoftonline.com/{0}/oauth2/token' -f $Global:MSCloudLoginConnectionProfile.Tasks.TenantId
-    $body = "resource=https://tasks.office.com/&client_id=$($Global:MSCloudLoginConnectionProfile.Tasks.ApplicationId)&client_secret=$($Global:MSCloudLoginConnectionProfile.Tasks.ApplicationSecret)&grant_type=client_credentials"
+    $uri = "$($Global:MSCloudLoginConnectionProfile.Tasks.AuthorizationUrl)/{0}/oauth2/token" -f $Global:MSCloudLoginConnectionProfile.Tasks.TenantId
+    $body = "resource=$($Global:MSCloudLoginConnectionProfile.Tasks.HostUrl)/&client_id=$($Global:MSCloudLoginConnectionProfile.Tasks.ApplicationId)&client_secret=$($Global:MSCloudLoginConnectionProfile.Tasks.ApplicationSecret)&grant_type=client_credentials"
 
     # Request token through ROPC
     $managementToken = Invoke-RestMethod $uri `
@@ -124,7 +194,7 @@ function Connect-MSCloudLoginTasksWithCertificateThumbprint
         # Create JWT payload
         $JWTPayLoad = @{
             # What endpoint is allowed to use this JWT
-            aud = "https://login.microsoftonline.com/$TenantId/oauth2/token"
+            aud = "$($Global:MSCloudLoginConnectionProfile.Tasks.AuthorizationUrl)/$TenantId/oauth2/token"
 
             # Expiration timestamp
             exp = $JWTExpiration
@@ -176,7 +246,7 @@ function Connect-MSCloudLoginTasksWithCertificateThumbprint
             grant_type            = 'client_credentials'
         }
 
-        $Url = "https://login.microsoftonline.com/$TenantId/oauth2/v2.0/token"
+        $Url = "$($Global:MSCloudLoginConnectionProfile.Tasks.AuthorizationUrl)/$TenantId/oauth2/v2.0/token"
 
         # Use the self-generated JWT as Authorization
         $Header = @{

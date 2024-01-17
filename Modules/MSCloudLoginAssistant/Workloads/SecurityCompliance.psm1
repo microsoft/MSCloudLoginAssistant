@@ -71,7 +71,7 @@ function Connect-MSCloudLoginSecurityCompliance
                     Connect-IPPSSession -AppId $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ApplicationId `
                         -CertificateThumbprint $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.CertificateThumbprint `
                         -Organization $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.TenantId `
-                        -ConnectionUri $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ConnectionUri `
+                        -ConnectionUri $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ConnectionUrl `
                         -AzureADAuthorizationEndpointUri $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.AzureADAuthorizationEndpointUri `
                         -ErrorAction Stop  `
                         -ShowBanner:$false | Out-Null

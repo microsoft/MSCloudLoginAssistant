@@ -463,6 +463,12 @@ class Tasks:Workload
     $HostUrl
 
     [string]
+    $AuthorizationUrl
+
+    [string]
+    $ResourceUrl
+
+    [string]
     $Scope
 
     Tasks()
@@ -471,9 +477,32 @@ class Tasks:Workload
 
     [void] Connect()
     {
-        $this.HostUrl = "https://tasks.office.com"
-        $this.Scope   = "https://tasks.office.com/.default"
         ([Workload]$this).Setup()
+        switch ($this.EnvironmentName)
+        {
+            'AzureDOD'
+            {
+                $this.HostUrl          = "https://tasks.office.us"
+                $this.Scope            = "https://tasks.office.us/.default"
+                $this.AuthorizationUrl = "https://login.microsoftonline.us"
+                $this.ResourceUrl      = "https://tasks.osi.apps.mil"
+            }
+            'AzureUSGovernment'
+            {
+                $this.HostUrl          = "https://tasks.office.us"
+                $this.Scope            = "https://tasks.office.us/.default"
+                $this.AuthorizationUrl = "https://login.microsoftonline.us"
+                $this.ResourceUrl      = "https://tasks.office365.us"
+            }
+            default
+            {
+                $this.HostUrl          = "https://tasks.office.com"
+                $this.Scope            = "https://tasks.office.com/.default"
+                $this.AuthorizationUrl = "https://login.microsoftonline.com"
+                $this.ResourceUrl      = "https://tasks.office.com"
+            }
+        }
+
         Connect-MSCloudLoginTasks
     }
 }
