@@ -111,7 +111,7 @@ class Workload
                 $Global:CloudEnvironmentInfo = Get-CloudEnvironmentInfo -Identity -TenantId $this.TenantId
             }
 
-            Write-Verbose "Set environment to $Global:CloudEnvironmentInfo.tenant_region_sub_scope"
+            Write-Verbose "Set environment to {$($Global:CloudEnvironmentInfo.tenant_region_sub_scope)}"
         }
         switch ($Global:CloudEnvironmentInfo.tenant_region_sub_scope)
         {
@@ -124,6 +124,10 @@ class Workload
                 $this.EnvironmentName = 'AzureDOD'
             }
             'DODCON'
+            {
+                $this.EnvironmentName = 'AzureUSGovernment'
+            }
+            'USGov'
             {
                 $this.EnvironmentName = 'AzureUSGovernment'
             }
@@ -490,7 +494,7 @@ class Tasks:Workload
             'AzureUSGovernment'
             {
                 $this.HostUrl          = "https://tasks.office.us"
-                $this.Scope            = "https://tasks.office.us/.default"
+                $this.Scope            = "https://tasks.office365.us/.default"
                 $this.AuthorizationUrl = "https://login.microsoftonline.us"
                 $this.ResourceUrl      = "https://tasks.office365.us"
             }
