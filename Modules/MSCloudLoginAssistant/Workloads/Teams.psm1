@@ -3,7 +3,7 @@ function Connect-MSCloudLoginTeams
     [CmdletBinding()]
     param()
 
-    $VerbosePreference  = 'Continue'
+    $VerbosePreference  = 'SilentlyContinue'
     $WarningPreference  = 'SilentlyContinue'
     $ProgressPreference = 'SilentlyContinue'
 
