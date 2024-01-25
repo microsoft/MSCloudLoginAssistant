@@ -151,6 +151,17 @@ function Connect-MSCloudLoginTeams
             }
         }
     }
+    elseif ($Global:MSCloudLoginConnectionProfile.Teams.AuthenticationType -eq 'Identity')
+    {
+        $ConnectionParams = @{
+            Identity = $true
+        }
+        Write-Verbose -Message "Connecting to Microsoft Teams using Managed Identity"
+        Connect-MicrosoftTeams @ConnectionParams -ErrorAction Stop
+        $Global:MSCloudLoginConnectionProfile.Teams.ConnectedDateTime         = [System.DateTime]::Now.ToString()
+        $Global:MSCloudLoginConnectionProfile.Teams.MultiFactorAuthentication = $false
+        $Global:MSCloudLoginConnectionProfile.Teams.Connected                 = $true
+    }
     return
 }
 

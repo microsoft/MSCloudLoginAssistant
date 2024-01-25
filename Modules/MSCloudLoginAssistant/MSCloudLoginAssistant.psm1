@@ -114,6 +114,7 @@ function Connect-M365Tenant
             $Global:MSCloudLoginConnectionProfile.Teams.CertificateThumbprint = $CertificateThumbprint
             $Global:MSCloudLoginConnectionProfile.Teams.CertificatePath = $CertificatePath
             $Global:MSCloudLoginConnectionProfile.Teams.CertificatePassword = $CertificatePassword
+            $Global:MSCloudLoginConnectionProfile.Teams.Identity = $Identity
             $Global:MSCloudLoginConnectionProfile.Teams.Connect()
         }
         'PnP'
@@ -804,7 +805,7 @@ function Get-CloudEnvironmentInfo
         {
             $tenantName = $TenantId
         }
-        else
+        elseif (-not $Identity.IsPresent)
         {
             throw 'TenantId or Credentials must be provided'
         }
