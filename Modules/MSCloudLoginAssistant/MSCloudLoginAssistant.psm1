@@ -805,7 +805,11 @@ function Get-CloudEnvironmentInfo
         {
             $tenantName = $TenantId
         }
-        elseif (-not $Identity.IsPresent)
+        elseif ($Identity.IsPresent)
+        {
+            return
+        }
+        else
         {
             throw 'TenantId or Credentials must be provided'
         }
