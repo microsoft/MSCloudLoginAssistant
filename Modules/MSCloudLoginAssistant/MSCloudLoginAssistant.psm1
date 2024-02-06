@@ -394,7 +394,8 @@ function Get-SPOAdminUrl
     Write-Verbose -Message 'Connection to Microsoft Graph is required to automatically determine SharePoint Online admin URL...'
     try
     {
-        $weburl = (Invoke-MgGraphRequest -Uri /v1.0/sites/root).webUrl
+        $result = Invoke-MgGraphRequest -Uri /v1.0/sites/root -ErrorAction SilentlyContinue
+        $weburl = $result.webUrl
         if (-not $weburl)
         {
             Connect-M365Tenant -Workload 'MicrosoftGraph' -Credential $Credential
