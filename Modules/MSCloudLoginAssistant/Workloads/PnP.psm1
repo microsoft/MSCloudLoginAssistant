@@ -293,6 +293,34 @@ function Connect-MSCloudLoginPnP
                 $Global:MSCloudLoginConnectionProfile.PnP.MultiFactorAuthentication = $false
                 $Global:MSCloudLoginConnectionProfile.PnP.Connected = $true
             }
+            elseif ($Global:MSCloudLoginConnectionProfile.PnP.AuthenticationType -eq 'AccessToken')
+            {
+                $Ptr = [System.Runtime.InteropServices.Marshal]::SecureStringToCoTaskMemUnicode($Global:MSCloudLoginConnectionProfile.PnP.AccessTokens[0])
+                $AccessTokenValue = [System.Runtime.InteropServices.Marshal]::PtrToStringUni($Ptr)
+                [System.Runtime.InteropServices.Marshal]::ZeroFreeCoTaskMemUnicode($Ptr)
+                if ($Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl -or $ForceRefreshConnection)
+                {
+                    Write-Information -Message 'Connecting with AccessToken'
+                    Write-Information -Message "URL: $($Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl)"
+                    Write-Information -Message "ConnectionUrl: $($Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl)"
+                    Connect-PnPOnline -Url $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl `
+                        -AccessToken $AccessTokenValue `
+                        -AzureEnvironment $Global:MSCloudLoginConnectionProfile.PnP.PnPAzureEnvironment
+                }
+                else
+                {
+                    Write-Information -Message 'Connecting with AccessToken'
+                    Write-Information -Message "URL: $($Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl)"
+                    Write-Information -Message "AdminUrl: $($Global:MSCloudLoginConnectionProfile.PnP.AdminUrl)"
+                    Connect-PnPOnline -Url $Global:MSCloudLoginConnectionProfile.PnP.AdminUrl `
+                        -AccessToken $AccessTokenValue `
+                        -AzureEnvironment $Global:MSCloudLoginConnectionProfile.PnP.PnPAzureEnvironment
+                }
+
+                $Global:MSCloudLoginConnectionProfile.PnP.ConnectedDateTime = [System.DateTime]::Now.ToString()
+                $Global:MSCloudLoginConnectionProfile.PnP.MultiFactorAuthentication = $false
+                $Global:MSCloudLoginConnectionProfile.PnP.Connected = $true
+            }
         }
     }
     catch

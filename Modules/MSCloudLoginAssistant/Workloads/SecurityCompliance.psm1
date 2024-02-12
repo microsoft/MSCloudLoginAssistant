@@ -160,6 +160,16 @@ function Connect-MSCloudLoginSecurityCompliance
             Connect-MSCloudLoginSecurityComplianceMFA -TenantId $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.TenantId
         }
     }
+    elseif($Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.AuthenticationType -eq 'AccessToken')
+    {
+        Write-Verbose -Message 'Connecting to Security & Compliance with Access Token'
+        Connect-M365Tenant -Workload 'ExchangeOnline' `
+                           -AccessTokens $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.AccessTokens `
+                           -TenantId $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.TenantId
+        $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ConnectedDateTime = [System.DateTime]::Now.ToString()
+        $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.MultiFactorAuthentication = $false
+        $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Connected = $true
+    }
     else
     {
         try

@@ -45,7 +45,7 @@ class MSCloudLoginConnectionProfile
 class Workload
 {
     [string]
-    [ValidateSet('Credentials', 'CredentialsWithApplicationId', 'CredentialsWithTenantId', 'ServicePrincipalWithSecret', 'ServicePrincipalWithThumbprint', 'ServicePrincipalWithPath', 'Interactive', 'Identity')]
+    [ValidateSet('Credentials', 'CredentialsWithApplicationId', 'CredentialsWithTenantId', 'ServicePrincipalWithSecret', 'ServicePrincipalWithThumbprint', 'ServicePrincipalWithPath', 'Interactive', 'Identity', 'AccessToken')]
     $AuthenticationType
 
     [boolean]
@@ -85,6 +85,9 @@ class Workload
     [string]
     $CertificateThumbprint
 
+    [securestring[]]
+    $AccessTokens
+
     [switch]
     $Identity
 
@@ -109,6 +112,10 @@ class Workload
             elseif ($this.Identity.IsPresent)
             {
                 $Global:CloudEnvironmentInfo = Get-CloudEnvironmentInfo -Identity -TenantId $this.TenantId
+            }
+            elseif ($this.AccessToken)
+            {
+                $Global:CloudEnvironmentInfo = Get-CloudEnvironmentInfo -TenantId $this.TenantId
             }
 
             Write-Verbose "Set environment to {$($Global:CloudEnvironmentInfo.tenant_region_sub_scope)}"
@@ -190,6 +197,10 @@ class Workload
         {
             $this.AuthenticationType = 'Identity'
         }
+        elseif ($this.AccessTokens -and -not [System.String]::IsNullOrEmpty($this.TenantId))
+        {
+            $this.AuthenticationType = 'AccessToken'
+        }
         else
         {
             $this.AuthenticationType = 'Interactive'
@@ -251,9 +262,6 @@ class ExchangeOnline:Workload
 
 class MicrosoftGraph:Workload
 {
-    [securestring]
-    $AccessToken
-
     [string]
     [ValidateSet('China', 'Global', 'USGov', 'USGovDoD', 'Germany')]
     $GraphEnvironment = 'Global'
@@ -338,9 +346,6 @@ class PnP:Workload
 
     [string]
     $AdminUrl
-
-    [string]
-    $AccessToken
 
     [string]
     [ValidateSet('Production', 'PPE', 'China', 'Germany', 'USGovernment', 'USGovernmentHigh', 'USGovernmentDoD')]
@@ -461,9 +466,6 @@ class SecurityComplianceCenter:Workload
 class Tasks:Workload
 {
     [string]
-    $AccessToken
-
-    [string]
     $HostUrl
 
     [string]
@@ -474,6 +476,9 @@ class Tasks:Workload
 
     [string]
     $Scope
+
+    [string]
+    $AccessToken
 
     Tasks()
     {

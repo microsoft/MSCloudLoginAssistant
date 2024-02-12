@@ -24,6 +24,14 @@ function Connect-MSCloudLoginTasks
         Write-Verbose -Message 'Will try connecting with Application Secret'
         Connect-MSCloudLoginTasksWithCertificateThumbprint
     }
+    elseif ($Global:MSCloudLoginConnectionProfile.Tasks.AuthenticationType -eq 'AccessToken')
+    {
+        Write-Verbose -Message 'Will try connecting with Access Token'
+        $Ptr = [System.Runtime.InteropServices.Marshal]::SecureStringToCoTaskMemUnicode($Global:MSCloudLoginConnectionProfile.Tasks.AccessTokens[0])
+        $AccessTokenValue = [System.Runtime.InteropServices.Marshal]::PtrToStringUni($Ptr)
+        [System.Runtime.InteropServices.Marshal]::ZeroFreeCoTaskMemUnicode($Ptr)
+        $Global:MSCloudLoginConnectionProfile.Tasks.AccessToken = $AccessTokenValue
+    }
 }
 
 function Connect-MSCloudLoginTasksWithUser

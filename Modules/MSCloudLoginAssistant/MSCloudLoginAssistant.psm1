@@ -53,7 +53,11 @@ function Connect-M365Tenant
 
         [Parameter()]
         [Switch]
-        $Identity
+        $Identity,
+
+        [Parameter()]
+        [SecureString[]]
+        $AccessTokens
     )
 
     $VerbosePreference = 'SilentlyContinue'
@@ -92,6 +96,7 @@ function Connect-M365Tenant
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.TenantId = $TenantId
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.CertificateThumbprint = $CertificateThumbprint
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.SkipModuleReload = $SkipModuleReload
+            $Global:MSCloudLoginConnectionProfile.ExchangeOnline.AccessTokens = $AccessTokens
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Identity = $Identity
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connect()
         }
@@ -102,6 +107,7 @@ function Connect-M365Tenant
             $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationSecret = $ApplicationSecret
             $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.TenantId = $TenantId
             $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.CertificateThumbprint = $CertificateThumbprint
+            $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AccessTokens = $AccessTokens
             $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Identity = $Identity
             $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connect()
         }
@@ -114,6 +120,7 @@ function Connect-M365Tenant
             $Global:MSCloudLoginConnectionProfile.Teams.CertificateThumbprint = $CertificateThumbprint
             $Global:MSCloudLoginConnectionProfile.Teams.CertificatePath = $CertificatePath
             $Global:MSCloudLoginConnectionProfile.Teams.CertificatePassword = $CertificatePassword
+            $Global:MSCloudLoginConnectionProfile.Teams.AccessTokens = $AccessTokens
             $Global:MSCloudLoginConnectionProfile.Teams.Identity = $Identity
             $Global:MSCloudLoginConnectionProfile.Teams.Connect()
         }
@@ -125,6 +132,7 @@ function Connect-M365Tenant
             $Global:MSCloudLoginConnectionProfile.PnP.TenantId = $TenantId
             $Global:MSCloudLoginConnectionProfile.PnP.CertificateThumbprint = $CertificateThumbprint
             $Global:MSCloudLoginConnectionProfile.PnP.CertificatePath = $CertificatePath
+            $Global:MSCloudLoginConnectionProfile.PnP.AccessTokens = $AccessTokens
             $Global:MSCloudLoginConnectionProfile.PnP.Identity = $Identity
             $Global:MSCloudLoginConnectionProfile.PnP.CertificatePassword = $CertificatePassword
 
@@ -191,6 +199,7 @@ function Connect-M365Tenant
             $Global:MSCloudLoginConnectionProfile.PowerPlatform.TenantId = $TenantId
             $Global:MSCloudLoginConnectionProfile.PowerPlatform.CertificateThumbprint = $CertificateThumbprint
             $Global:MSCloudLoginConnectionProfile.PowerPlatform.ApplicationSecret = $ApplicationSecret
+            $Global:MSCloudLoginConnectionProfile.PowerPlatform.AccessTokens = $AccessTokens
             $Global:MSCloudLoginConnectionProfile.PowerPlatform.Connect()
         }
         'SecurityComplianceCenter'
@@ -202,6 +211,7 @@ function Connect-M365Tenant
             $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.CertificateThumbprint = $CertificateThumbprint
             $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.CertificatePath = $CertificatePath
             $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.CertificatePassword = $CertificatePassword
+            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.AccessTokens = $AccessTokens
             $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.SkipModuleReload = $SkipModuleReload
             $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Connect()
         }
@@ -214,6 +224,7 @@ function Connect-M365Tenant
             $Global:MSCloudLoginConnectionProfile.Tasks.CertificateThumbprint = $CertificateThumbprint
             $Global:MSCloudLoginConnectionProfile.Tasks.CertificatePath = $CertificatePath
             $Global:MSCloudLoginConnectionProfile.Tasks.CertificatePassword = $CertificatePassword
+            $Global:MSCloudLoginConnectionProfile.Tasks.AccessTokens = $AccessTokens
             $Global:MSCloudLoginConnectionProfile.Tasks.Connect()
         }
     }
@@ -827,7 +838,7 @@ function Get-CloudEnvironmentInfo
     }
 }
 
-function Get-TenantDomain
+function Get-MSCloudLoginTenantDomain
 {
     param(
         [Parameter()]
@@ -844,19 +855,40 @@ function Get-TenantDomain
 
         [Parameter()]
         [switch]
-        $Identity
+        $Identity,
+
+        [Parameter()]
+        [SecureString[]]
+        $AccessTokens
     )
 
     if (-not [string]::IsNullOrEmpty($ApplicationId))
     {
-        Connect-M365Tenant -Workload MicrosoftGraph -ApplicationId $ApplicationId -TenantId $TenantId -CertificateThumbprint $CertificateThumbprint
+        Connect-M365Tenant -Workload MicrosoftGraph `
+            -ApplicationId $ApplicationId `
+            -TenantId $TenantId `
+            -CertificateThumbprint $CertificateThumbprint
     }
     elseif ($Identity.IsPresent)
     {
-        Connect-M365Tenant -Workload MicrosoftGraph -Identity -TenantId $TenantId
+        Connect-M365Tenant -Workload MicrosoftGraph `
+            -Identity `
+            -TenantId $TenantId
+    }
+    elseif ($null -ne $AccessTokens)
+    {
+        Connect-M365Tenant -Workload MicrosoftGraph `
+            -AccessTokens $AccessTokens
     }
 
-    $domain = Get-MgDomain | Where-Object { $_.IsInitial -eq $True }
+    try
+    {
+        $domain = Get-MgDomain | Where-Object { $_.IsInitial -eq $True }
+    }
+    catch
+    {
+        $domain = Get-MgBetaDomain | Where-Object { $_.IsInitial -eq $True }
+    }
 
     if ($null -ne $domain)
     {
@@ -885,7 +917,11 @@ function Get-MSCloudLoginOrganizationName
 
         [Parameter()]
         [switch]
-        $Identity
+        $Identity,
+
+        [Parameter()]
+        [SecureString[]]
+        $AccessTokens
     )
     try
     {
@@ -900,6 +936,10 @@ function Get-MSCloudLoginOrganizationName
         elseif ($Identity.IsPresent)
         {
             Connect-M365Tenant -Workload MicrosoftGraph -Identity -TenantId $TenantId
+        }
+        elseif ($null -ne $AccessTokens)
+        {
+            Connect-M365Tenant -Workload MicrosoftGraph -AccessTokens $AccessTokens
         }
         $domain = Get-MgDomain -ErrorAction Stop | Where-Object { $_.IsInitial -eq $True }
 

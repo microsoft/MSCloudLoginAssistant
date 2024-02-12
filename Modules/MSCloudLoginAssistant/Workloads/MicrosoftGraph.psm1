@@ -134,6 +134,15 @@ function Connect-MSCloudLoginMicrosoftGraph
                 $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.MultiFactorAuthentication = $false
                 $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected = $true
             }
+            elseif($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AuthenticationType -eq 'AccessToken')
+            {
+                Write-Verbose -Message 'Connecting to Microsoft Graph with AccessToken'
+                Connect-MgGraph -Environment $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment `
+                                -AccessToken $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AccessToken  | Out-Null
+                $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime = [System.DateTime]::Now.ToString()
+                $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.MultiFactorAuthentication = $false
+                $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected = $true
+            }
             Write-Verbose -Message 'Connected'
         }
         catch
@@ -204,7 +213,7 @@ function Connect-MSCloudLoginMSGraphWithUser
         $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime = [System.DateTime]::Now.ToString()
         $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.MultiFactorAuthentication = $false
         $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected = $true
-        $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AccessToken = $AccessToken
+        $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AccessTokens = $AccessToken
     }
     catch
     {
@@ -225,7 +234,7 @@ function Connect-MSCloudLoginMSGraphWithUser
             $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime = [System.DateTime]::Now.ToString()
             $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.MultiFactorAuthentication = $false
             $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected = $true
-            $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AccessToken = $AccessToken
+            $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AccessTokens = $AccessToken
         }
         catch
         {

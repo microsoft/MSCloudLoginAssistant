@@ -160,7 +160,7 @@ function Connect-MSCloudLoginExchangeOnline
         {
             if ($NULL -eq $Global:MSCloudLoginConnectionProfile.OrganizationName)
             {
-                $Global:MSCloudLoginConnectionProfile.OrganizationName = Get-TenantDomain -Identity
+                $Global:MSCloudLoginConnectionProfile.OrganizationName = Get-MSCloudLoginTenantDomain -Identity
             }
 
             Connect-ExchangeOnline -AppId $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ApplicationId `
@@ -176,6 +176,36 @@ function Connect-MSCloudLoginExchangeOnline
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connected = $false
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.MultiFactorAuthentication = $true
             Write-Verbose -Message 'Successfully connected to Exchange Online using Managed Identity'
+        }
+        catch
+        {
+            throw $_
+        }
+    }
+    elseif ($Global:MSCloudLoginConnectionProfile.ExchangeOnline.AuthenticationType -eq 'AccessToken')
+    {
+        Write-Verbose -Message "Connecting to EXO with AccessToken"
+        try
+        {
+            $AccessTokenValue = $Global:MSCloudLoginConnectionProfile.ExchangeOnline.AccessTokens[0]
+            if ($AccessTokenValue.GetType().Name -eq 'SecureString')
+            {
+                $Ptr = [System.Runtime.InteropServices.Marshal]::SecureStringToCoTaskMemUnicode($AccessTokenValue)
+                $AccessTokenValue = [System.Runtime.InteropServices.Marshal]::PtrToStringUni($Ptr)
+                [System.Runtime.InteropServices.Marshal]::ZeroFreeCoTaskMemUnicode($Ptr)
+            }
+            Connect-ExchangeOnline -AccessToken $AccessTokenValue `
+                -Organization $Global:MSCloudLoginConnectionProfile.ExchangeOnline.TenantId `
+                -ShowBanner:$false `
+                -ShowProgress:$false `
+                -ExchangeEnvironmentName $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ExchangeEnvironmentName `
+                -Verbose:$false `
+                -SkipLoadingCmdletHelp | Out-Null
+
+            $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ConnectedDateTime = [System.DateTime]::Now.ToString()
+            $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connected = $false
+            $Global:MSCloudLoginConnectionProfile.ExchangeOnline.MultiFactorAuthentication = $false
+            Write-Verbose -Message 'Successfully connected to Exchange Online using Access Token'
         }
         catch
         {
