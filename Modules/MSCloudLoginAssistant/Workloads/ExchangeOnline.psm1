@@ -9,16 +9,21 @@ function Connect-MSCloudLoginExchangeOnline
     $VerbosePreference = 'SilentlyContinue'
 
     Write-Verbose -Message 'Trying to get the Get-AcceptedDomain command from within MSCloudLoginAssistant'
-    try
+
+    if ($Global:MSCloudLoginCurrentLoadedModule -eq "EXO")
     {
-        Get-AcceptedDomain -ErrorAction Stop
-        Write-Verbose -Message 'Succeeded'
-        $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connected = $true
-        return
-    }
-    catch
-    {
-        Write-Verbose -Message 'Failed'
+        try
+        {
+            Get-AcceptedDomain -ErrorAction Stop
+            Write-Verbose -Message 'Succeeded'
+
+            $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connected = $true
+            return
+        }
+        catch
+        {
+            Write-Verbose -Message 'Failed'
+        }
     }
 
     if ($Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connected -and `
@@ -212,6 +217,7 @@ function Connect-MSCloudLoginExchangeOnline
             throw $_
         }
     }
+    $Global:MSCloudLoginCurrentLoadedModule = "EXO"
 }
 
 function Connect-MSCloudLoginExchangeOnlineMFA

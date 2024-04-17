@@ -9,16 +9,20 @@ function Connect-MSCloudLoginSecurityCompliance
     $VerbosePreference = 'SilentlyContinue'
 
     Write-Verbose -Message 'Trying to get the Get-ComplianceSearch command from within MSCloudLoginAssistant'
-    try
+
+    if ($Global:MSCloudLoginCurrentLoadedModule -eq "SC")
     {
-        Get-ComplianceSearch -ErrorAction Stop
-        Write-Verbose -Message 'Succeeded'
-        $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Connected = $true
-        return
-    }
-    catch
-    {
-        Write-Verbose -Message 'Failed'
+        try
+        {
+            Get-ComplianceSearch -ErrorAction Stop
+            Write-Verbose -Message 'Succeeded'
+            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Connected = $true
+            return
+        }
+        catch
+        {
+            Write-Verbose -Message 'Failed'
+        }
     }
 
     Write-Verbose -Message "Connection Profile: $($Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter | Out-String)"
@@ -190,6 +194,8 @@ function Connect-MSCloudLoginSecurityCompliance
             Connect-MSCloudLoginSecurityComplianceMFA
         }
     }
+
+    $Global:MSCloudLoginCurrentLoadedModule = "SC"
 }
 
 function Connect-MSCloudLoginSecurityComplianceMFA
