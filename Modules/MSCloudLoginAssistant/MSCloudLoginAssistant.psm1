@@ -56,7 +56,7 @@ function Connect-M365Tenant
         $Identity,
 
         [Parameter()]
-        [SecureString[]]
+        [System.String[]]
         $AccessTokens
     )
 
@@ -341,6 +341,10 @@ function Compare-InputParametersForChange
     {
         $globalParameters.Add('Identity', $workloadProfile.Identity)
     }
+    if ($workloadProfile.AccessTokens)
+    {
+        $globalParameters.Add('AccessTokens', $workloadProfile.AccessTokens)
+    }
 
     # Clean the current parameters
 
@@ -379,7 +383,9 @@ function Compare-InputParametersForChange
     if ($null -ne $globalParameters)
     {
         $diffKeys = Compare-Object -ReferenceObject @($currentParameters.Keys) -DifferenceObject @($globalParameters.Keys) -PassThru
-        $diffValues = Compare-Object -ReferenceObject @($currentParameters.Values) -DifferenceObject @($globalParameters.Values) -PassThru
+
+        $referenceObj = $currentParameters.Values
+        $diffValues = Compare-Object -ReferenceObject $referenceObj -DifferenceObject @($globalParameters.Values) -PassThru
     }
 
     if ($null -eq $diffKeys -and $null -eq $diffValues)
@@ -858,7 +864,7 @@ function Get-MSCloudLoginTenantDomain
         $Identity,
 
         [Parameter()]
-        [SecureString[]]
+        [System.String[]]
         $AccessTokens
     )
 
@@ -920,7 +926,7 @@ function Get-MSCloudLoginOrganizationName
         $Identity,
 
         [Parameter()]
-        [SecureString[]]
+        [System.String[]]
         $AccessTokens
     )
     try

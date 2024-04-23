@@ -45,7 +45,7 @@ class MSCloudLoginConnectionProfile
 class Workload
 {
     [string]
-    [ValidateSet('Credentials', 'CredentialsWithApplicationId', 'CredentialsWithTenantId', 'ServicePrincipalWithSecret', 'ServicePrincipalWithThumbprint', 'ServicePrincipalWithPath', 'Interactive', 'Identity', 'AccessToken')]
+    [ValidateSet('Credentials', 'CredentialsWithApplicationId', 'CredentialsWithTenantId', 'ServicePrincipalWithSecret', 'ServicePrincipalWithThumbprint', 'ServicePrincipalWithPath', 'Interactive', 'Identity', 'AccessTokens')]
     $AuthenticationType
 
     [boolean]
@@ -85,7 +85,7 @@ class Workload
     [string]
     $CertificateThumbprint
 
-    [securestring[]]
+    [String[]]
     $AccessTokens
 
     [switch]
@@ -113,7 +113,7 @@ class Workload
             {
                 $Global:CloudEnvironmentInfo = Get-CloudEnvironmentInfo -Identity -TenantId $this.TenantId
             }
-            elseif ($this.AccessToken)
+            elseif ($this.AccessTokens)
             {
                 $Global:CloudEnvironmentInfo = Get-CloudEnvironmentInfo -TenantId $this.TenantId
             }
@@ -199,7 +199,7 @@ class Workload
         }
         elseif ($this.AccessTokens -and -not [System.String]::IsNullOrEmpty($this.TenantId))
         {
-            $this.AuthenticationType = 'AccessToken'
+            $this.AuthenticationType = 'AccessTokens'
         }
         else
         {

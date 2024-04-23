@@ -187,15 +187,15 @@ function Connect-MSCloudLoginExchangeOnline
             throw $_
         }
     }
-    elseif ($Global:MSCloudLoginConnectionProfile.ExchangeOnline.AuthenticationType -eq 'AccessToken')
+    elseif ($Global:MSCloudLoginConnectionProfile.ExchangeOnline.AuthenticationType -eq 'AccessTokens')
     {
-        Write-Verbose -Message "Connecting to EXO with AccessToken"
+        Write-Verbose -Message "Connecting to EXO with AccessTokens"
         try
         {
             $AccessTokenValue = $Global:MSCloudLoginConnectionProfile.ExchangeOnline.AccessTokens[0]
-            if ($AccessTokenValue.GetType().Name -eq 'SecureString')
+            if ($AccessTokenValue.GetType().Name -eq 'PSCredential')
             {
-                $Ptr = [System.Runtime.InteropServices.Marshal]::SecureStringToCoTaskMemUnicode($AccessTokenValue)
+                $Ptr = [System.Runtime.InteropServices.Marshal]::SecureStringToCoTaskMemUnicode($AccessTokenValue.Password)
                 $AccessTokenValue = [System.Runtime.InteropServices.Marshal]::PtrToStringUni($Ptr)
                 [System.Runtime.InteropServices.Marshal]::ZeroFreeCoTaskMemUnicode($Ptr)
             }
