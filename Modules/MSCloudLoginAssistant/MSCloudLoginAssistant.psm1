@@ -124,6 +124,16 @@ function Connect-M365Tenant
             $Global:MSCloudLoginConnectionProfile.Teams.Identity = $Identity
             $Global:MSCloudLoginConnectionProfile.Teams.Connect()
         }
+        'MSCommerce'
+        {
+            $Global:MSCloudLoginConnectionProfile.MSCommerce.Credentials = $Credential
+            $Global:MSCloudLoginConnectionProfile.MSCommerce.ApplicationId = $ApplicationId
+            $Global:MSCloudLoginConnectionProfile.MSCommerce.TenantId = $TenantId
+            $Global:MSCloudLoginConnectionProfile.MSCommerce.CertificateThumbprint = $CertificateThumbprint
+            $Global:MSCloudLoginConnectionProfile.MSCommerce.ApplicationSecret = $ApplicationSecret
+            $Global:MSCloudLoginConnectionProfile.MSCommerce.AccessTokens = $AccessTokens
+            $Global:MSCloudLoginConnectionProfile.MSCommerce.Connect()
+        }
         'PnP'
         {
             $Global:MSCloudLoginConnectionProfile.PnP.Credentials = $Credential
@@ -973,4 +983,37 @@ function Assert-IsNonInteractiveShell
     }
 
     return $true
+}
+
+function Get-JWTPayload
+{
+    param(
+        [Parameter()]
+        [System.String]
+        $AccessToken
+    )
+
+    # kindly nicked from https://www.michev.info/blog/post/2140/decode-jwt-access-and-id-tokens-via-powershell
+
+    #Validate as per https://tools.ietf.org/html/rfc7519
+    #Access and ID tokens are fine, Refresh tokens will not work
+    if (-not $AccessToken.Contains(".") -or -not $AccessToken.StartsWith("eyJ"))
+    {
+        throw "Invalid token '$AccessToken' - it looks like a Refresh token"
+    }
+
+    #Payload
+    $tokenPayload = $AccessToken.Split(".")[1].Replace('-', '+').Replace('_', '/')
+    #Fix padding as needed, keep adding "=" until string length modulus 4 reaches 0
+    while ($tokenPayload.Length % 4) { Write-Verbose "Invalid length for a Base-64 char array or string, adding ="; $tokenPayload += "=" }
+    #Convert to Byte array
+    $tokenByteArray = [System.Convert]::FromBase64String($tokenPayload)
+    #Convert to string array
+    $tokenArray = [System.Text.Encoding]::ASCII.GetString($tokenByteArray)
+    Write-Verbose "Decoded array in JSON format:"
+    Write-Verbose $tokenArray
+    #Convert from JSON to PSObject
+    $tokobj = $tokenArray | ConvertFrom-Json
+
+    return $tokobj
 }

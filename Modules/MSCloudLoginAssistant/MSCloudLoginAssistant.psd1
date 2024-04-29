@@ -70,6 +70,7 @@
         'ConnectionProfile.psm1',
         'Workloads\ExchangeOnline.psm1',
         'Workloads\MicrosoftGraph.psm1',
+        'Workloads\MSCommerce.psm1',
         'Workloads\Teams.psm1',
         'Workloads\PnP.psm1',
         'Workloads\PowerPlatform.psm1',

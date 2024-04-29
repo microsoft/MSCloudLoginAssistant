@@ -333,6 +333,25 @@ class MicrosoftGraph:Workload
     }
 }
 
+class MSCommerce:Workload
+{
+
+    MSCommerce()
+    {
+    }
+
+    [void] Connect()
+    {
+        ([Workload]$this).Setup()
+
+        if ($null -ne $this.Credentials -and [System.String]::IsNullOrEmpty($this.TenantId))
+        {
+            $this.TenantId = $this.Credentials.Username.Split('@')[1]
+        }
+        Connect-MSCloudLoginMSCommerce
+    }
+}
+
 class PnP:Workload
 {
     [string]
