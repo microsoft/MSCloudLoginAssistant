@@ -28,6 +28,12 @@ function Connect-MSCloudLoginMSCommerce
         }
     }
 
+    $azureCloudArg = @{}
+    if ($this.EnvironmentName)
+    {
+        $azureCloudArg.AzureCloudInstance = $this.Environment
+    }
+
     Import-Module MSCommerce -Global
     #Connect-MSCommerce skipped, it provides token-acquisition as below but with next to no options.
     # it is required to call the other MSCommerce-cmdlets/functions with an explicit token:
@@ -106,14 +112,15 @@ function Connect-MSCloudLoginMSCommerce
             {
                 # Get certificate from CurrentUser or Localmachine
                 $cert = Get-ChildItem -Path "Cert:\*$($Global:MSCloudLoginConnectionProfile.MSCommerce.CertificateThumbprint)" -Recurse
-                $accesstoken = Get-MsalToken -ClientId $Global:MSCloudLoginConnectionProfile.ApplicationId `
+                $token = Get-MsalToken -ClientId $Global:MSCloudLoginConnectionProfile.ApplicationId `
                     -TenantId $Global:MSCloudLoginConnectionProfile.MSCommerce.TenantId `
                     -Certificate $cert `
-                    -Scopes $Global:MSCloudLoginConnectionProfile.MSCommerce.Scope
+                    -Scopes $Global:MSCloudLoginConnectionProfile.MSCommerce.Scope `
+                    @azureCloudArg
                 $Global:MSCloudLoginConnectionProfile.MSCommerce.ConnectedDateTime = [System.DateTime]::Now.ToString()
                 $Global:MSCloudLoginConnectionProfile.MSCommerce.MultiFactorAuthentication = $false
                 $Global:MSCloudLoginConnectionProfile.MSCommerce.Connected = $true
-                $Global:MSCloudLoginConnectionProfile.MSCommerce.AccessTokens = $accessToken
+                $Global:MSCloudLoginConnectionProfile.MSCommerce.AccessTokens = $token.AccessToken
             }
             elseif($Global:MSCloudLoginConnectionProfile.MSCommerce.AuthenticationType -eq 'ServicePrincipalWithSecret')
             {
@@ -121,14 +128,15 @@ function Connect-MSCloudLoginMSCommerce
                 $secStringPassword = ConvertTo-SecureString -String $Global:MSCloudLoginConnectionProfile.MSCommerce.ApplicationSecret -AsPlainText -Force
                 #$userName = $Global:MSCloudLoginConnectionProfile.MSCommerce.ApplicationId
                 #[pscredential]$credObject = New-Object System.Management.Automation.PSCredential ($userName, $secStringPassword)
-                $accessToken = Get-MsalToken -ClientId $Global:MSCloudLoginConnectionProfile.ApplicationId ´
+                $token = Get-MsalToken -ClientId $Global:MSCloudLoginConnectionProfile.ApplicationId ´
                     -TenantId $Global:MSCloudLoginConnectionProfile.MSCommerce.TenantId `
                     -ClientSecret $secStringPassword
-                    -Scopes $Global:MSCloudLoginConnectionProfile.MSCommerce.Scope
+                    -Scopes $Global:MSCloudLoginConnectionProfile.MSCommerce.Scope `
+                    @azureCloudArg
                 $Global:MSCloudLoginConnectionProfile.MSCommerce.ConnectedDateTime = [System.DateTime]::Now.ToString()
                 $Global:MSCloudLoginConnectionProfile.MSCommerce.MultiFactorAuthentication = $false
                 $Global:MSCloudLoginConnectionProfile.MSCommerce.Connected = $true
-                $Global:MSCloudLoginConnectionProfile.MSCommerce.AccessTokens = $accessToken
+                $Global:MSCloudLoginConnectionProfile.MSCommerce.AccessTokens = $token.AccessToken
             }
             elseif($Global:MSCloudLoginConnectionProfile.MSCommerce.AuthenticationType -eq 'AccessToken')
             {
@@ -136,7 +144,7 @@ function Connect-MSCloudLoginMSCommerce
                 $Global:MSCloudLoginConnectionProfile.MSCommerce.ConnectedDateTime = [System.DateTime]::Now.ToString()
                 $Global:MSCloudLoginConnectionProfile.MSCommerce.MultiFactorAuthentication = $false
                 $Global:MSCloudLoginConnectionProfile.MSCommerce.Connected = $true
-                $Global:MSCloudLoginConnectionProfile.MSCommerce.TenantId = (Get-JWTPayload -AccessToken $accessToken).tid
+                $Global:MSCloudLoginConnectionProfile.MSCommerce.TenantId = (Get-JWTPayload -AccessToken $Global:MSCloudLoginConnectionProfile.MSCommerce.AccessTokens[0]).tid
             }
             Write-Verbose -Message 'Connected'
         }

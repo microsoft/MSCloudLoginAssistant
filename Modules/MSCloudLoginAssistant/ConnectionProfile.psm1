@@ -34,6 +34,7 @@ class MSCloudLoginConnectionProfile
         # Workloads Object Creation
         $this.ExchangeOnline = New-Object ExchangeOnline
         $this.MicrosoftGraph = New-Object MicrosoftGraph
+        $this.MSCommerce = New-Object MSCommerce
         $this.PnP = New-Object PnP
         $this.PowerPlatform = New-Object PowerPlatform
         $this.SecurityComplianceCenter = New-Object SecurityComplianceCenter
