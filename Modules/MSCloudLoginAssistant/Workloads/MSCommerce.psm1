@@ -28,10 +28,10 @@ function Connect-MSCloudLoginMSCommerce
         }
     }
 
-    $azureCloudArg = @{}
+    $azureCloudInstanceArg = @{}
     if ($this.EnvironmentName)
     {
-        $azureCloudArg.AzureCloudInstance = $this.Environment
+        $azureCloudInstanceArg.AzureCloudInstance = $this.Environment
     }
 
     Import-Module MSCommerce -Global
@@ -116,7 +116,7 @@ function Connect-MSCloudLoginMSCommerce
                     -TenantId $Global:MSCloudLoginConnectionProfile.MSCommerce.TenantId `
                     -Certificate $cert `
                     -Scopes $Global:MSCloudLoginConnectionProfile.MSCommerce.Scope `
-                    @azureCloudArg
+                    @azureCloudInstanceArg
                 $Global:MSCloudLoginConnectionProfile.MSCommerce.ConnectedDateTime = [System.DateTime]::Now.ToString()
                 $Global:MSCloudLoginConnectionProfile.MSCommerce.MultiFactorAuthentication = $false
                 $Global:MSCloudLoginConnectionProfile.MSCommerce.Connected = $true
@@ -132,7 +132,7 @@ function Connect-MSCloudLoginMSCommerce
                     -TenantId $Global:MSCloudLoginConnectionProfile.MSCommerce.TenantId `
                     -ClientSecret $secStringPassword
                     -Scopes $Global:MSCloudLoginConnectionProfile.MSCommerce.Scope `
-                    @azureCloudArg
+                    @azureCloudInstanceArg
                 $Global:MSCloudLoginConnectionProfile.MSCommerce.ConnectedDateTime = [System.DateTime]::Now.ToString()
                 $Global:MSCloudLoginConnectionProfile.MSCommerce.MultiFactorAuthentication = $false
                 $Global:MSCloudLoginConnectionProfile.MSCommerce.Connected = $true
@@ -160,6 +160,7 @@ function Connect-MSCloudLoginMSCommerceWithUser
 {
     [CmdletBinding()]
 
+    <# initial attempt. Doesn't fly
     $sessionState = $PSCmdlet.SessionState
     $msCommerceToken = $sessionState.PSVariable.GetValue('token')
     if ($null -ne $msCommerceToken)
@@ -171,15 +172,21 @@ function Connect-MSCloudLoginMSCommerceWithUser
     {
         Write-Verbose -Message "The current account that is connected doesn't match the one we're trying to authenticate with."
     }
+    #>
 
     try
     {
-        Connect-MSCommerce
+        #Connect-MSCommerce # won't work - DSC-resource expects token to be stored in $Global:MSCloudLoginConnectionProfile.MSCommerce.AccessTokens[0]
+
+        $token = Get-MsalToken -ClientId '3d5cffa9-04da-4657-8cab-c7f074657cad' `
+        -RedirectUri 'http://localhost/m365/commerce' `
+        -Scopes $Global:MSCloudLoginConnectionProfile.MSCommerce.Scope `
+        @azureCloudInstanceArg
 
         $Global:MSCloudLoginConnectionProfile.MSCommerce.ConnectedDateTime = [System.DateTime]::Now.ToString()
-        $Global:MSCloudLoginConnectionProfile.MSCommerce.MultiFactorAuthentication = $false
+        $Global:MSCloudLoginConnectionProfile.MSCommerce.MultiFactorAuthentication = $true
         $Global:MSCloudLoginConnectionProfile.MSCommerce.Connected = $true
-        $Global:MSCloudLoginConnectionProfile.MSCommerce.AccessTokens = $null
+        $Global:MSCloudLoginConnectionProfile.MSCommerce.AccessTokens = $token.AccessToken
     }
     catch
     {
