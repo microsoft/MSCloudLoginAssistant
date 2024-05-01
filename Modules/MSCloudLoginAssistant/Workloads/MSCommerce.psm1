@@ -97,8 +97,6 @@ function Connect-MSCloudLoginMSCommerce
         $Global:MSCloudLoginConnectionProfile.MSCommerce.ConnectedDateTime = [System.DateTime]::Now.ToString()
         $Global:MSCloudLoginConnectionProfile.MSCommerce.MultiFactorAuthentication = $false
         $Global:MSCloudLoginConnectionProfile.MSCommerce.Connected = $true
-        $Global:MSCloudLoginConnectionProfile.MSCommerce.AccessTokens = $accessToken
-        $Global:MSCloudLoginConnectionProfile.MSCommerce.TenantId = (Get-JWTPayload -AccessToken $accessToken).tid
     }
     else
     {
@@ -108,7 +106,7 @@ function Connect-MSCloudLoginMSCommerce
             {
                 # Get certificate from CurrentUser or Localmachine
                 $cert = Get-ChildItem -Path "Cert:\*$($Global:MSCloudLoginConnectionProfile.MSCommerce.CertificateThumbprint)" -Recurse
-                $accesstoken = Get-MsalToken -ClientId $Global:MSCloudLoginConnectionProfile.ApplicationId ´
+                $accesstoken = Get-MsalToken -ClientId $Global:MSCloudLoginConnectionProfile.ApplicationId `
                     -TenantId $Global:MSCloudLoginConnectionProfile.MSCommerce.TenantId `
                     -Certificate $cert `
                     -Scopes $Global:MSCloudLoginConnectionProfile.MSCommerce.Scope
