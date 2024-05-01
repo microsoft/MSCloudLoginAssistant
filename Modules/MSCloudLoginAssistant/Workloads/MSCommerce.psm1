@@ -28,6 +28,7 @@ function Connect-MSCloudLoginMSCommerce
         }
     }
 
+    $Global:MSCloudLoginConnectionProfile.MSCommerce.AccessTokens = @()
     $azureCloudInstanceArg = @{}
     if ($this.EnvironmentName)
     {
@@ -103,6 +104,7 @@ function Connect-MSCloudLoginMSCommerce
         $Global:MSCloudLoginConnectionProfile.MSCommerce.ConnectedDateTime = [System.DateTime]::Now.ToString()
         $Global:MSCloudLoginConnectionProfile.MSCommerce.MultiFactorAuthentication = $false
         $Global:MSCloudLoginConnectionProfile.MSCommerce.Connected = $true
+        $Global:MSCloudLoginConnectionProfile.MSCommerce.AccessTokens += $accessToken
     }
     else
     {
@@ -120,7 +122,7 @@ function Connect-MSCloudLoginMSCommerce
                 $Global:MSCloudLoginConnectionProfile.MSCommerce.ConnectedDateTime = [System.DateTime]::Now.ToString()
                 $Global:MSCloudLoginConnectionProfile.MSCommerce.MultiFactorAuthentication = $false
                 $Global:MSCloudLoginConnectionProfile.MSCommerce.Connected = $true
-                $Global:MSCloudLoginConnectionProfile.MSCommerce.AccessTokens = $token.AccessToken
+                $Global:MSCloudLoginConnectionProfile.MSCommerce.AccessTokens += $token.AccessToken
             }
             elseif($Global:MSCloudLoginConnectionProfile.MSCommerce.AuthenticationType -eq 'ServicePrincipalWithSecret')
             {
@@ -136,7 +138,7 @@ function Connect-MSCloudLoginMSCommerce
                 $Global:MSCloudLoginConnectionProfile.MSCommerce.ConnectedDateTime = [System.DateTime]::Now.ToString()
                 $Global:MSCloudLoginConnectionProfile.MSCommerce.MultiFactorAuthentication = $false
                 $Global:MSCloudLoginConnectionProfile.MSCommerce.Connected = $true
-                $Global:MSCloudLoginConnectionProfile.MSCommerce.AccessTokens = $token.AccessToken
+                $Global:MSCloudLoginConnectionProfile.MSCommerce.AccessTokens += $token.AccessToken
             }
             elseif($Global:MSCloudLoginConnectionProfile.MSCommerce.AuthenticationType -eq 'AccessToken')
             {
@@ -186,7 +188,7 @@ function Connect-MSCloudLoginMSCommerceWithUser
         $Global:MSCloudLoginConnectionProfile.MSCommerce.ConnectedDateTime = [System.DateTime]::Now.ToString()
         $Global:MSCloudLoginConnectionProfile.MSCommerce.MultiFactorAuthentication = $true
         $Global:MSCloudLoginConnectionProfile.MSCommerce.Connected = $true
-        $Global:MSCloudLoginConnectionProfile.MSCommerce.AccessTokens = $token.AccessToken
+        $Global:MSCloudLoginConnectionProfile.MSCommerce.AccessTokens += $token.AccessToken
     }
     catch
     {
