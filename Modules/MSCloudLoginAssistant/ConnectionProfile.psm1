@@ -336,6 +336,8 @@ class MicrosoftGraph:Workload
 
 class MSCommerce:Workload
 {
+    [string]
+    $Scope = 'aeb86249-8ea3-49e2-900b-54cc8e308f85/.default'
 
     MSCommerce()
     {

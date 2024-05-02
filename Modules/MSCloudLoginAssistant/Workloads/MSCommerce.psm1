@@ -32,11 +32,11 @@ function Connect-MSCloudLoginMSCommerce
     $azureCloudInstanceArg = @{}
     if ($this.EnvironmentName)
     {
-        $azureCloudInstanceArg.AzureCloudInstance = $this.Environment
+        $azureCloudInstanceArg.AzureCloudInstance = $this.EnvironmentName
     }
 
     Import-Module MSCommerce -Global
-    #Connect-MSCommerce skipped, it provides token-acquisition as below but with next to no options.
+    #Connect-MSCommerce not used, it provides token-acquisition as below but with next to no options.
     # it is required to call the other MSCommerce-cmdlets/functions with an explicit token:
     # $Global:MSCloudLoginConnectionProfile.MSCommerce.AccessTokens[0]
 
