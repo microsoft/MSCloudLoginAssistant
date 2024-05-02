@@ -181,6 +181,7 @@ function Connect-MSCloudLoginMSCommerceWithUser
         #Connect-MSCommerce # won't work - DSC-resource expects token to be stored in $Global:MSCloudLoginConnectionProfile.MSCommerce.AccessTokens[0]
 
         $token = Get-MsalToken -ClientId '3d5cffa9-04da-4657-8cab-c7f074657cad' `
+        -UserCredential $Global:MSCloudLoginConnectionProfile.MSCommerce.Credentials `
         -RedirectUri 'http://localhost/m365/commerce' `
         -Scopes $Global:MSCloudLoginConnectionProfile.MSCommerce.Scope `
         @azureCloudInstanceArg
