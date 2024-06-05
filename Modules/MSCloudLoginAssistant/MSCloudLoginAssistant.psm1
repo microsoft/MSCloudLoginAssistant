@@ -6,7 +6,7 @@ function Connect-M365Tenant
         [Parameter(Mandatory = $true)]
         [ValidateSet('ExchangeOnline', `
                 'SecurityComplianceCenter', 'PnP', 'PowerPlatforms', `
-                'MicrosoftTeams', 'MicrosoftGraph', 'Tasks')]
+                'MicrosoftTeams', 'MicrosoftGraph', 'Tasks', 'AzureDevOPS')]
         [System.String]
         $Workload,
 
@@ -57,7 +57,11 @@ function Connect-M365Tenant
 
         [Parameter()]
         [System.String[]]
-        $AccessTokens
+        $AccessTokens,
+
+        [Parameter()]
+        [System.Collections.Hashtable]
+        $Endpoints
     )
 
     $VerbosePreference = 'SilentlyContinue'
@@ -88,6 +92,18 @@ function Connect-M365Tenant
     Write-Verbose -Message "Trying to connect to platform {$Workload}"
     switch ($Workload)
     {
+        'AzureDevOPS'
+        {
+            $Global:MSCloudLoginConnectionProfile.AzureDevOPS.Credentials = $Credential
+            $Global:MSCloudLoginConnectionProfile.AzureDevOPS.ApplicationId = $ApplicationId
+            $Global:MSCloudLoginConnectionProfile.AzureDevOPS.ApplicationSecret = $ApplicationSecret
+            $Global:MSCloudLoginConnectionProfile.AzureDevOPS.TenantId = $TenantId
+            $Global:MSCloudLoginConnectionProfile.AzureDevOPS.CertificateThumbprint = $CertificateThumbprint
+            $Global:MSCloudLoginConnectionProfile.AzureDevOPS.AccessTokens = $AccessTokens
+            $Global:MSCloudLoginConnectionProfile.AzureDevOPS.Identity = $Identity
+            $Global:MSCloudLoginConnectionProfile.AzureDevOPS.Endpoints = $Endpoints
+            $Global:MSCloudLoginConnectionProfile.AzureDevOPS.Connect()
+        }
         'ExchangeOnline'
         {
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Credentials = $Credential
@@ -98,6 +114,7 @@ function Connect-M365Tenant
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.SkipModuleReload = $SkipModuleReload
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.AccessTokens = $AccessTokens
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Identity = $Identity
+            $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Endpoints = $Endpoints
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connect()
         }
         'MicrosoftGraph'
@@ -109,6 +126,7 @@ function Connect-M365Tenant
             $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.CertificateThumbprint = $CertificateThumbprint
             $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AccessTokens = $AccessTokens
             $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Identity = $Identity
+            $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Endpoints = $Endpoints
             $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connect()
         }
         'MicrosoftTeams'
@@ -122,6 +140,7 @@ function Connect-M365Tenant
             $Global:MSCloudLoginConnectionProfile.Teams.CertificatePassword = $CertificatePassword
             $Global:MSCloudLoginConnectionProfile.Teams.AccessTokens = $AccessTokens
             $Global:MSCloudLoginConnectionProfile.Teams.Identity = $Identity
+            $Global:MSCloudLoginConnectionProfile.Teams.Endpoints = $Endpoints
             $Global:MSCloudLoginConnectionProfile.Teams.Connect()
         }
         'PnP'
@@ -134,6 +153,7 @@ function Connect-M365Tenant
             $Global:MSCloudLoginConnectionProfile.PnP.CertificatePath = $CertificatePath
             $Global:MSCloudLoginConnectionProfile.PnP.AccessTokens = $AccessTokens
             $Global:MSCloudLoginConnectionProfile.PnP.Identity = $Identity
+            $Global:MSCloudLoginConnectionProfile.PnP.Endpoints = $Endpoints
             $Global:MSCloudLoginConnectionProfile.PnP.CertificatePassword = $CertificatePassword
 
             # Mark as disconnected if we are trying to connect to a different url then we previously connected to.
@@ -200,6 +220,7 @@ function Connect-M365Tenant
             $Global:MSCloudLoginConnectionProfile.PowerPlatform.CertificateThumbprint = $CertificateThumbprint
             $Global:MSCloudLoginConnectionProfile.PowerPlatform.ApplicationSecret = $ApplicationSecret
             $Global:MSCloudLoginConnectionProfile.PowerPlatform.AccessTokens = $AccessTokens
+            $Global:MSCloudLoginConnectionProfile.PowerPlatform.Endpoints = $Endpoints
             $Global:MSCloudLoginConnectionProfile.PowerPlatform.Connect()
         }
         'SecurityComplianceCenter'
@@ -213,6 +234,7 @@ function Connect-M365Tenant
             $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.CertificatePassword = $CertificatePassword
             $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.AccessTokens = $AccessTokens
             $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.SkipModuleReload = $SkipModuleReload
+            $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Endpoints = $Endpoints
             $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Connect()
         }
         'Tasks'
@@ -225,6 +247,7 @@ function Connect-M365Tenant
             $Global:MSCloudLoginConnectionProfile.Tasks.CertificatePath = $CertificatePath
             $Global:MSCloudLoginConnectionProfile.Tasks.CertificatePassword = $CertificatePassword
             $Global:MSCloudLoginConnectionProfile.Tasks.AccessTokens = $AccessTokens
+            $Global:MSCloudLoginConnectionProfile.Tasks.Endpoints = $Endpoints
             $Global:MSCloudLoginConnectionProfile.Tasks.Connect()
         }
     }
@@ -595,95 +618,139 @@ function Get-AuthHeader
     Return $AuthHeader
 }
 
-function Get-AccessToken
+function Get-MSCloudLoginAccessToken
 {
     [CmdletBinding()]
+    [OutputType([System.String])]
     Param(
         [Parameter(Mandatory = $True)]
-        $TargetUri,
+        [System.String]
+        $ConnectionUri,
 
         [Parameter(Mandatory = $True)]
-        $AuthUri,
+        [System.String]
+        $AzureADAuthorizationEndpointUri,
 
         [Parameter(Mandatory = $True)]
-        $ClientId,
+        [System.String]
+        $ApplicationId,
 
-        [Parameter(Mandatory = $False)]
-        [System.Management.Automation.PSCredential]
-        $Credentials
+        [Parameter(Mandatory = $True)]
+        [System.String]
+        $TenantId,
+
+        [Parameter(Mandatory = $True)]
+        [System.String]
+        $CertificateThumbprint
     )
 
     try
     {
-        Write-Verbose "There was no existing Access Token for $ClientId. Requesting a new one from $TargetUri"
-        $AzureADDLL = Get-AzureADDLL
-        if ([string]::IsNullOrEmpty($AzureADDLL))
+        Write-Verbose -Message "Connecting by endpoints URI"
+        $Certificate = Get-Item "Cert:\CurrentUser\My\$($CertificateThumbprint)" -ErrorAction SilentlyContinue
+        if ($null -eq $Certificate)
         {
-            throw "Can't find Azure AD DLL"
-        }
-        [System.Reflection.Assembly]::LoadFrom($AzureADDLL) | Out-Null
+            Write-Verbose 'Certificate not found in CurrentUser\My'
+            $Certificate = Get-ChildItem "Cert:\LocalMachine\My\$($CertificateThumbprint)" -ErrorAction SilentlyContinue
 
-        $context = [Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext]::new($AuthUri, $false, [Microsoft.IdentityModel.Clients.ActiveDirectory.TokenCache]::DefaultShared)
-
-        Write-Verbose -Message "AuthURI = $AuthURI"
-        Write-Verbose -Message "TargetURI = $TargetUri"
-        Write-Verbose -Message "ClientID = $ClientID"
-        Write-Verbose -Message "Content = $context"
-        $authResult = $context.AcquireTokenSilentAsync($TargetUri, $ClientId)
-        $AccessToken = $authResult.result.AccessToken
-
-        if ([System.String]::IsNullOrEmpty($AccessToken))
-        {
-            $jobName = 'AcquireTokenAsync' + (New-Guid).ToString()
-            Start-Job -Name $jobName -ScriptBlock {
-                Param(
-                    [Parameter(Mandatory = $True)]
-                    $TargetUri,
-
-                    [Parameter(Mandatory = $True)]
-                    $AuthUri,
-
-                    [Parameter(Mandatory = $True)]
-                    $ClientId,
-
-                    [Parameter(Mandatory = $False)]
-                    [System.Management.Automation.PSCredential]
-                    $Credentials,
-
-                    [Parameter(Mandatory = $true)]
-                    [System.String]
-                    $AzureADDLL
-                )
-                try
-                {
-                    [System.Reflection.Assembly]::LoadFrom($AzureADDLL) | Out-Null
-
-                    $UserPasswordCreds = [Microsoft.IdentityModel.Clients.ActiveDirectory.UserPasswordCredential]::new($Credentials.UserName, $Credentials.Password)
-                    $context = [Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContext]::new($AuthUri, $false, [Microsoft.IdentityModel.Clients.ActiveDirectory.TokenCache]::DefaultShared)
-                    $authResult = $context.AcquireTokenSilentAsync($TargetUri, $ClientId)
-
-                    if ($null -eq $authResult.result)
-                    {
-                        $authResult = [Microsoft.IdentityModel.Clients.ActiveDirectory.AuthenticationContextIntegratedAuthExtensions]::AcquireTokenAsync($context, $targetUri, $ClientId, $UserPasswordCreds)
-                    }
-                    $token = $authResult.result.AccessToken
-                    return $token
-                }
-                catch
-                {
-                    Write-Verbose -Message "Error {Get-AccessToken}: $_"
-                    return $null
-                }
-            } -ArgumentList @($targetUri, $AuthUri, $ClientId, $Credentials, $AzureADDLL) | Out-Null
-            $job = Get-Job | Where-Object -FilterScript { $_.Name -eq $jobName }
-            do
+            if ($null -eq $Certificate)
             {
-                Start-Sleep -Seconds 1
-            } while ($job.JobStateInfo.State -ne 'Completed')
-            $AccessToken = Receive-Job -Name $jobName
+                throw 'Certificate not found in LocalMachine\My'
+            }
         }
-        Write-Verbose "Token Found --> $AccessToken"
-        return $AccessToken
+        # Create base64 hash of certificate
+        $CertificateBase64Hash = [System.Convert]::ToBase64String($Certificate.GetCertHash())
+
+        # Create JWT timestamp for expiration
+        $StartDate = (Get-Date '1970-01-01T00:00:00Z' ).ToUniversalTime()
+        $JWTExpirationTimeSpan = (New-TimeSpan -Start $StartDate -End (Get-Date).ToUniversalTime().AddMinutes(2)).TotalSeconds
+        $JWTExpiration = [math]::Round($JWTExpirationTimeSpan, 0)
+
+        # Create JWT validity start timestamp
+        $NotBeforeExpirationTimeSpan = (New-TimeSpan -Start $StartDate -End ((Get-Date).ToUniversalTime())).TotalSeconds
+        $NotBefore = [math]::Round($NotBeforeExpirationTimeSpan, 0)
+
+        # Create JWT header
+        $JWTHeader = @{
+            alg = 'RS256'
+            typ = 'JWT'
+            # Use the CertificateBase64Hash and replace/strip to match web encoding of base64
+            x5t = $CertificateBase64Hash -replace '\+', '-' -replace '/', '_' -replace '='
+        }
+
+        # Create JWT payload
+        $JWTPayLoad = @{
+            # What endpoint is allowed to use this JWT
+            aud = "$($AzureADAuthorizationEndpointUri)/$($TenantId)/oauth2/token"
+
+            # Expiration timestamp
+            exp = $JWTExpiration
+
+            # Issuer = your application
+            iss = $ApplicationId
+
+            # JWT ID: random guid
+            jti = [guid]::NewGuid()
+
+            # Not to be used before
+            nbf = $NotBefore
+
+            # JWT Subject
+            sub = $ApplicationId
+        }
+
+        # Convert header and payload to base64
+        $JWTHeaderToByte = [System.Text.Encoding]::UTF8.GetBytes(($JWTHeader | ConvertTo-Json))
+        $EncodedHeader = [System.Convert]::ToBase64String($JWTHeaderToByte)
+
+        $JWTPayLoadToByte = [System.Text.Encoding]::UTF8.GetBytes(($JWTPayload | ConvertTo-Json))
+        $EncodedPayload = [System.Convert]::ToBase64String($JWTPayLoadToByte)
+
+        # Join header and Payload with "." to create a valid (unsigned) JWT
+        $JWT = $EncodedHeader + '.' + $EncodedPayload
+
+        # Get the private key object of your certificate
+        $PrivateKey = ([System.Security.Cryptography.X509Certificates.RSACertificateExtensions]::GetRSAPrivateKey($Certificate))
+
+        # Define RSA signature and hashing algorithm
+        $RSAPadding = [Security.Cryptography.RSASignaturePadding]::Pkcs1
+        $HashAlgorithm = [Security.Cryptography.HashAlgorithmName]::SHA256
+
+        # Create a signature of the JWT
+        $Signature = [Convert]::ToBase64String(
+            $PrivateKey.SignData([System.Text.Encoding]::UTF8.GetBytes($JWT), $HashAlgorithm, $RSAPadding)
+        ) -replace '\+', '-' -replace '/', '_' -replace '='
+
+        # Join the signature to the JWT with "."
+        $JWT = $JWT + '.' + $Signature
+
+        # Create a hash with body parameters
+        $Body = @{
+            client_id             = $appId
+            client_assertion      = $JWT
+            client_assertion_type = 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer'
+            scope                 = $ConnectionUri
+            grant_type            = 'client_credentials'
+        }
+
+        $Url = "$($AzureADAuthorizationEndpointUri)/$($TenantId)/oauth2/v2.0/token"
+
+        # Use the self-generated JWT as Authorization
+        $Header = @{
+            Authorization = "Bearer $JWT"
+        }
+
+        # Splat the parameters for Invoke-Restmethod for cleaner code
+        $PostSplat = @{
+            ContentType = 'application/x-www-form-urlencoded'
+            Method      = 'POST'
+            Body        = $Body
+            Uri         = $Url
+            Headers     = $Header
+        }
+
+        $Request = Invoke-RestMethod @PostSplat
+        return $Request.access_token
     }
     catch
     {

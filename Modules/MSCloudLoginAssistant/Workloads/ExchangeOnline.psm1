@@ -75,14 +75,33 @@ function Connect-MSCloudLoginExchangeOnline
                     -CertificateThumbprint $Global:MSCloudLoginConnectionProfile.ExchangeOnline.CertificateThumbprint
             }
 
-            Connect-ExchangeOnline -AppId $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ApplicationId `
-                -Organization $Global:MSCloudLoginConnectionProfile.OrganizationName `
-                -CertificateThumbprint $Global:MSCloudLoginConnectionProfile.ExchangeOnline.CertificateThumbprint `
-                -ShowBanner:$false `
-                -ShowProgress:$false `
-                -ExchangeEnvironmentName $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ExchangeEnvironmentName `
-                -Verbose:$false `
-                -SkipLoadingCmdletHelp | Out-Null
+            if ($null -ne $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Endpoints -and `
+                $null -ne $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Endpoints.ConnectionUri -and `
+                $null -ne $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Endpoints.AzureADAuthorizationEndpointUri)
+            {
+                Write-Verbose -Message "Connecting by endpoints URI"
+                Connect-ExchangeOnline -AppId $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ApplicationId `
+                    -Organization $Global:MSCloudLoginConnectionProfile.OrganizationName `
+                    -CertificateThumbprint $Global:MSCloudLoginConnectionProfile.ExchangeOnline.CertificateThumbprint `
+                    -ShowBanner:$false `
+                    -ShowProgress:$false `
+                    -ConnectionUri $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Endpoints.ConnectionUri `
+                    -AzureADAuthorizationEndpointUri $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Endpoints.AzureADAuthorizationEndpointUri `
+                    -Verbose:$false `
+                    -SkipLoadingCmdletHelp | Out-Null
+            }
+            else
+            {
+                Write-Verbose -Message "Connecting by environment name"
+                Connect-ExchangeOnline -AppId $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ApplicationId `
+                    -Organization $Global:MSCloudLoginConnectionProfile.OrganizationName `
+                    -CertificateThumbprint $Global:MSCloudLoginConnectionProfile.ExchangeOnline.CertificateThumbprint `
+                    -ShowBanner:$false `
+                    -ShowProgress:$false `
+                    -ExchangeEnvironmentName $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ExchangeEnvironmentName `
+                    -Verbose:$false `
+                    -SkipLoadingCmdletHelp | Out-Null
+            }
 
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ConnectedDateTime = [System.DateTime]::Now.ToString()
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connected = $true

@@ -6,6 +6,9 @@ class MSCloudLoginConnectionProfile
     [string]
     $OrganizationName
 
+    [AzureDevOPS]
+    $AzureDevOPS
+
     [ExchangeOnline]
     $ExchangeOnline
 
@@ -32,6 +35,7 @@ class MSCloudLoginConnectionProfile
         $this.CreatedTime = [System.DateTime]::Now.ToString()
 
         # Workloads Object Creation
+        $this.AzureDevOPS    = New-Object AzureDevOPS
         $this.ExchangeOnline = New-Object ExchangeOnline
         $this.MicrosoftGraph = New-Object MicrosoftGraph
         $this.PnP = New-Object PnP
@@ -90,6 +94,9 @@ class Workload
 
     [switch]
     $Identity
+
+    [System.Collections.Hashtable]
+    $Endpoints
 
     Setup()
     {
@@ -208,6 +215,53 @@ class Workload
     }
 }
 
+class AzureDevOPS:Workload
+{
+    [string]
+    $HostUrl
+
+    [string]
+    $AuthorizationUrl
+
+    [string]
+    $Scope
+
+    [string]
+    $AccessToken
+
+    Tasks()
+    {
+    }
+
+    [void] Connect()
+    {
+        ([Workload]$this).Setup()
+        switch ($this.EnvironmentName)
+        {
+            'AzureDOD'
+            {
+                $this.HostUrl          = "https://dev.azure.us"
+                $this.Scope            = "499b84ac-1321-427f-aa17-267ca6975798/.default"
+                $this.AuthorizationUrl = "https://login.microsoftonline.us"
+            }
+            'AzureUSGovernment'
+            {
+                $this.HostUrl          = "https://dev.azure.com"
+                $this.Scope            = "499b84ac-1321-427f-aa17-267ca6975798/.default"
+                $this.AuthorizationUrl = "https://login.microsoftonline.us"
+            }
+            default
+            {
+                $this.HostUrl          = "https://dev.azure.com"
+                $this.Scope            = "499b84ac-1321-427f-aa17-267ca6975798/.default"
+                $this.AuthorizationUrl = "https://login.microsoftonline.com"
+            }
+        }
+
+        Connect-MSCloudLoginAzureDevOPS
+    }
+}
+
 class ExchangeOnline:Workload
 {
     [string]
@@ -294,39 +348,43 @@ class MicrosoftGraph:Workload
         {
             $this.TenantId = $this.Credentials.Username.Split('@')[1]
         }
-        switch ($this.EnvironmentName)
+
+        if ($null -eq $this.Endpoints)
         {
-            'AzureCloud'
+            switch ($this.EnvironmentName)
             {
-                $this.GraphEnvironment = 'Global'
-                $this.ResourceUrl = 'https://graph.microsoft.com/'
-                $this.Scope = 'https://graph.microsoft.com/.default'
-                $this.TokenUrl = "https://login.microsoftonline.com/$($this.TenantId)/oauth2/v2.0/token"
-                $this.UserTokenUrl = "https://login.microsoftonline.com/$($this.TenantId)/oauth2/v2.0/authorize"
-            }
-            'AzureUSGovernment'
-            {
-                $this.GraphEnvironment = 'USGov'
-                $this.ResourceUrl = 'https://graph.microsoft.us/'
-                $this.Scope = 'https://graph.microsoft.us/.default'
-                $this.TokenUrl = "https://login.microsoftonline.us/$($this.TenantId)/oauth2/v2.0/token"
-                $this.UserTokenUrl = "https://login.microsoftonline.us/$($this.TenantId)/oauth2/v2.0/authorize"
-            }
-            'AzureDOD'
-            {
-                $this.GraphEnvironment = 'USGovDoD'
-                $this.ResourceUrl = 'https://dod-graph.microsoft.us/'
-                $this.Scope = 'https://dod-graph.microsoft.us/.default'
-                $this.TokenUrl = "https://login.microsoftonline.us/$($this.TenantId)/oauth2/v2.0/token"
-                $this.UserTokenUrl = "https://login.microsoftonline.us/$($this.TenantId)/oauth2/v2.0/authorize"
-            }
-            'AzureChinaCloud'
-            {
-                $this.GraphEnvironment = 'China'
-                $this.ResourceUrl = 'https://microsoftgraph.chinacloudapi.cn/'
-                $this.Scope = 'https://microsoftgraph.chinacloudapi.cn/.default'
-                $this.TokenUrl = "https://login.chinacloudapi.cn/$($this.TenantId)/oauth2/v2.0/token"
-                $this.UserTokenUrl = "https://login.chinacloudapi.cn/$($this.TenantId)/oauth2/v2.0/authorize"
+                'AzureCloud'
+                {
+                    $this.GraphEnvironment = 'Global'
+                    $this.ResourceUrl = 'https://graph.microsoft.com/'
+                    $this.Scope = 'https://graph.microsoft.com/.default'
+                    $this.TokenUrl = "https://login.microsoftonline.com/$($this.TenantId)/oauth2/v2.0/token"
+                    $this.UserTokenUrl = "https://login.microsoftonline.com/$($this.TenantId)/oauth2/v2.0/authorize"
+                }
+                'AzureUSGovernment'
+                {
+                    $this.GraphEnvironment = 'USGov'
+                    $this.ResourceUrl = 'https://graph.microsoft.us/'
+                    $this.Scope = 'https://graph.microsoft.us/.default'
+                    $this.TokenUrl = "https://login.microsoftonline.us/$($this.TenantId)/oauth2/v2.0/token"
+                    $this.UserTokenUrl = "https://login.microsoftonline.us/$($this.TenantId)/oauth2/v2.0/authorize"
+                }
+                'AzureDOD'
+                {
+                    $this.GraphEnvironment = 'USGovDoD'
+                    $this.ResourceUrl = 'https://dod-graph.microsoft.us/'
+                    $this.Scope = 'https://dod-graph.microsoft.us/.default'
+                    $this.TokenUrl = "https://login.microsoftonline.us/$($this.TenantId)/oauth2/v2.0/token"
+                    $this.UserTokenUrl = "https://login.microsoftonline.us/$($this.TenantId)/oauth2/v2.0/authorize"
+                }
+                'AzureChinaCloud'
+                {
+                    $this.GraphEnvironment = 'China'
+                    $this.ResourceUrl = 'https://microsoftgraph.chinacloudapi.cn/'
+                    $this.Scope = 'https://microsoftgraph.chinacloudapi.cn/.default'
+                    $this.TokenUrl = "https://login.chinacloudapi.cn/$($this.TenantId)/oauth2/v2.0/token"
+                    $this.UserTokenUrl = "https://login.chinacloudapi.cn/$($this.TenantId)/oauth2/v2.0/authorize"
+                }
             }
         }
         Connect-MSCloudLoginMicrosoftGraph

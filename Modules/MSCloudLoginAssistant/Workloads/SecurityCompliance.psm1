@@ -67,32 +67,53 @@ function Connect-MSCloudLoginSecurityCompliance
         try
         {
             Write-Verbose -Message 'Connecting to Security & Compliance with Service Principal and Certificate Thumbprint'
-
-            switch ($Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.EnvironmentName)
+            if ($null -ne $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Endpoints -and `
+            $null -ne $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Endpoints.ConnectionUri -and `
+            $null -ne $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Endpoints.AzureADAuthorizationEndpointUri)
             {
-                {$_ -eq "AzureUSGovernment" -or $_ -eq "AzureDOD"}
+                Write-Verbose -Message "Connecting by endpoints URI"
+                Connect-IPPSSession -AppId $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ApplicationId `
+                    -Organization $Global:MSCloudLoginConnectionProfile.OrganizationName `
+                    -CertificateThumbprint $Global:MSCloudLoginConnectionProfile.ExchangeOnline.CertificateThumbprint `
+                    -ShowBanner:$false `
+                    -ShowProgress:$false `
+                    -ConnectionUri $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Endpoints.ConnectionUri `
+                    -AzureADAuthorizationEndpointUri $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Endpoints.AzureADAuthorizationEndpointUri `
+                    -Verbose:$false `
+                    -SkipLoadingCmdletHelp | Out-Null
+                $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ConnectedDateTime = [System.DateTime]::Now.ToString()
+                $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.MultiFactorAuthentication = $false
+                $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Connected = $true
+            }
+            else
+            {
+                Write-Verbose -Message "Connecting by environment name"
+                switch ($Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.EnvironmentName)
                 {
-                    Connect-IPPSSession -AppId $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ApplicationId `
-                        -CertificateThumbprint $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.CertificateThumbprint `
-                        -Organization $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.TenantId `
-                        -ConnectionUri $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ConnectionUrl `
-                        -AzureADAuthorizationEndpointUri $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.AzureADAuthorizationEndpointUri `
-                        -ErrorAction Stop  `
-                        -ShowBanner:$false | Out-Null
-                    $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ConnectedDateTime = [System.DateTime]::Now.ToString()
-                    $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.MultiFactorAuthentication = $false
-                    $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Connected = $true
-                }
-                Default
-                {
-                    Connect-IPPSSession -AppId $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ApplicationId `
-                        -CertificateThumbprint $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.CertificateThumbprint `
-                        -Organization $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.TenantId `
-                        -ErrorAction Stop  `
-                        -ShowBanner:$false | Out-Null
-                    $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ConnectedDateTime = [System.DateTime]::Now.ToString()
-                    $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.MultiFactorAuthentication = $false
-                    $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Connected = $true
+                    {$_ -eq "AzureUSGovernment" -or $_ -eq "AzureDOD"}
+                    {
+                        Connect-IPPSSession -AppId $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ApplicationId `
+                            -CertificateThumbprint $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.CertificateThumbprint `
+                            -Organization $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.TenantId `
+                            -ConnectionUri $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ConnectionUrl `
+                            -AzureADAuthorizationEndpointUri $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.AzureADAuthorizationEndpointUri `
+                            -ErrorAction Stop  `
+                            -ShowBanner:$false | Out-Null
+                        $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ConnectedDateTime = [System.DateTime]::Now.ToString()
+                        $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.MultiFactorAuthentication = $false
+                        $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Connected = $true
+                    }
+                    Default
+                    {
+                        Connect-IPPSSession -AppId $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ApplicationId `
+                            -CertificateThumbprint $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.CertificateThumbprint `
+                            -Organization $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.TenantId `
+                            -ErrorAction Stop  `
+                            -ShowBanner:$false | Out-Null
+                        $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ConnectedDateTime = [System.DateTime]::Now.ToString()
+                        $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.MultiFactorAuthentication = $false
+                        $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Connected = $true
+                    }
                 }
             }
         }

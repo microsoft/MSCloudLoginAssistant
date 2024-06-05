@@ -100,23 +100,41 @@ function Connect-MSCloudLoginMicrosoftGraph
         {
             if ($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AuthenticationType -eq 'ServicePrincipalWithThumbprint')
             {
-                try
+                if ($null -ne $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Endpoints -and `
+                    $null -ne $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Endpoints.ConnectionUri -and `
+                    $null -ne $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Endpoints.AzureADAuthorizationEndpointUri)
                 {
-                    Connect-MgGraph -ClientId $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationId `
-                        -TenantId $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.TenantId `
-                        -CertificateThumbprint $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.CertificateThumbprint `
-                        -Environment $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment `
-                        -ErrorAction Stop | Out-Null
+                    $accessToken = Get-MSCloudLoginAccessToken -ConnectionUri $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Endpoints.ConnectionUri `
+                                                -AzureADAuthorizationEndpointUri $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Endpoints.AzureADAuthorizationEndpointUri `
+                                                -ApplicationId $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationId `
+                                                -TenantId $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.TenantId `
+                                                -CertificateThumbprint $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.CertificateThumbprint
+                    $accessToken = ConvertTo-SecureString $accessToken -AsPlainText -Force
+                    Connect-MgGraph -AccessToken $accessToken
+                    Write-Verbose -Message 'Successfully connected to the Microsoft Graph API using Certificate Thumbprint'
                 }
-                catch
+                else
                 {
-                    # Check into the localmachine store
-                    $cert = Get-ChildItem "Cert:\LocalMachine\My\$($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.CertificateThumbprint)"
-                    Connect-MgGraph -ClientId $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationId `
-                        -TenantId $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.TenantId `
-                        -Environment $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment `
-                        -Certificate $cert | Out-Null
+                    Write-Verbose -Message "Connecting by Environment Name"
+                    try
+                    {
+                        Connect-MgGraph -ClientId $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationId `
+                            -TenantId $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.TenantId `
+                            -CertificateThumbprint $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.CertificateThumbprint `
+                            -Environment $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment `
+                            -ErrorAction Stop | Out-Null
+                    }
+                    catch
+                    {
+                        # Check into the localmachine store
+                        $cert = Get-ChildItem "Cert:\LocalMachine\My\$($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.CertificateThumbprint)"
+                        Connect-MgGraph -ClientId $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationId `
+                            -TenantId $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.TenantId `
+                            -Environment $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment `
+                            -Certificate $cert | Out-Null
+                    }
                 }
+
                 $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ConnectedDateTime = [System.DateTime]::Now.ToString()
                 $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.MultiFactorAuthentication = $false
                 $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected = $true
