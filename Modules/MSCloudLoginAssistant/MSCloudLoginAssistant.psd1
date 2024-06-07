@@ -12,7 +12,7 @@
     RootModule             = 'MSCloudLoginAssistant.psm1'
 
     # Version number of this module.
-    ModuleVersion          = '1.1.17'
+    ModuleVersion          = '1.1.17.1'
 
     # Supported PSEditions
     # CompatiblePSEditions = @()
