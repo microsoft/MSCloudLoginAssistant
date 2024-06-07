@@ -38,6 +38,7 @@ class MSCloudLoginConnectionProfile
         $this.AzureDevOPS    = New-Object AzureDevOPS
         $this.ExchangeOnline = New-Object ExchangeOnline
         $this.MicrosoftGraph = New-Object MicrosoftGraph
+        $this.MSCommerce = New-Object MSCommerce
         $this.PnP = New-Object PnP
         $this.PowerPlatform = New-Object PowerPlatform
         $this.SecurityComplianceCenter = New-Object SecurityComplianceCenter
@@ -388,6 +389,27 @@ class MicrosoftGraph:Workload
             }
         }
         Connect-MSCloudLoginMicrosoftGraph
+    }
+}
+
+class MSCommerce:Workload
+{
+    [string]
+    $Scope = 'aeb86249-8ea3-49e2-900b-54cc8e308f85/.default'
+
+    MSCommerce()
+    {
+    }
+
+    [void] Connect()
+    {
+        ([Workload]$this).Setup()
+
+        if ($null -ne $this.Credentials -and [System.String]::IsNullOrEmpty($this.TenantId))
+        {
+            $this.TenantId = $this.Credentials.Username.Split('@')[1]
+        }
+        Connect-MSCloudLoginMSCommerce
     }
 }
 
