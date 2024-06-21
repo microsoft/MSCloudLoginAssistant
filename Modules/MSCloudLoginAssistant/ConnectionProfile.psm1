@@ -9,6 +9,9 @@ class MSCloudLoginConnectionProfile
     [AzureDevOPS]
     $AzureDevOPS
 
+    [AzureRM]
+    $AzureRM
+
     [ExchangeOnline]
     $ExchangeOnline
 
@@ -35,7 +38,8 @@ class MSCloudLoginConnectionProfile
         $this.CreatedTime = [System.DateTime]::Now.ToString()
 
         # Workloads Object Creation
-        $this.AzureDevOPS    = New-Object AzureDevOPS
+        $this.AzureDevOPS = New-Object AzureDevOPS
+        $this.AzureRM = New-Object AzureRM
         $this.ExchangeOnline = New-Object ExchangeOnline
         $this.MicrosoftGraph = New-Object MicrosoftGraph
         $this.PnP = New-Object PnP
@@ -215,6 +219,53 @@ class Workload
     }
 }
 
+class AzureRM:Workload
+{
+    [string]
+    $HostUrl
+
+    [string]
+    $AuthorizationUrl
+
+    [string]
+    $Scope
+
+    [string]
+    $AccessToken
+
+    AzureRM()
+    {
+
+    }
+    [void] Connect()
+    {
+        ([Workload]$this).Setup()
+        switch ($this.EnvironmentName)
+        {
+            'AzureChinaCloud'
+            {
+                $this.HostUrl          = "https://dev.azure.us"
+                $this.Scope            = "499b84ac-1321-427f-aa17-267ca6975798/.default"
+                $this.AuthorizationUrl = "https://login.microsoftonline.us"
+            }
+            'AzureUSGovernment'
+            {
+                $this.HostUrl          = "https://dev.azure.com"
+                $this.Scope            = "499b84ac-1321-427f-aa17-267ca6975798/.default"
+                $this.AuthorizationUrl = "https://login.microsoftonline.us"
+            }
+            default
+            {
+                $this.HostUrl          = "https://dev.azure.com"
+                $this.Scope            = "499b84ac-1321-427f-aa17-267ca6975798/.default"
+                $this.AuthorizationUrl = "https://login.microsoftonline.com"
+            }
+        }
+
+        Connect-MSCloudLoginAzureRM
+    }
+}
+
 class AzureDevOPS:Workload
 {
     [string]
@@ -229,7 +280,7 @@ class AzureDevOPS:Workload
     [string]
     $AccessToken
 
-    Tasks()
+    AzureDevOPS()
     {
     }
 

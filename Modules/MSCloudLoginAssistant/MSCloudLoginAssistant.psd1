@@ -69,6 +69,7 @@
     NestedModules          = @(
         'ConnectionProfile.psm1',
         'Workloads\AzureDevOPS.psm1',
+        'Workloads\AzureRM.psm1',
         'Workloads\ExchangeOnline.psm1',
         'Workloads\MicrosoftGraph.psm1',
         'Workloads\Teams.psm1',
