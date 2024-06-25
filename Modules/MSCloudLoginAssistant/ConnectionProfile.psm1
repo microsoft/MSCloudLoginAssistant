@@ -406,7 +406,7 @@ class PnP:Workload
     $AdminUrl
 
     [string]
-    [ValidateSet('Production', 'PPE', 'China', 'Germany', 'USGovernment', 'USGovernmentHigh', 'USGovernmentDoD')]
+    [ValidateSet('Production', 'PPE', 'China', 'Germany', 'USGovernment', 'USGovernmentHigh', 'USGovernmentDoD', 'Custom')]
     $PnPAzureEnvironment
 
     PnP()
@@ -424,7 +424,11 @@ class PnP:Workload
         ([Workload]$this).Setup()
 
         # PnP uses Production instead of AzureCloud to designate the Public Azure Cloud * AzureUSGovernment to USGovernmentHigh
-        if ($this.EnvironmentName -eq 'AzureCloud')
+        if ($null -ne $this.Endpoints)
+        {
+            $this.PnPAzureEnvironment = 'Custom'
+        }
+        elseif ($this.EnvironmentName -eq 'AzureCloud')
         {
             $this.PnPAzureEnvironment = 'Production'
         }
@@ -444,6 +448,7 @@ class PnP:Workload
         {
             $this.PnPAzureEnvironment = 'China'
         }
+
 
         Connect-MSCloudLoginPnP -ForceRefreshConnection $ForceRefresh
     }
