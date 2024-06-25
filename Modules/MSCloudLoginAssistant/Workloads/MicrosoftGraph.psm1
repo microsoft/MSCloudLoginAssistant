@@ -44,7 +44,7 @@ function Connect-MSCloudLoginMicrosoftGraph
         Write-Verbose 'Connecting with managed identity'
 
         $resourceEndpoint = ($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ResourceUrl -split '/')[2]
-        if ('AzureAutomation/' -eq $env:AZUREPS_HOST_ENVIRONMENT)
+        if ($env:AZUREPS_HOST_ENVIRONMENT -like 'AzureAutomation*')
         {
             $url = $env:IDENTITY_ENDPOINT
             $headers = New-Object 'System.Collections.Generic.Dictionary[[String],[String]]'
