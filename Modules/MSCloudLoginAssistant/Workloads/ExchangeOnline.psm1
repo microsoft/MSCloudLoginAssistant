@@ -184,7 +184,7 @@ function Connect-MSCloudLoginExchangeOnline
         {
             if ($NULL -eq $Global:MSCloudLoginConnectionProfile.OrganizationName)
             {
-                $Global:MSCloudLoginConnectionProfile.OrganizationName = Get-MSCloudLoginTenantDomain -Identity
+                $Global:MSCloudLoginConnectionProfile.OrganizationName = Get-MSCloudLoginOrganizationName -Identity
             }
 
             Connect-ExchangeOnline -AppId $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ApplicationId `

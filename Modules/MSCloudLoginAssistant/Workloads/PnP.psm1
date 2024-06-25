@@ -16,6 +16,14 @@ function Connect-MSCloudLoginPnP
         return
     }
 
+    # Check if Graph-module is loaded and, if not, explicitly load before PnP
+    # Workaround to fix: https://github.com/microsoft/Microsoft365DSC/issues/4746
+    if (-not (Get-Module Microsoft.Graph.Authentication -ErrorAction SilentlyContinue))
+    {
+        Write-Verbose "Explicit import of PS-module Microsoft.Graph.Authentication"
+        Import-Module Microsoft.Graph.Authentication -ErrorAction SilentlyContinue
+    }
+
     $requiresWindowsPowerShell = $false
     if ($psversiontable.PSVersion.Major -ge 7)
     {
