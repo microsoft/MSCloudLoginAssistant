@@ -629,15 +629,7 @@ function Get-MSCloudLoginAccessToken
 
         [Parameter(Mandatory = $True)]
         [System.String]
-        $AzureADAuthorizationEndpointUri,
-
-        [Parameter(Mandatory = $True)]
-        [System.String]
         $ApplicationId,
-
-        [Parameter(Mandatory = $True)]
-        [System.String]
-        $TenantId,
 
         [Parameter(Mandatory = $True)]
         [System.String]
@@ -681,7 +673,7 @@ function Get-MSCloudLoginAccessToken
         # Create JWT payload
         $JWTPayLoad = @{
             # What endpoint is allowed to use this JWT
-            aud = "$($AzureADAuthorizationEndpointUri)/$($TenantId)/oauth2/token"
+            aud = $Global:CloudEnvironmentInfo.token_endpoint
 
             # Expiration timestamp
             exp = $JWTExpiration
@@ -733,7 +725,7 @@ function Get-MSCloudLoginAccessToken
             grant_type            = 'client_credentials'
         }
 
-        $Url = "$($AzureADAuthorizationEndpointUri)/$($TenantId)/oauth2/v2.0/token"
+        $Url = $Global:CloudEnvironmentInfo.token_endpoint
 
         # Use the self-generated JWT as Authorization
         $Header = @{

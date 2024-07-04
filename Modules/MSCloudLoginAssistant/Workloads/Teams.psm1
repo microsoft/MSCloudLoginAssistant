@@ -60,62 +60,39 @@ function Connect-MSCloudLoginTeams
     if ($Global:MSCloudLoginConnectionProfile.Teams.AuthenticationType -eq 'ServicePrincipalWithThumbprint')
     {
         Write-Verbose -Message "Connecting to Microsoft Teams using AzureAD Application {$($Global:MSCloudLoginConnectionProfile.Teams.ApplicationId)}"
-        if ($null -ne $Global:MSCloudLoginConnectionProfile.Teams.Endpoints -and `
-                    $null -ne $Global:MSCloudLoginConnectionProfile.Teams.Endpoints.ConnectionUri -and `
-                    $null -ne $Global:MSCloudLoginConnectionProfile.Teams.Endpoints.AzureADAuthorizationEndpointUri)
+        try
         {
-            $graphAccessToken = Get-MSCloudLoginAccessToken -ConnectionUri $Global:MSCloudLoginConnectionProfile.Teams.Endpoints.ConnectionUri `
-                                        -AzureADAuthorizationEndpointUri $Global:MSCloudLoginConnectionProfile.Teams.Endpoints.AzureADAuthorizationEndpointUri `
-                                        -ApplicationId $Global:MSCloudLoginConnectionProfile.Teams.ApplicationId `
-                                        -TenantId $Global:MSCloudLoginConnectionProfile.Teams.TenantId `
-                                        -CertificateThumbprint $Global:MSCloudLoginConnectionProfile.Teams.CertificateThumbprint
-            $Global:MSCloudLoginConnectionProfile.Teams.AccessTokens += $graphAccessToken
-
-            $teamsAccessToken = Get-MSCloudLoginAccessToken -ConnectionUri '48ac35b8-9aa8-4d74-927d-1f4a14a0b239/.default' `
-                                        -AzureADAuthorizationEndpointUri $Global:MSCloudLoginConnectionProfile.Teams.Endpoints.AzureADAuthorizationEndpointUri `
-                                        -ApplicationId $Global:MSCloudLoginConnectionProfile.Teams.ApplicationId `
-                                        -TenantId $Global:MSCloudLoginConnectionProfile.Teams.TenantId `
-                                        -CertificateThumbprint $Global:MSCloudLoginConnectionProfile.Teams.CertificateThumbprint
-            $Global:MSCloudLoginConnectionProfile.Teams.AccessTokens += $teamsAccessToken
-
-            Connect-MicrosoftTeams -AccessTokens @($graphAccessToken, $teamsAccessToken)
-            Write-Verbose -Message 'Successfully connected to the Microsoft Graph API using Certificate Thumbprint'
-        }
-        else
-        {
-            try
-            {
                 $ConnectionParams = @{
                     ApplicationId         = $Global:MSCloudLoginConnectionProfile.Teams.ApplicationId
                     TenantId              = $Global:MSCloudLoginConnectionProfile.Teams.TenantId
                     CertificateThumbprint = $Global:MSCloudLoginConnectionProfile.Teams.CertificateThumbprint
                 }
 
-                if ($Global:MSCloudLoginConnectionProfile.Teams.EnvironmentName -eq 'AzureUSGovernment')
-                {
-                    $ConnectionParams.Add("TeamsEnvironmentName", 'TeamsGCCH')
-                }
-                elseif ($Global:MSCloudLoginConnectionProfile.Teams.EnvironmentName -eq 'USGovernmentDoD')
-                {
-                    $ConnectionParams.Add("TeamsEnvironmentName", 'TeamsDOD')
-                }
-                elseif ($Global:MSCloudLoginConnectionProfile.Teams.EnvironmentName -eq 'AzureChinaCloud')
-                {
-                    $ConnectionParams.Add("TeamsEnvironmentName", 'TeamsChina')
-                }
+                $graphScope = "https://$($Global:CloudEnvironmentInfo.msgraph_host)/.default"
+                $graphToken = Get-MSCloudLoginAccessToken -ConnectionUri $graphScope `
+                    -ApplicationId $Global:MSCloudLoginConnectionProfile.Teams.ApplicationId `
+                    -CertificateThumbprint $Global:MSCloudLoginConnectionProfile.Teams.CertificateThumbprint
+                $Global:MSCloudLoginConnectionProfile.Teams.AccessTokens += $graphAccessToken
 
-                Connect-MicrosoftTeams @ConnectionParams | Out-Null
-            }
-            catch
-            {
-                $Global:MSCloudLoginConnectionProfile.Teams.Connected = $false
-                throw $_
-            }
+                $teamsToken = Get-MSCloudLoginAccessToken -ConnectionUri '48ac35b8-9aa8-4d74-927d-1f4a14a0b239/.default' `
+                    -ApplicationId $Global:MSCloudLoginConnectionProfile.Teams.ApplicationId `
+                    -CertificateThumbprint $Global:MSCloudLoginConnectionProfile.Teams.CertificateThumbprint
+
+                Connect-MicrosoftTeams -AccessTokens @($graphToken, $teamsToken) `
+                                       -EndpointUris @{
+                                            ActiveDirectory = 'https://login.microsoftonline.us/'; 
+                                            MsGraphEndpointResourceId = 'https://graph.microsoft.us'; 
+                                            TeamsConfigApiEndPoint = 'https://api.interfaces.records.teams.microsoft.us'
+                                        }
+                $Global:MSCloudLoginConnectionProfile.Teams.ConnectedDateTime         = [System.DateTime]::Now.ToString()
+                $Global:MSCloudLoginConnectionProfile.Teams.MultiFactorAuthentication = $false
+                $Global:MSCloudLoginConnectionProfile.Teams.Connected                 = $true
         }
-
-        $Global:MSCloudLoginConnectionProfile.Teams.ConnectedDateTime         = [System.DateTime]::Now.ToString()
-        $Global:MSCloudLoginConnectionProfile.Teams.MultiFactorAuthentication = $false
-        $Global:MSCloudLoginConnectionProfile.Teams.Connected                 = $true
+        catch
+        {
+            $Global:MSCloudLoginConnectionProfile.Teams.Connected = $false
+            throw $_
+        }
     }
     elseif ($Global:MSCloudLoginConnectionProfile.Teams.AuthenticationType -eq 'Credentials' -or
     $Global:MSCloudLoginConnectionProfile.Teams.AuthenticationType -eq 'CredentialsWithTenantId')

@@ -7,6 +7,8 @@ function Connect-MSCloudLoginMicrosoftGraph
     $WarningPreference = 'SilentlyContinue'
     $VerbosePreference = 'SilentlyContinue'
 
+    Write-Verbose "Profile from MSCloudLogin: $($Global:MSCloudLoginConnectionProfile.MicrosoftGraph | Out-String)"
+    Write-Verbose "Get-MgContext: $(Get-MgContext | Out-String)"
     # If the current profile is not the same we expect, make the switch.
     if ($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Connected)
     {
@@ -100,29 +102,31 @@ function Connect-MSCloudLoginMicrosoftGraph
         {
             if ($Global:MSCloudLoginConnectionProfile.MicrosoftGraph.AuthenticationType -eq 'ServicePrincipalWithThumbprint')
             {
-                if ($null -ne $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Endpoints -and `
-                    $null -ne $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Endpoints.ConnectionUri -and `
-                    $null -ne $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Endpoints.AzureADAuthorizationEndpointUri)
+                try
                 {
-                    $accessToken = Get-MSCloudLoginAccessToken -ConnectionUri $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Endpoints.ConnectionUri `
-                                                -AzureADAuthorizationEndpointUri $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.Endpoints.AzureADAuthorizationEndpointUri `
-                                                -ApplicationId $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationId `
-                                                -TenantId $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.TenantId `
-                                                -CertificateThumbprint $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.CertificateThumbprint
+                    $graphScope = "https://$($Global:CloudEnvironmentInfo.msgraph_host)/.default"
+                    $accessToken = Get-MSCloudLoginAccessToken -ConnectionUri $graphScope `
+                                    -ApplicationId $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationId `
+                                    -CertificateThumbprint $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.CertificateThumbprint
                     $accessToken = ConvertTo-SecureString $accessToken -AsPlainText -Force
-                    Connect-MgGraph -AccessToken $accessToken
+                    Connect-MgGraph -AccessToken $accessToken -Environment $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.EnvironmentName
                     Write-Verbose -Message 'Successfully connected to the Microsoft Graph API using Certificate Thumbprint'
                 }
-                else
+                catch
                 {
-                    Write-Verbose -Message "Connecting by Environment Name"
                     try
                     {
-                        Connect-MgGraph -ClientId $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationId `
-                            -TenantId $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.TenantId `
-                            -CertificateThumbprint $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.CertificateThumbprint `
-                            -Environment $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment `
-                            -ErrorAction Stop | Out-Null
+                        # Create a custom environment name
+                        Add-MgEnvironment -Name 'Custom' `
+                                          -AzureADEndpoint $Global:CloudEnvironmentInfo.authorization_endpoint `
+                                          -GraphEndpoint "https://$($Global:CloudEnvironmentInfo.msgraph_host)"
+                        $graphScope = "https://$($Global:CloudEnvironmentInfo.msgraph_host)/.default"
+                        $accessToken = Get-MSCloudLoginAccessToken -ConnectionUri $graphScope `
+                                        -ApplicationId $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.ApplicationId `
+                                        -CertificateThumbprint $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.CertificateThumbprint
+                        $accessToken = ConvertTo-SecureString $accessToken -AsPlainText -Force
+                        Connect-MgGraph -AccessToken $accessToken -Environment 'Custom'
+                        Write-Verbose -Message 'Successfully connected to the Microsoft Graph API using Certificate Thumbprint and Custom Environment'
                     }
                     catch
                     {
@@ -132,6 +136,10 @@ function Connect-MSCloudLoginMicrosoftGraph
                             -TenantId $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.TenantId `
                             -Environment $Global:MSCloudLoginConnectionProfile.MicrosoftGraph.GraphEnvironment `
                             -Certificate $cert | Out-Null
+                    }
+                    finally
+                    {
+                        Remove-MgEnvironment -Name 'Custom'
                     }
                 }
 

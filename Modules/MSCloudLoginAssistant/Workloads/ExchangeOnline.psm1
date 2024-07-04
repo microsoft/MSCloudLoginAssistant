@@ -67,21 +67,13 @@ function Connect-MSCloudLoginExchangeOnline
         Write-Verbose -Message "Attempting to connect to Exchange Online using AAD App {$ApplicationID}"
         try
         {
-            if ($NULL -eq $Global:MSCloudLoginConnectionProfile.OrganizationName)
-            {
-                $Global:MSCloudLoginConnectionProfile.OrganizationName = Get-MSCloudLoginOrganizationName `
-                    -ApplicationId $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ApplicationId `
-                    -TenantId $Global:MSCloudLoginConnectionProfile.ExchangeOnline.TenantId `
-                    -CertificateThumbprint $Global:MSCloudLoginConnectionProfile.ExchangeOnline.CertificateThumbprint
-            }
-
             if ($null -ne $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Endpoints -and `
                 $null -ne $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Endpoints.ConnectionUri -and `
                 $null -ne $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Endpoints.AzureADAuthorizationEndpointUri)
             {
                 Write-Verbose -Message "Connecting by endpoints URI"
                 Connect-ExchangeOnline -AppId $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ApplicationId `
-                    -Organization $Global:MSCloudLoginConnectionProfile.OrganizationName `
+                    -Organization $Global:MSCloudLoginConnectionProfile.ExchangeOnline.TenantId`
                     -CertificateThumbprint $Global:MSCloudLoginConnectionProfile.ExchangeOnline.CertificateThumbprint `
                     -ShowBanner:$false `
                     -ShowProgress:$false `
@@ -94,7 +86,7 @@ function Connect-MSCloudLoginExchangeOnline
             {
                 Write-Verbose -Message "Connecting by environment name"
                 Connect-ExchangeOnline -AppId $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ApplicationId `
-                    -Organization $Global:MSCloudLoginConnectionProfile.OrganizationName `
+                    -Organization $Global:MSCloudLoginConnectionProfile.ExchangeOnline.TenantId `
                     -CertificateThumbprint $Global:MSCloudLoginConnectionProfile.ExchangeOnline.CertificateThumbprint `
                     -ShowBanner:$false `
                     -ShowProgress:$false `

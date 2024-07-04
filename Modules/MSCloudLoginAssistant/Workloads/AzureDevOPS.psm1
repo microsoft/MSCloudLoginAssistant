@@ -80,7 +80,7 @@ function Connect-MSCloudLoginAzureDevOPSWithCertificateThumbprint
         # Create JWT payload
         $JWTPayLoad = @{
             # What endpoint is allowed to use this JWT
-            aud = "$($Global:MSCloudLoginConnectionProfile.AzureDevOPS.AuthorizationUrl)/$TenantId/oauth2/token"
+            aud = $Global:CloudEnvironmentInfo.token_endpoint
 
             # Expiration timestamp
             exp = $JWTExpiration
@@ -132,7 +132,7 @@ function Connect-MSCloudLoginAzureDevOPSWithCertificateThumbprint
             grant_type            = 'client_credentials'
         }
 
-        $Url = "$($Global:MSCloudLoginConnectionProfile.AzureDevOPS.AuthorizationUrl)/$TenantId/oauth2/v2.0/token"
+        $Url = $Global:CloudEnvironmentInfo.token_endpoint
 
         # Use the self-generated JWT as Authorization
         $Header = @{
@@ -157,4 +157,5 @@ function Connect-MSCloudLoginAzureDevOPSWithCertificateThumbprint
     catch
     {
         throw $_
-    }}
+    }
+}

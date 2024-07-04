@@ -120,47 +120,27 @@ function Connect-MSCloudLoginPnP
             {
                 if ($Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl)
                 {
-                    if ($null -ne $Global:MSCloudLoginConnectionProfile.PnP.Endpoints -and `
-                    $null -ne $Global:MSCloudLoginConnectionProfile.PnP.Endpoints.ConnectionUri -and `
-                    $null -ne $Global:MSCloudLoginConnectionProfile.PnP.Endpoints.AzureADAuthorizationEndpointUri)
-                    {
-                        $accessToken = Get-MSCloudLoginAccessToken -ConnectionUri $Global:MSCloudLoginConnectionProfile.PnP.Endpoints.ConnectionUri `
-                                            -AzureADAuthorizationEndpointUri $Global:MSCloudLoginConnectionProfile.PnP.Endpoints.AzureADAuthorizationEndpointUri `
-                                            -ApplicationId $Global:MSCloudLoginConnectionProfile.PnP.ApplicationId `
-                                            -TenantId $Global:MSCloudLoginConnectionProfile.PnP.TenantId `
-                                            -CertificateThumbprint $Global:MSCloudLoginConnectionProfile.PnP.CertificateThumbprint
-                        $Global:MSCloudLoginConnectionProfile.PnP.AccessTokens += $accessToken
+                    Write-Information -Message 'Connecting with Service Principal - Thumbprint'
+                    Write-Information -Message "URL: $($Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl)"
+                    Write-Information -Message "ConnectionUrl: $($Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl)"
 
-                        Write-Information -Message 'Connecting with Service Principal - Thumbprint'
-                        Write-Information -Message "URL: $($Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl)"
-                        Write-Information -Message "ConnectionUrl: $($Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl)"
+                    if ($Global:MSCloudLoginConnectionProfile.PnP.PnPAzureEnvironment -ne 'Custom')
+                    {
                         Connect-PnPOnline -Url $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl `
-                            -AccessToken $accessToken | Out-Null
+                            -ClientId $Global:MSCloudLoginConnectionProfile.PnP.ApplicationId `
+                            -Tenant $Global:MSCloudLoginConnectionProfile.PnP.TenantId `
+                            -Thumbprint $Global:MSCloudLoginConnectionProfile.PnP.CertificateThumbprint `
+                            -AzureEnvironment $Global:MSCloudLoginConnectionProfile.PnP.PnPAzureEnvironment | Out-Null
                     }
                     else
                     {
-                        Write-Information -Message 'Connecting with Service Principal - Thumbprint'
-                        Write-Information -Message "URL: $($Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl)"
-                        Write-Information -Message "ConnectionUrl: $($Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl)"
-
-                        if ($Global:MSCloudLoginConnectionProfile.PnP.PnPAzureEnvironment -ne 'Custom')
-                        {
-                            Connect-PnPOnline -Url $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl `
-                                -ClientId $Global:MSCloudLoginConnectionProfile.PnP.ApplicationId `
-                                -Tenant $Global:MSCloudLoginConnectionProfile.PnP.TenantId `
-                                -Thumbprint $Global:MSCloudLoginConnectionProfile.PnP.CertificateThumbprint `
-                                -AzureEnvironment $Global:MSCloudLoginConnectionProfile.PnP.PnPAzureEnvironment | Out-Null
-                        }
-                        else
-                        {
-                            Connect-PnPOnline -Url $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl `
-                                -ClientId $Global:MSCloudLoginConnectionProfile.PnP.ApplicationId `
-                                -Tenant $Global:MSCloudLoginConnectionProfile.PnP.TenantId `
-                                -Thumbprint $Global:MSCloudLoginConnectionProfile.PnP.CertificateThumbprint `
-                                -AzureEnvironment $Global:MSCloudLoginConnectionProfile.PnP.PnPAzureEnvironment `
-                                -AzureADLoginEndPoint $Global:MSCloudLoginConnectionProfile.PnP.EndPoints.AzureADLoginEndPoint `
-                                -MicrosoftGraphEndPoint $Global:MSCloudLoginConnectionProfile.PnP.EndPoints.MicrosoftGraphEndPoint | Out-Null
-                        }
+                        Connect-PnPOnline -Url $Global:MSCloudLoginConnectionProfile.PnP.ConnectionUrl `
+                            -ClientId $Global:MSCloudLoginConnectionProfile.PnP.ApplicationId `
+                            -Tenant $Global:MSCloudLoginConnectionProfile.PnP.TenantId `
+                            -Thumbprint $Global:MSCloudLoginConnectionProfile.PnP.CertificateThumbprint `
+                            -AzureEnvironment $Global:MSCloudLoginConnectionProfile.PnP.PnPAzureEnvironment `
+                            -AzureADLoginEndPoint $Global:MSCloudLoginConnectionProfile.PnP.AzureADLoginEndPoint `
+                            -MicrosoftGraphEndPoint $Global:MSCloudLoginConnectionProfile.PnP.MicrosoftGraphEndPoint | Out-Null
                     }
                 }
                 elseif ($Global:MSCloudLoginConnectionProfile.PnP.AdminUrl)

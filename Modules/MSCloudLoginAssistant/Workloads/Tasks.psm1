@@ -51,7 +51,7 @@ function Connect-MSCloudLoginTasksWithUser
     $password = $Global:MSCloudLoginConnectionProfile.Tasks.Credentials.GetNetworkCredential().password
 
     $clientId = '9ac8c0b3-2c30-497c-b4bc-cadfe9bd6eed'
-    $uri = "$($Global:MSCloudLoginConnectionProfile.Tasks.AuthorizationUrl)/{0}/oauth2/token" -f $tenantid
+    $uri = $Global:CloudEnvironmentInfo.token_endpoint
     $body = "resource=$($Global:MSCloudLoginConnectionProfile.Tasks.HostUrl)/&client_id=$clientId&grant_type=password&username={1}&password={0}" -f [System.Web.HttpUtility]::UrlEncode($password), $username
 
     # Request token through ROPC
@@ -89,7 +89,7 @@ function Connect-MSCloudLoginTasksWithUserMFA
         $tenantId = $Global:MSCloudLoginConnectionProfile.Tasks.TenantId
     }
     $clientId = '9ac8c0b3-2c30-497c-b4bc-cadfe9bd6eed'
-    $deviceCodeUri = "$($Global:MSCloudLoginConnectionProfile.Tasks.AuthorizationUrl)/$tenantId/oauth2/devicecode"
+    $deviceCodeUri = $Global:CloudEnvironmentInfo.device_authorization_endpoint
 
     $body = @{
         client_id = $clientId
@@ -103,7 +103,7 @@ function Connect-MSCloudLoginTasksWithUserMFA
 
     $TokenRequestParams = @{
         Method = 'POST'
-        Uri    = "$($Global:MSCloudLoginConnectionProfile.Tasks.AuthorizationUrl)/$TenantId/oauth2/token"
+        Uri    = $Global:CloudEnvironmentInfo.token_endpoint
         Body   = @{
             grant_type = "urn:ietf:params:oauth:grant-type:device_code"
             code       = $DeviceCodeRequest.device_code
@@ -140,7 +140,7 @@ function Connect-MSCloudLoginTasksWithAppSecret
     param()
 
 
-    $uri = "$($Global:MSCloudLoginConnectionProfile.Tasks.AuthorizationUrl)/{0}/oauth2/token" -f $Global:MSCloudLoginConnectionProfile.Tasks.TenantId
+    $uri = $Global:CloudEnvironmentInfo.token_endpoint
     $body = "resource=$($Global:MSCloudLoginConnectionProfile.Tasks.HostUrl)/&client_id=$($Global:MSCloudLoginConnectionProfile.Tasks.ApplicationId)&client_secret=$($Global:MSCloudLoginConnectionProfile.Tasks.ApplicationSecret)&grant_type=client_credentials"
 
     # Request token through ROPC
@@ -202,7 +202,7 @@ function Connect-MSCloudLoginTasksWithCertificateThumbprint
         # Create JWT payload
         $JWTPayLoad = @{
             # What endpoint is allowed to use this JWT
-            aud = "$($Global:MSCloudLoginConnectionProfile.Tasks.AuthorizationUrl)/$TenantId/oauth2/token"
+            aud = $Global:CloudEnvironmentInfo.token_endpoint
 
             # Expiration timestamp
             exp = $JWTExpiration
@@ -254,7 +254,7 @@ function Connect-MSCloudLoginTasksWithCertificateThumbprint
             grant_type            = 'client_credentials'
         }
 
-        $Url = "$($Global:MSCloudLoginConnectionProfile.Tasks.AuthorizationUrl)/$TenantId/oauth2/v2.0/token"
+        $Url = $Global:CloudEnvironmentInfo.token_endpoint
 
         # Use the self-generated JWT as Authorization
         $Header = @{
