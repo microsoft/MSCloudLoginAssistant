@@ -70,15 +70,22 @@ function Connect-MSCloudLoginSecurityCompliance
             if ($null -ne $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Endpoints -and `
             $null -ne $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Endpoints.ConnectionUri -and `
             $null -ne $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Endpoints.AzureADAuthorizationEndpointUri)
+            if ($null -eq $Global:MSCloudLoginConnectionProfile.OrganizationName)
+            {
+                $Global:MSCloudLoginConnectionProfile.OrganizationName = Get-MSCloudLoginOrganizationName `
+                    -ApplicationId $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ApplicationId `
+                    -TenantId $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.TenantId `
+                    -CertificateThumbprint $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.CertificateThumbprint
+            }
             {
                 Write-Verbose -Message "Connecting by endpoints URI"
-                Connect-IPPSSession -AppId $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ApplicationId `
+                Connect-IPPSSession -AppId $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ApplicationId `
                     -Organization $Global:MSCloudLoginConnectionProfile.OrganizationName `
-                    -CertificateThumbprint $Global:MSCloudLoginConnectionProfile.ExchangeOnline.CertificateThumbprint `
+                    -CertificateThumbprint $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.CertificateThumbprint `
                     -ShowBanner:$false `
                     -ShowProgress:$false `
-                    -ConnectionUri $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Endpoints.ConnectionUri `
-                    -AzureADAuthorizationEndpointUri $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Endpoints.AzureADAuthorizationEndpointUri `
+                    -ConnectionUri $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Endpoints.ConnectionUri `
+                    -AzureADAuthorizationEndpointUri $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Endpoints.AzureADAuthorizationEndpointUri `
                     -Verbose:$false `
                     -SkipLoadingCmdletHelp | Out-Null
                 $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ConnectedDateTime = [System.DateTime]::Now.ToString()
