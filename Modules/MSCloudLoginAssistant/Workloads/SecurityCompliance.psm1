@@ -83,7 +83,6 @@ function Connect-MSCloudLoginSecurityCompliance
                     -Organization $Global:MSCloudLoginConnectionProfile.OrganizationName `
                     -CertificateThumbprint $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.CertificateThumbprint `
                     -ShowBanner:$false `
-                    -ShowProgress:$false `
                     -ConnectionUri $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Endpoints.ConnectionUri `
                     -AzureADAuthorizationEndpointUri $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Endpoints.AzureADAuthorizationEndpointUri `
                     -Verbose:$false `
