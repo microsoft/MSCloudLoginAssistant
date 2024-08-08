@@ -85,8 +85,7 @@ function Connect-MSCloudLoginSecurityCompliance
                     -ShowBanner:$false `
                     -ConnectionUri $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Endpoints.ConnectionUri `
                     -AzureADAuthorizationEndpointUri $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Endpoints.AzureADAuthorizationEndpointUri `
-                    -Verbose:$false `
-                    -SkipLoadingCmdletHelp | Out-Null
+                    -Verbose:$false
                 $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ConnectedDateTime = [System.DateTime]::Now.ToString()
                 $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.MultiFactorAuthentication = $false
                 $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Connected = $true
