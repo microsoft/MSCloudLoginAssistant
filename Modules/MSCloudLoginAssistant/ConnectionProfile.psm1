@@ -12,6 +12,9 @@ class MSCloudLoginConnectionProfile
     [ExchangeOnline]
     $ExchangeOnline
 
+    [Fabric]
+    $Fabric
+
     [MicrosoftGraph]
     $MicrosoftGraph
 
@@ -23,6 +26,9 @@ class MSCloudLoginConnectionProfile
 
     [SecurityComplianceCenter]
     $SecurityComplianceCenter
+
+    [SharePointOnlineREST]
+    $SharePointOnlineREST
 
     [Tasks]
     $Tasks
@@ -37,10 +43,12 @@ class MSCloudLoginConnectionProfile
         # Workloads Object Creation
         $this.AzureDevOPS    = New-Object AzureDevOPS
         $this.ExchangeOnline = New-Object ExchangeOnline
+        $this.Fabric = New-Object Fabric
         $this.MicrosoftGraph = New-Object MicrosoftGraph
         $this.PnP = New-Object PnP
         $this.PowerPlatform = New-Object PowerPlatform
         $this.SecurityComplianceCenter = New-Object SecurityComplianceCenter
+        $this.SharePointOnlineREST = New-Object SharePointOnlineREST
         $this.Tasks = New-Object Tasks
         $this.Teams = New-Object Teams
     }
@@ -229,7 +237,7 @@ class AzureDevOPS:Workload
     [string]
     $AccessToken
 
-    Tasks()
+    AzureDevOPS()
     {
     }
 
@@ -311,6 +319,53 @@ class ExchangeOnline:Workload
         Write-Verbose -Message 'Disconnecting from Exchange Online Connection'
         Disconnect-ExchangeOnline -Confirm:$false
         $this.Connected = $false
+    }
+}
+
+class Fabric:Workload
+{
+    [string]
+    $HostUrl
+
+    [string]
+    $AuthorizationUrl
+
+    [string]
+    $Scope
+
+    [string]
+    $AccessToken
+
+    Fabric()
+    {
+    }
+
+    [void] Connect()
+    {
+        ([Workload]$this).Setup()
+        switch ($this.EnvironmentName)
+        {
+            'AzureDOD'
+            {
+                $this.HostUrl          = "https://api.fabric.microsoft.us"
+                $this.Scope            = "https://api.fabric.microsoft.us/.default"
+                $this.AuthorizationUrl = "https://login.microsoftonline.us"
+            }
+            'AzureUSGovernment'
+            {
+                $this.HostUrl          = "https://api.fabric.microsoft.us"
+                $this.Scope            = "https://api.fabric.microsoft.us/.default"
+                $this.AuthorizationUrl = "https://login.microsoftonline.us"
+            }
+            default
+            {
+                $this.HostUrl          = "https://api.fabric.microsoft.com"
+                $this.Scope            = "https://api.fabric.microsoft.com/.default"
+                $this.AuthorizationUrl = "https://login.microsoftonline.com"
+            }
+        }
+
+        Connect-MSCloudLoginFabric
     }
 }
 
@@ -523,6 +578,102 @@ class SecurityComplianceCenter:Workload
             }
         }
         Connect-MSCloudLoginSecurityCompliance
+    }
+}
+
+class SharePointOnlineREST:Workload
+{
+    [string]
+    $AdminUrl
+
+    [string]
+    $ConnectionUrl
+
+    [string]
+    $HostUrl
+
+    [string]
+    $AuthorizationUrl
+
+    [string]
+    $Scope
+
+    [string]
+    $AccessToken
+
+    SharePointOnlineREST()
+    {
+    }
+
+    [void] Connect()
+    {
+        ([Workload]$this).Setup()
+
+        # Retrieve the SPO Admin URL
+        if ($Global:MSCloudLoginConnectionProfile.SharePointOnlineREST.AuthenticationType -eq 'Credentials' -and `
+            -not $Global:MSCloudLoginConnectionProfile.SharePointOnlineREST.AdminUrl)
+        {
+            $this.AdminUrl = Get-SPOAdminUrl -Credential $Global:MSCloudLoginConnectionProfile.SharePointOnlineREST.Credentials
+            if ([String]::IsNullOrEmpty($this.AdminUrl) -eq $false)
+            {
+                $Global:MSCloudLoginConnectionProfile.SharePointOnlineREST.AdminUrl = $this.AdminUrl
+                $Global:MSCloudLoginConnectionProfile.SharePointOnlineREST.ConnectionUrl = $Global:MSCloudLoginConnectionProfile.SharePointOnlineREST.AdminUrl
+            }
+            else
+            {
+                throw 'Unable to retrieve SharePoint Admin Url. Check if the Graph can be contacted successfully.'
+            }
+        }
+        elseif (-not $Global:MSCloudLoginConnectionProfile.SharePointOnlineREST.AdminUrl -and `
+                -not [System.String]::IsNullOrEmpty($Global:MSCloudLoginConnectionProfile.SharePointOnlineREST.TenantId))
+        {
+            if ($Global:MSCloudLoginConnectionProfile.SharePointOnlineREST.TenantId.Contains('onmicrosoft'))
+            {
+                $domain = $Global:MSCloudLoginConnectionProfile.SharePointOnlineREST.TenantId.Replace('.onmicrosoft.', '-admin.sharepoint.')
+                if (-not $Global:MSCloudLoginConnectionProfile.SharePointOnlineREST.AdminUrl)
+                {
+                    $Global:MSCloudLoginConnectionProfile.SharePointOnlineREST.AdminUrl = "https://$domain"
+                }
+                $Global:MSCloudLoginConnectionProfile.SharePointOnlineREST.ConnectionUrl = ("https://$domain").Replace('-admin', '')
+            }
+            elseif ($Global:MSCloudLoginConnectionProfile.SharePointOnlineREST.TenantId.Contains('.onmschina.'))
+            {
+                $domain = $Global:MSCloudLoginConnectionProfile.SharePointOnlineREST.TenantId.Replace('.partner.onmschina.', '-admin.sharepoint.')
+                if (-not $Global:MSCloudLoginConnectionProfile.SharePointOnlineREST.AdminUrl)
+                {
+                    $Global:MSCloudLoginConnectionProfile.SharePointOnlineREST.AdminUrl = "https://$domain"
+                }
+                $Global:MSCloudLoginConnectionProfile.SharePointOnlineREST.ConnectionUrl = ("https://$domain").Replace('-admin', '')
+            }
+            else
+            {
+                throw 'TenantId must be in format contoso.onmicrosoft.com'
+            }
+        }
+
+        switch ($this.EnvironmentName)
+        {
+            'AzureDOD'
+            {
+                $this.HostUrl          = $this.AdminUrl
+                $this.Scope            = "$($this.AdminUrl)/.default"
+                $this.AuthorizationUrl = "https://login.microsoftonline.us"
+            }
+            'AzureUSGovernment'
+            {
+                $this.HostUrl          = $this.AdminUrl
+                $this.Scope            = "$($this.AdminUrl)/.default"
+                $this.AuthorizationUrl = "https://login.microsoftonline.us"
+            }
+            default
+            {
+                $this.HostUrl          = $this.AdminUrl
+                $this.Scope            = "$($this.AdminUrl)/.default"
+                $this.AuthorizationUrl = "https://login.microsoftonline.com"
+            }
+        }
+
+        Connect-MSCloudLoginSharePointOnlineREST
     }
 }
 

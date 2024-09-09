@@ -4,9 +4,9 @@ function Connect-M365Tenant
     param
     (
         [Parameter(Mandatory = $true)]
-        [ValidateSet('ExchangeOnline', `
+        [ValidateSet('AzureDevOPS', 'ExchangeOnline', 'Fabric', `
                 'SecurityComplianceCenter', 'PnP', 'PowerPlatforms', `
-                'MicrosoftTeams', 'MicrosoftGraph', 'Tasks', 'AzureDevOPS')]
+                'MicrosoftTeams', 'MicrosoftGraph', 'SharePointOnlineREST', 'Tasks')]
         [System.String]
         $Workload,
 
@@ -116,6 +116,18 @@ function Connect-M365Tenant
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Identity = $Identity
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Endpoints = $Endpoints
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connect()
+        }
+        'Fabric'
+        {
+            $Global:MSCloudLoginConnectionProfile.Fabric.Credentials = $Credential
+            $Global:MSCloudLoginConnectionProfile.Fabric.ApplicationId = $ApplicationId
+            $Global:MSCloudLoginConnectionProfile.Fabric.ApplicationSecret = $ApplicationSecret
+            $Global:MSCloudLoginConnectionProfile.Fabric.TenantId = $TenantId
+            $Global:MSCloudLoginConnectionProfile.Fabric.CertificateThumbprint = $CertificateThumbprint
+            $Global:MSCloudLoginConnectionProfile.Fabric.AccessTokens = $AccessTokens
+            $Global:MSCloudLoginConnectionProfile.Fabric.Identity = $Identity
+            $Global:MSCloudLoginConnectionProfile.Fabric.Endpoints = $Endpoints
+            $Global:MSCloudLoginConnectionProfile.Fabric.Connect()
         }
         'MicrosoftGraph'
         {
@@ -236,6 +248,28 @@ function Connect-M365Tenant
             $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.SkipModuleReload = $SkipModuleReload
             $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Endpoints = $Endpoints
             $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Connect()
+        }
+        'SharePointOnlineREST'
+        {
+            $Global:MSCloudLoginConnectionProfile.SharePointOnlineREST.Credentials = $Credential
+            $Global:MSCloudLoginConnectionProfile.SharePointOnlineREST.ApplicationId = $ApplicationId
+            $Global:MSCloudLoginConnectionProfile.SharePointOnlineREST.ApplicationSecret = $ApplicationSecret
+            $Global:MSCloudLoginConnectionProfile.SharePointOnlineREST.TenantId = $TenantId
+            $Global:MSCloudLoginConnectionProfile.SharePointOnlineREST.CertificateThumbprint = $CertificateThumbprint
+            $Global:MSCloudLoginConnectionProfile.SharePointOnlineREST.AccessTokens = $AccessTokens
+            $Global:MSCloudLoginConnectionProfile.SharePointOnlineREST.Identity = $Identity
+            $Global:MSCloudLoginConnectionProfile.SharePointOnlineREST.Endpoints = $Endpoints
+
+            $Global:MSCloudLoginConnectionProfile.SharePointOnlineREST.Connected = $false
+            $Global:MSCloudLoginConnectionProfile.SharePointOnlineREST.ConnectionUrl = $Url
+            $Global:MSCloudLoginConnectionProfile.SharePointOnlineREST.Connect()
+
+            # If the AdminUrl is empty and a URL was provided, assume that the url
+            # provided is the admin center;
+            if (-not $Global:MSCloudLoginConnectionProfile.PnP.AdminUrl -and $Url)
+            {
+                $Global:MSCloudLoginConnectionProfile.PnP.AdminUrl = $Url
+            }
         }
         'Tasks'
         {
