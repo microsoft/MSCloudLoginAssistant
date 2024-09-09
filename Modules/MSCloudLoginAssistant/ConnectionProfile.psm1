@@ -6,6 +6,9 @@ class MSCloudLoginConnectionProfile
     [string]
     $OrganizationName
 
+    [Azure]
+    $Azure
+
     [AzureDevOPS]
     $AzureDevOPS
 
@@ -41,6 +44,7 @@ class MSCloudLoginConnectionProfile
         $this.CreatedTime = [System.DateTime]::Now.ToString()
 
         # Workloads Object Creation
+        $this.Azure    = New-Object Azure
         $this.AzureDevOPS    = New-Object AzureDevOPS
         $this.ExchangeOnline = New-Object ExchangeOnline
         $this.Fabric = New-Object Fabric
@@ -220,6 +224,20 @@ class Workload
         {
             $this.AuthenticationType = 'Interactive'
         }
+    }
+}
+
+class Azure:Workload
+{
+    Azure()
+    {
+    }
+
+    [void] Connect()
+    {
+        ([Workload]$this).Setup()
+
+        Connect-MSCloudLoginAzure
     }
 }
 

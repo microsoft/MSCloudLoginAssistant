@@ -4,7 +4,7 @@ function Connect-M365Tenant
     param
     (
         [Parameter(Mandatory = $true)]
-        [ValidateSet('AzureDevOPS', 'ExchangeOnline', 'Fabric', `
+        [ValidateSet('Azure','AzureDevOPS', 'ExchangeOnline', 'Fabric', `
                 'SecurityComplianceCenter', 'PnP', 'PowerPlatforms', `
                 'MicrosoftTeams', 'MicrosoftGraph', 'SharePointOnlineREST', 'Tasks')]
         [System.String]
@@ -92,6 +92,18 @@ function Connect-M365Tenant
     Write-Verbose -Message "Trying to connect to platform {$Workload}"
     switch ($Workload)
     {
+        'Azure'
+        {
+            $Global:MSCloudLoginConnectionProfile.Azure.Credentials = $Credential
+            $Global:MSCloudLoginConnectionProfile.Azure.ApplicationId = $ApplicationId
+            $Global:MSCloudLoginConnectionProfile.Azure.ApplicationSecret = $ApplicationSecret
+            $Global:MSCloudLoginConnectionProfile.Azure.TenantId = $TenantId
+            $Global:MSCloudLoginConnectionProfile.Azure.CertificateThumbprint = $CertificateThumbprint
+            $Global:MSCloudLoginConnectionProfile.Azure.AccessTokens = $AccessTokens
+            $Global:MSCloudLoginConnectionProfile.Azure.Endpoints = $Endpoints
+            $Global:MSCloudLoginConnectionProfile.Azure.Connected = $false
+            $Global:MSCloudLoginConnectionProfile.Azure.Connect()
+        }
         'AzureDevOPS'
         {
             $Global:MSCloudLoginConnectionProfile.AzureDevOPS.Credentials = $Credential

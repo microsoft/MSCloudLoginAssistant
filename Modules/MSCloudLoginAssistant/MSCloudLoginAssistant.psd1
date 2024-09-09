@@ -68,6 +68,7 @@
     # Modules to import as nested modules of the module specified in RootModule/ModuleToProcess
     NestedModules          = @(
         'ConnectionProfile.psm1',
+        'Workloads\Azure.psm1',
         'Workloads\AzureDevOPS.psm1',
         'Workloads\ExchangeOnline.psm1',
         'Workloads\Fabric.psm1',
