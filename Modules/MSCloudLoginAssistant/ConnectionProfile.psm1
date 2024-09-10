@@ -112,6 +112,10 @@ class Workload
 
     Setup()
     {
+        $VerbosePreference = 'SilentlyContinue'
+        Write-Verbose -Message "Starting the Setup() logic"
+        Write-Verbose -Message "`$this.EnvironmentName = '$($this.EnvironmentName)'"
+        Write-Verbose -Message "`$Global:MSCloudLoginTriedGetEnvironment = '$($Global:MSCloudLoginTriedGetEnvironment)'"
         # Determine the environment name based on email
         if ($null -eq $this.EnvironmentName -and -not $Global:MSCloudLoginTriedGetEnvironment)
         {
@@ -122,6 +126,7 @@ class Workload
             }
             elseif ($this.ApplicationID -and $this.CertificateThumbprint)
             {
+                Write-Verbose -Message "Trying to retrieve the Cloud Environment using Certificate Thumbprint."
                 $Global:CloudEnvironmentInfo = Get-CloudEnvironmentInfo -ApplicationId $this.ApplicationId -TenantId $this.TenantId -CertificateThumbprint $this.CertificateThumbprint
             }
             elseif ($this.ApplicationID -and $this.ApplicationSecret)
@@ -174,7 +179,7 @@ class Workload
                 }
             }
         }
-
+        Write-Verbose -Message "`$this.EnvironmentName was detected to be {$($this.EnvironmentName)}"
         if ([System.String]::IsNullOrEmpty($this.EnvironmentName))
         {
             if ($null -ne $this.TenantId -and $this.TenantId.EndsWith('.cn'))
@@ -224,6 +229,7 @@ class Workload
         {
             $this.AuthenticationType = 'Interactive'
         }
+        Write-Verbose -Message "`$this.AuthenticationType determined to be {$($this.AuthenticationType)}"
     }
 }
 
@@ -235,6 +241,7 @@ class Azure:Workload
 
     [void] Connect()
     {
+        $Global:MSCloudLoginTriedGetEnvironment = $false
         ([Workload]$this).Setup()
 
         Connect-MSCloudLoginAzure

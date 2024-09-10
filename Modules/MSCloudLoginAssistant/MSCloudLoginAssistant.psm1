@@ -925,7 +925,8 @@ function Get-CloudEnvironmentInfo
         [switch]
         $Identity
     )
-
+    $VerbosePreference = 'SilentlyContinue'
+    Write-Verbose -Message "Retrieving Environment Details"
     try
     {
         if ($null -ne $Credentials)
