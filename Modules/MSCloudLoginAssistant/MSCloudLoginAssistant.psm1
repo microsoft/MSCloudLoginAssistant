@@ -6,7 +6,7 @@ function Connect-M365Tenant
         [Parameter(Mandatory = $true)]
         [ValidateSet('Azure','AzureDevOPS', 'ExchangeOnline', 'Fabric', `
                 'SecurityComplianceCenter', 'PnP', 'PowerPlatforms', `
-                'MicrosoftTeams', 'MicrosoftGraph', 'SharePointOnlineREST', 'Tasks')]
+                'MicrosoftTeams', 'MicrosoftGraph', 'SharePointOnlineREST', 'Tasks', 'DefenderForEndpoint')]
         [System.String]
         $Workload,
 
@@ -115,6 +115,18 @@ function Connect-M365Tenant
             $Global:MSCloudLoginConnectionProfile.AzureDevOPS.Identity = $Identity
             $Global:MSCloudLoginConnectionProfile.AzureDevOPS.Endpoints = $Endpoints
             $Global:MSCloudLoginConnectionProfile.AzureDevOPS.Connect()
+        }
+        'DefenderForEndpoint'
+        {
+            $Global:MSCloudLoginConnectionProfile.DefenderForEndpoint.Credentials = $Credential
+            $Global:MSCloudLoginConnectionProfile.DefenderForEndpoint.ApplicationId = $ApplicationId
+            $Global:MSCloudLoginConnectionProfile.DefenderForEndpoint.ApplicationSecret = $ApplicationSecret
+            $Global:MSCloudLoginConnectionProfile.DefenderForEndpoint.TenantId = $TenantId
+            $Global:MSCloudLoginConnectionProfile.DefenderForEndpoint.CertificateThumbprint = $CertificateThumbprint
+            $Global:MSCloudLoginConnectionProfile.DefenderForEndpoint.AccessTokens = $AccessTokens
+            $Global:MSCloudLoginConnectionProfile.DefenderForEndpoint.Identity = $Identity
+            $Global:MSCloudLoginConnectionProfile.DefenderForEndpoint.Endpoints = $Endpoints
+            $Global:MSCloudLoginConnectionProfile.DefenderForEndpoint.Connect()
         }
         'ExchangeOnline'
         {

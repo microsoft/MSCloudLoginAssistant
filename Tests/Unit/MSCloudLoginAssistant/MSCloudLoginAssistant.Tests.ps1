@@ -233,6 +233,25 @@ Describe -Name $Global:DscHelper.DescribeHeader -Fixture {
                 Test-MSCloudLogin @testParams | Assert-MockCalled -CommandName Invoke-Expression
             }
         }
+
+        Context -Name "Connecting to DefenderForEndpoint for the first time" -Fixture {
+            $CallNumber = 0
+            Mock -CommandName Invoke-Expression -MockWith {
+                if ($CallNumber -eq 0)
+                {
+                    $CallNumber++
+                }
+            }
+
+            $testParams = @{
+                Platform        = "DefenderForEndpoint"
+                CloudCredential = $GlobalAdminAccount
+            }
+
+            It 'Should Call the Login Method successfully' {
+                Test-MSCloudLogin @testParams | Assert-MockCalled -CommandName Invoke-Expression
+            }
+        }
     }
 }
 

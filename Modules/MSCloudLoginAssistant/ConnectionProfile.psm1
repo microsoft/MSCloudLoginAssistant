@@ -12,6 +12,9 @@ class MSCloudLoginConnectionProfile
     [AzureDevOPS]
     $AzureDevOPS
 
+    [DefenderForEndpoint]
+    $DefenderForEndpoint
+
     [ExchangeOnline]
     $ExchangeOnline
 
@@ -46,6 +49,7 @@ class MSCloudLoginConnectionProfile
         # Workloads Object Creation
         $this.Azure    = New-Object Azure
         $this.AzureDevOPS    = New-Object AzureDevOPS
+        $this.DefenderForEndpoint = New-Object DefenderForEndpoint
         $this.ExchangeOnline = New-Object ExchangeOnline
         $this.Fabric = New-Object Fabric
         $this.MicrosoftGraph = New-Object MicrosoftGraph
@@ -293,6 +297,54 @@ class AzureDevOPS:Workload
 
         Connect-MSCloudLoginAzureDevOPS
     }
+}
+
+class DefenderForEndpoint:Workload
+{
+    [string]
+    $HostUrl
+
+    [string]
+    $AuthorizationUrl
+
+    [string]
+    $Scope
+
+    [string]
+    $AccessToken
+
+    DefenderForEndpoint()
+    {
+    }
+
+    [void] Connect()
+    {
+        ([Workload]$this).Setup()
+
+        switch ($this.EnvironmentName)
+        {
+            'AzureDOD'
+            {
+                $this.HostUrl = 'https://api-gov.securitycenter.microsoft.us'
+                $this.Scope = 'https://api.securitycenter.microsoft.com/'
+                $this.AuthorizationUrl = 'https://login.microsoftonline.us'
+            }
+            'AzureUSGovernment'
+            {
+                $this.HostUrl = 'https://api-gcc.securitycenter.microsoft.us'
+                $this.Scope = 'https://api.securitycenter.microsoft.com/'
+                $this.AuthorizationUrl = 'https://login.microsoftonline.com'
+            }
+            default
+            {
+                $this.HostUrl = 'https://api.security.microsoft.com'
+                $this.Scope = 'https://api.securitycenter.microsoft.com/'
+                $this.AuthorizationUrl = 'https://login.microsoftonline.com'
+            }
+        }
+        Connect-MSCloudLoginDefenderForEndpoint
+    }
+
 }
 
 class ExchangeOnline:Workload
