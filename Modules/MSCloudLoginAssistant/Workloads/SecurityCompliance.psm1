@@ -70,13 +70,6 @@ function Connect-MSCloudLoginSecurityCompliance
             if ($null -ne $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Endpoints -and `
             $null -ne $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Endpoints.ConnectionUri -and `
             $null -ne $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.Endpoints.AzureADAuthorizationEndpointUri)
-            if ($null -eq $Global:MSCloudLoginConnectionProfile.OrganizationName)
-            {
-                $Global:MSCloudLoginConnectionProfile.OrganizationName = Get-MSCloudLoginOrganizationName `
-                    -ApplicationId $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ApplicationId `
-                    -TenantId $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.TenantId `
-                    -CertificateThumbprint $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.CertificateThumbprint
-            }
             {
                 Write-Verbose -Message "Connecting by endpoints URI"
                 Connect-IPPSSession -AppId $Global:MSCloudLoginConnectionProfile.SecurityComplianceCenter.ApplicationId `
