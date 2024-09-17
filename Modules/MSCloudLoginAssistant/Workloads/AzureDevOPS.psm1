@@ -25,10 +25,126 @@ function Connect-MSCloudLoginAzureDevOPS
             throw $_
         }
     }
+    elseif ($Global:MSCloudLoginConnectionProfile.AzureDevOPS.AuthenticationType -eq 'CredentialsWithApplicationId' -or
+                $Global:MSCloudLoginConnectionProfile.AzureDevOPS.AuthenticationType -eq 'Credentials' -or
+                $Global:MSCloudLoginConnectionProfile.AzureDevOPS.AuthenticationType -eq 'CredentialsWithTenantId')
+    {
+        Write-Verbose -MEssage "Attempting to connecto to Azure DevOPS using Credentials."
+        Connect-MSCloudAzureDevOPSWithUser
+        Write-Verbose -Message "Successfully connected to Azure DevOPS using Credentials"
+    }
     else
     {
         throw "Specified authentication method is not supported."
     }
+}
+function Connect-MSCloudAzureDevOPSWithUser
+{
+    [CmdletBinding()]
+    param()
+
+    if ([System.String]::IsNullOrEmpty($Global:MSCloudLoginConnectionProfile.AzureDevOPS.TenantId))
+    {
+        $tenantid = $Global:MSCloudLoginConnectionProfile.AzureDevOPS.Credentials.UserName.Split('@')[1]
+    }
+    else
+    {
+        $tenantId = $Global:MSCloudLoginConnectionProfile.AzureDevOPS.TenantId
+    }
+    $username = $Global:MSCloudLoginConnectionProfile.AzureDevOPS.Credentials.UserName
+    $password = $Global:MSCloudLoginConnectionProfile.AzureDevOPS.Credentials.GetNetworkCredential().password
+
+    $clientId = '1950a258-227b-4e31-a9cf-717495945fc2'
+    $uri = "$($Global:MSCloudLoginConnectionProfile.AzureDevOPS.AuthorizationUrl)/organizations/oauth2/token"
+    $Body = @{
+        grant_type   = 'password'
+        # Client id below is for Azure PowerShell
+        client_id    = '1950a258-227b-4e31-a9cf-717495945fc2'
+        username     = $username
+        password     = $password
+        resource     = "499b84ac-1321-427f-aa17-267ca6975798"
+    }
+    try
+    {
+        $managementToken = Invoke-RestMethod $uri `
+            -Method POST `
+            -Body $Body `
+            -ContentType 'application/x-www-form-urlencoded' `
+            -ErrorAction SilentlyContinue
+
+        $Global:MSCloudLoginConnectionProfile.AzureDevOPS.AccessToken = $managementToken.token_type.ToString() + ' ' + $managementToken.access_token.ToString()
+        $Global:MSCloudLoginConnectionProfile.AzureDevOPS.Connected = $true
+        $Global:MSCloudLoginConnectionProfile.AzureDevOPS.ConnectedDateTime = [System.DateTime]::Now.ToString()
+    }
+    catch
+    {
+        if ($_.ErrorDetails.Message -like "*AADSTS50076*")
+        {
+            Write-Verbose -Message "Account used required MFA"
+            Connect-MSCloudLoginAzureDevOPSWithUserMFA
+        }
+    }
+}
+function Connect-MSCloudAzureDevOPSWithUserMFA
+{
+    [CmdletBinding()]
+    param()
+
+    if ([System.String]::IsNullOrEmpty($Global:MSCloudLoginConnectionProfile.AzureDevOPS.TenantId))
+    {
+        $tenantid = $Global:MSCloudLoginConnectionProfile.AzureDevOPS.Credentials.UserName.Split('@')[1]
+    }
+    else
+    {
+        $tenantId = $Global:MSCloudLoginConnectionProfile.AzureDevOPS.TenantId
+    }
+    $clientId = '499b84ac-1321-427f-aa17-267ca6975798'
+    $deviceCodeUri = "$($Global:MSCloudLoginConnectionProfile.AzureDevOPS.AuthorizationUrl)/$tenantId/oauth2/devicecode"
+
+    $body = @{
+        client_id = $clientId
+        resource  = $Global:MSCloudLoginConnectionProfile.AzureDevOPS.AdminUrl
+    }
+    $DeviceCodeRequest = Invoke-RestMethod $deviceCodeUri `
+            -Method POST `
+            -Body $body
+
+    Write-Host "`r`n$($DeviceCodeRequest.message)" -ForegroundColor Yellow
+
+    $TokenRequestParams = @{
+        Method = 'POST'
+        Uri    = "$($Global:MSCloudLoginConnectionProfile.AzureDevOPS.AuthorizationUrl)/$TenantId/oauth2/token"
+        Body   = @{
+            grant_type = "urn:ietf:params:oauth:grant-type:device_code"
+            code       = $DeviceCodeRequest.device_code
+            client_id  = $clientId
+        }
+    }
+    $TimeoutTimer = [System.Diagnostics.Stopwatch]::StartNew()
+    while ([string]::IsNullOrEmpty($managementToken.access_token))
+    {
+        if ($TimeoutTimer.Elapsed.TotalSeconds -gt 300)
+        {
+            throw 'Login timed out, please try again.'
+        }
+        $managementToken = try
+        {
+            Invoke-RestMethod @TokenRequestParams -ErrorAction Stop
+        }
+        catch
+        {
+            $Message = $_.ErrorDetails.Message | ConvertFrom-Json
+            if ($Message.error -ne "authorization_pending")
+            {
+                throw
+            }
+        }
+        Start-Sleep -Seconds 1
+    }
+    $Global:MSCloudLoginConnectionProfile.AzureDevOPS.AccessToken = $managementToken.token_type.ToString() + ' ' + $managementToken.access_token.ToString()
+    $Global:MSCloudLoginConnectionProfile.AzureDevOPS.Connected = $true
+    $Global:MSCloudLoginConnectionProfile.AzureDevOPS.MultiFactorAuthentication = $true
+    $Global:MSCloudLoginConnectionProfile.AzureDevOPS.ConnectedDateTime = [System.DateTime]::Now.ToString()
 }
 
 function Connect-MSCloudLoginAzureDevOPSWithCertificateThumbprint
@@ -44,12 +160,13 @@ function Connect-MSCloudLoginAzureDevOPSWithCertificateThumbprint
 
     try
     {
+        Write-Verbose -Message "Retrieving certificate in CurrentUser\My\$($Global:MSCloudLoginConnectionProfile.AzureDevOPS.CertificateThumbprint)"
         $Certificate = Get-Item "Cert:\CurrentUser\My\$($Global:MSCloudLoginConnectionProfile.AzureDevOPS.CertificateThumbprint)" -ErrorAction SilentlyContinue
 
         if ($null -eq $Certificate)
         {
             Write-Verbose 'Certificate not found in CurrentUser\My, trying LocalMachine\My'
-
+            Write-Verbose -Message "Retrieving certificate in LocalMachine\My\$($Global:MSCloudLoginConnectionProfile.AzureDevOPS.CertificateThumbprint)"
             $Certificate = Get-ChildItem "Cert:\LocalMachine\My\$($Global:MSCloudLoginConnectionProfile.AzureDevOPS.CertificateThumbprint)" -ErrorAction SilentlyContinue
 
             if ($null -eq $Certificate)
