@@ -356,6 +356,15 @@ class ExchangeOnline:Workload
     [boolean]
     $SkipModuleReload = $false
 
+    [System.String[]]
+    $CmdletsToLoad = @()
+
+    [System.String[]]
+    $LoadedCmdlets = @()
+
+    [boolean]
+    $LoadedAllCmdlets = $false
+
     ExchangeOnline()
     {
     }
@@ -396,6 +405,9 @@ class ExchangeOnline:Workload
         Write-Verbose -Message 'Disconnecting from Exchange Online Connection'
         Disconnect-ExchangeOnline -Confirm:$false
         $this.Connected = $false
+        $this.LoadedAllCmdlets = $false
+        $this.LoadedCmdlets = @()
+        $this.CmdletsToLoad = @()
     }
 }
 
