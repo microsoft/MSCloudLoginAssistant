@@ -6,6 +6,9 @@ class MSCloudLoginConnectionProfile
     [string]
     $OrganizationName
 
+    [AdminAPI]
+    $AdminAPI
+
     [Azure]
     $Azure
 
@@ -47,6 +50,7 @@ class MSCloudLoginConnectionProfile
         $this.CreatedTime = [System.DateTime]::Now.ToString()
 
         # Workloads Object Creation
+        $this.AdminAPI    = New-Object AdminAPI
         $this.Azure    = New-Object Azure
         $this.AzureDevOPS    = New-Object AzureDevOPS
         $this.DefenderForEndpoint = New-Object DefenderForEndpoint
@@ -237,6 +241,48 @@ class Workload
     }
 }
 
+class AdminAPI:Workload
+{
+    [string]
+    $AuthorizationUrl
+
+    [string]
+    $Scope
+
+    [string]
+    $AccessToken
+
+    AdminAPI()
+    {
+    }
+
+    [void] Connect()
+    {
+        ([Workload]$this).Setup()
+
+        switch ($this.EnvironmentName)
+        {
+            'AzureDOD'
+            {
+                $this.Scope            = "6a8b4b39-c021-437c-b060-5a14a3fd65f3/.default"
+                $this.AuthorizationUrl = "https://login.microsoftonline.us"
+            }
+            'AzureUSGovernment'
+            {
+                $this.Scope            = "6a8b4b39-c021-437c-b060-5a14a3fd65f3/.default"
+                $this.AuthorizationUrl = "https://login.microsoftonline.us"
+            }
+            default
+            {
+                $this.Scope            = "6a8b4b39-c021-437c-b060-5a14a3fd65f3/.default"
+                $this.AuthorizationUrl = "https://login.microsoftonline.com"
+            }
+        }
+
+        Connect-MSCloudLoginAdminAPI
+    }
+}
+
 class Azure:Workload
 {
     Azure()
@@ -326,19 +372,19 @@ class DefenderForEndpoint:Workload
             'AzureDOD'
             {
                 $this.HostUrl = 'https://api-gov.securitycenter.microsoft.us'
-                $this.Scope = 'https://api.securitycenter.microsoft.com/'
+                $this.Scope = 'https://api.securitycenter.microsoft.com/.default'
                 $this.AuthorizationUrl = 'https://login.microsoftonline.us'
             }
             'AzureUSGovernment'
             {
                 $this.HostUrl = 'https://api-gcc.securitycenter.microsoft.us'
-                $this.Scope = 'https://api.securitycenter.microsoft.com/'
+                $this.Scope = 'https://api.securitycenter.microsoft.com/.default'
                 $this.AuthorizationUrl = 'https://login.microsoftonline.com'
             }
             default
             {
                 $this.HostUrl = 'https://api.security.microsoft.com'
-                $this.Scope = 'https://api.securitycenter.microsoft.com/'
+                $this.Scope = 'https://api.securitycenter.microsoft.com/.default'
                 $this.AuthorizationUrl = 'https://login.microsoftonline.com'
             }
         }
