@@ -61,7 +61,15 @@ function Connect-M365Tenant
 
         [Parameter()]
         [System.Collections.Hashtable]
-        $Endpoints
+        $Endpoints,
+
+        [Parameter()]
+        [ValidateScript(
+            { $Workload -eq 'ExchangeOnline' },
+            ErrorMessage = 'This parameter is only valid for ExchangeOnline workloads.'
+        )]
+        [System.String[]]
+        $ExchangeOnlineCmdlets = @()
     )
 
     $VerbosePreference = 'SilentlyContinue'
@@ -139,6 +147,7 @@ function Connect-M365Tenant
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.AccessTokens = $AccessTokens
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Identity = $Identity
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Endpoints = $Endpoints
+            $Global:MSCloudLoginConnectionProfile.ExchangeOnline.CmdletsToLoad = $ExchangeOnlineCmdlets
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connect()
         }
         'Fabric'
@@ -338,6 +347,7 @@ function Compare-InputParametersForChange
     }
     $currentParameters.Remove('Credential') | Out-Null
     $currentParameters.Remove('SkipModuleReload') | Out-Null
+    $currentParameters.Remove('CmdletsToLoad') | Out-Null
     $currentParameters.Remove('UseModernAuth') | Out-Null
     $currentParameters.Remove('ProfileName') | Out-Null
     $currentParameters.Remove('Verbose') | Out-Null

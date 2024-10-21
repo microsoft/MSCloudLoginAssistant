@@ -1,7 +1,11 @@
 function Connect-MSCloudLoginExchangeOnline
 {
     [CmdletBinding()]
-    param()
+    param(
+        [Parameter()]
+        [switch]
+        $SkipPSSessionEvaluation
+    )
 
     $WarningPreference = 'SilentlyContinue'
     $InformationPreference = 'SilentlyContinue'
@@ -10,15 +14,31 @@ function Connect-MSCloudLoginExchangeOnline
 
     Write-Verbose -Message 'Trying to get the Get-AcceptedDomain command from within MSCloudLoginAssistant'
 
+    if ($Global:MSCloudLoginConnectionProfile.ExchangeOnline.CmdletsToLoad.Count -eq 0)
+    {
+        $loadAllCmdlets = $true
+    }
+
     if ($Global:MSCloudLoginCurrentLoadedModule -eq "EXO")
     {
         try
         {
             Get-AcceptedDomain -ErrorAction Stop
-            Write-Verbose -Message 'Succeeded'
 
-            $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connected = $true
-            return
+            if (-not $loadAllCmdlets)
+            {
+                $missingCommands = $Global:MSCloudLoginConnectionProfile.ExchangeOnline.CmdletsToLoad | Where-Object -FilterScript {
+                    $Global:MSCloudLoginConnectionProfile.ExchangeOnline.LoadedCmdlets -notcontains $_
+                }
+            }
+
+            # $missingCommands is null if no missing commands are found
+            if ($Global:MSCloudLoginConnectionProfile.ExchangeOnline.LoadedAllCmdlets -or (-not $loadAllCmdlets -and $null -eq $missingCommands))
+            {
+                Write-Verbose -Message 'Succeeded'
+                $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connected = $true
+                return
+            }
         }
         catch
         {
@@ -33,10 +53,9 @@ function Connect-MSCloudLoginExchangeOnline
         return
     }
 
-    Write-Verbose -Message "Loaded Modules: $(Get-Module | Select-Object Name)"
-    $loadedModules = Get-Module
-    $AlreadyLoadedEXOProxyModules = $loadedModules | Where-Object -FilterScript { $_.ExportedCommands.Keys.Contains('Get-AcceptedDomain') }
-    foreach ($loadedModule in $AlreadyLoadedEXOProxyModules)
+    Write-Verbose -Message "Loaded Modules: $(Get-Module | Select-Object -ExpandProperty Name)"
+    $alreadyLoadedEXOProxyModules = Get-Module | Where-Object -FilterScript { $_.ExportedCommands.Keys.Contains('Get-AcceptedDomain') }
+    foreach ($loadedModule in $alreadyLoadedEXOProxyModules)
     {
         Write-Verbose -Message "Removing module {$($loadedModule.Name)} from current EXO session"
         Remove-Module $loadedModule.Name -Force -Verbose:$false | Out-Null
@@ -44,7 +63,7 @@ function Connect-MSCloudLoginExchangeOnline
 
     [array]$activeSessions = Get-PSSession | Where-Object -FilterScript { $_.ComputerName -like '*outlook.office*' -and $_.State -eq 'Opened' }
     Write-Verbose -Message "Active Sessions: $($activeSessions | Out-String)"
-    if ($activeSessions.Length -ge 1)
+    if (-not $SkipPSSessionEvaluation -and $activeSessions.Length -ge 1)
     {
         Write-Verbose -Message "Found {$($activeSessions.Length)} existing Exchange Online Session"
         $ProxyModule = Import-PSSession $activeSessions[0] `
@@ -54,20 +73,37 @@ function Connect-MSCloudLoginExchangeOnline
         Import-Module $ProxyModule -Global `
             -Verbose:$false | Out-Null
         $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connected = $true
-        Write-Verbose 'Reloaded the Exchange Module'
+        Write-Verbose -Message 'Reloaded the Exchange Module'
+
+        # Rerun the function to make sure we have all the necessary commands loaded
+        # but prevent an infinite loop by skipping the PSSession evaluation
+        Connect-MSCloudLoginExchangeOnline -SkipPSSessionEvaluation
         return
     }
     Write-Verbose -Message 'No active Exchange Online session found.'
 
     # Make sure we disconnect from any existing connections
     Disconnect-ExchangeOnline -Confirm:$false
+    $CommandName = @{}
+    if ($Global:MSCloudLoginConnectionProfile.ExchangeOnline.CmdletsToLoad.Count -gt 0)
+    {
+        # Make sure we have the Get-AcceptedDomain command available
+        if ($Global:MSCloudLoginConnectionProfile.ExchangeOnline.CmdletsToLoad -notcontains 'Get-AcceptedDomain')
+        {
+            $Global:MSCloudLoginConnectionProfile.ExchangeOnline.CmdletsToLoad += 'Get-AcceptedDomain'
+        }
+        # Include the previously loaded commands, if available
+        $combinedCmdlets = ($Global:MSCloudLoginConnectionProfile.ExchangeOnline.CmdletsToLoad + $Global:MSCloudLoginConnectionProfile.ExchangeOnline.LoadedCmdlets) | Select-Object -Unique
+        $CommandName.Add('CommandName', $combinedCmdlets)
+        Write-Verbose -Message "Commands to load: $($CommandName.CommandName -join ',')"
+    }
 
     if ($Global:MSCloudLoginConnectionProfile.ExchangeOnline.AuthenticationType -eq 'ServicePrincipalWithThumbprint')
     {
         Write-Verbose -Message "Attempting to connect to Exchange Online using AAD App {$ApplicationID}"
         try
         {
-            if ($NULL -eq $Global:MSCloudLoginConnectionProfile.OrganizationName)
+            if ($null -eq $Global:MSCloudLoginConnectionProfile.OrganizationName)
             {
                 $Global:MSCloudLoginConnectionProfile.OrganizationName = Get-MSCloudLoginOrganizationName `
                     -ApplicationId $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ApplicationId `
@@ -88,7 +124,8 @@ function Connect-MSCloudLoginExchangeOnline
                     -ConnectionUri $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Endpoints.ConnectionUri `
                     -AzureADAuthorizationEndpointUri $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Endpoints.AzureADAuthorizationEndpointUri `
                     -Verbose:$false `
-                    -SkipLoadingCmdletHelp | Out-Null
+                    -SkipLoadingCmdletHelp `
+                    @CommandName | Out-Null
             }
             else
             {
@@ -100,7 +137,8 @@ function Connect-MSCloudLoginExchangeOnline
                     -ShowProgress:$false `
                     -ExchangeEnvironmentName $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ExchangeEnvironmentName `
                     -Verbose:$false `
-                    -SkipLoadingCmdletHelp | Out-Null
+                    -SkipLoadingCmdletHelp `
+                    @CommandName | Out-Null
             }
 
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ConnectedDateTime = [System.DateTime]::Now.ToString()
@@ -125,7 +163,8 @@ function Connect-MSCloudLoginExchangeOnline
                 -ExchangeEnvironmentName $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ExchangeEnvironmentName `
                 -Verbose:$false `
                 -ErrorAction Stop `
-                -SkipLoadingCmdletHelp | Out-Null
+                -SkipLoadingCmdletHelp `
+                @CommandName | Out-Null
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ConnectedDateTime = [System.DateTime]::Now.ToString()
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connected = $true
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.MultiFactorAuthentication = $false
@@ -157,7 +196,8 @@ function Connect-MSCloudLoginExchangeOnline
                 -ExchangeEnvironmentName $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ExchangeEnvironmentName `
                 -Verbose:$false `
                 -ErrorAction Stop `
-                -SkipLoadingCmdletHelp | Out-Null
+                -SkipLoadingCmdletHelp `
+                @CommandName | Out-Null
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ConnectedDateTime = [System.DateTime]::Now.ToString()
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connected = $true
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.MultiFactorAuthentication = $false
@@ -194,7 +234,8 @@ function Connect-MSCloudLoginExchangeOnline
                 -ShowProgress:$false `
                 -ExchangeEnvironmentName $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ExchangeEnvironmentName `
                 -Verbose:$false `
-                -SkipLoadingCmdletHelp | Out-Null
+                -SkipLoadingCmdletHelp `
+                @CommandName | Out-Null
 
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ConnectedDateTime = [System.DateTime]::Now.ToString()
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connected = $false
@@ -224,7 +265,8 @@ function Connect-MSCloudLoginExchangeOnline
                 -ShowProgress:$false `
                 -ExchangeEnvironmentName $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ExchangeEnvironmentName `
                 -Verbose:$false `
-                -SkipLoadingCmdletHelp | Out-Null
+                -SkipLoadingCmdletHelp `
+                @CommandName | Out-Null
 
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ConnectedDateTime = [System.DateTime]::Now.ToString()
             $Global:MSCloudLoginConnectionProfile.ExchangeOnline.Connected = $false
@@ -236,7 +278,21 @@ function Connect-MSCloudLoginExchangeOnline
             throw $_
         }
     }
+    else
+    {
+        Write-Verbose -Message 'No valid authentication type found'
+        throw 'No valid authentication type found'
+    }
     $Global:MSCloudLoginCurrentLoadedModule = "EXO"
+
+    # Usually the tmpEXO* modules, but it might also be from another PSSession
+    $loadedEXOProxyModule = Get-Module | Where-Object -FilterScript { $_.ExportedCommands.Keys.Contains('Get-AcceptedDomain') }
+    $loadedEXOModule = Get-Module -Name 'ExchangeOnlineManagement'
+    $Global:MSCloudLoginConnectionProfile.ExchangeOnline.LoadedCmdlets = $loadedEXOProxyModule.ExportedCommands.Keys + $loadedEXOModule.ExportedCommands.Keys
+    if ($loadAllCmdlets)
+    {
+        $Global:MSCloudLoginConnectionProfile.ExchangeOnline.LoadedAllCmdlets = $true
+    }
 }
 
 function Connect-MSCloudLoginExchangeOnlineMFA
@@ -265,7 +321,8 @@ function Connect-MSCloudLoginExchangeOnlineMFA
                 -ShowProgress:$false `
                 -ExchangeEnvironmentName $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ExchangeEnvironmentName `
                 -Verbose:$false `
-                -SkipLoadingCmdletHelp | Out-Null
+                -SkipLoadingCmdletHelp `
+                @CommandName | Out-Null
             Write-Verbose -Message 'Successfully connected to Exchange Online using credentials with MFA'
         }
         else
@@ -277,7 +334,8 @@ function Connect-MSCloudLoginExchangeOnlineMFA
                 -DelegatedOrganization $TenantId `
                 -ExchangeEnvironmentName $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ExchangeEnvironmentName `
                 -Verbose:$false `
-                -SkipLoadingCmdletHelp | Out-Null
+                -SkipLoadingCmdletHelp `
+                @CommandName | Out-Null
             Write-Verbose -Message 'Successfully connected to Exchange Online using credentials and tenantId with MFA'
         }
         $Global:MSCloudLoginConnectionProfile.ExchangeOnline.ConnectedDateTime = [System.DateTime]::Now.ToString()
