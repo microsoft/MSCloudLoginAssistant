@@ -65,8 +65,7 @@ function Connect-M365Tenant
 
         [Parameter()]
         [ValidateScript(
-            { $Workload -eq 'ExchangeOnline' },
-            ErrorMessage = 'This parameter is only valid for ExchangeOnline workloads.'
+            { $Workload -eq 'ExchangeOnline' }
         )]
         [System.String[]]
         $ExchangeOnlineCmdlets = @()
