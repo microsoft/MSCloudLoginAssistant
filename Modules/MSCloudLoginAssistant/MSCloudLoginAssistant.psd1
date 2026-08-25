@@ -12,7 +12,7 @@
     RootModule             = 'MSCloudLoginAssistant.psm1'
 
     # Version number of this module.
-    ModuleVersion          = '1.2.5'
+    ModuleVersion          = '1.2.6'
 
     # Supported PSEditions
     # CompatiblePSEditions = @()
@@ -112,7 +112,7 @@
             # IconUri = ''
 
             # ReleaseNotes of this module
-            ReleaseNotes = '* Fixed an issue with connecting to a second Teams tenant when another one was already connected.'
+            ReleaseNotes = '* Fixed an issue where a failed Azure sign-in was reported as connected instead of throwing.'
 
             # Prerelease string of this module
             # Prerelease = '-pre'
