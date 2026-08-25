@@ -210,6 +210,75 @@ Describe 'Connect-MSCloudLoginAzure' {
                 $Script:MSCloudLoginConnectionProfile.Azure.Connected = $false
 
                 { Connect-MSCloudLoginAzure } | Should -Throw '*Specified authentication method is not supported*'
+                $Script:MSCloudLoginConnectionProfile.Azure.Connected | Should -BeFalse
+            }
+        }
+    }
+
+    Context 'When Connect-AzAccount fails' {
+        BeforeEach {
+            InModuleScope 'MSCloudLoginAssistant' {
+                Mock -CommandName Add-MSCloudLoginAssistantEvent -MockWith { }
+                Mock -CommandName Test-MSCloudLoginConnectionReusable -MockWith { return $false }
+
+                $Script:MSCloudLoginConnectionProfile = New-Object MSCloudLoginConnectionProfile
+                $Script:MSCloudLoginConnectionProfile.Azure.ApplicationId = 'app-id'
+                $Script:MSCloudLoginConnectionProfile.Azure.TenantId = 'tenant-id'
+                $Script:MSCloudLoginConnectionProfile.Azure.EnvironmentName = 'AzureCloud'
+                $Script:MSCloudLoginConnectionProfile.Azure.Connected = $false
+            }
+        }
+
+        It 'Should rethrow a non-terminating sign-in error and stay disconnected' {
+            InModuleScope 'MSCloudLoginAssistant' {
+                Mock -CommandName Connect-AzAccount -MockWith { Write-Error 'The provided account app-id does not have access to subscription ID' }
+
+                $Script:MSCloudLoginConnectionProfile.Azure.AuthenticationType = 'ServicePrincipalWithThumbprint'
+                $Script:MSCloudLoginConnectionProfile.Azure.CertificateThumbprint = 'thumbprint'
+
+                { Connect-MSCloudLoginAzure } | Should -Throw '*does not have access to subscription ID*'
+                $Script:MSCloudLoginConnectionProfile.Azure.Connected | Should -BeFalse
+                Should -Invoke Add-MSCloudLoginAssistantEvent -ParameterFilter {
+                    $EntryType -eq 'Error' -and $Message -like 'Failed to connect to Azure:*'
+                }
+            }
+        }
+
+        It 'Should rethrow a terminating sign-in error for a client secret' {
+            InModuleScope 'MSCloudLoginAssistant' {
+                Mock -CommandName Connect-AzAccount -MockWith { throw 'AADSTS7000215: Invalid client secret' }
+
+                $Script:MSCloudLoginConnectionProfile.Azure.AuthenticationType = 'ServicePrincipalWithSecret'
+                $Script:MSCloudLoginConnectionProfile.Azure.ApplicationSecret = 'secret'
+
+                { Connect-MSCloudLoginAzure } | Should -Throw '*AADSTS7000215*'
+                $Script:MSCloudLoginConnectionProfile.Azure.Connected | Should -BeFalse
+            }
+        }
+
+        It 'Should rethrow a credentials sign-in error that is not an MFA challenge' {
+            InModuleScope 'MSCloudLoginAssistant' {
+                Mock -CommandName Connect-AzAccount -MockWith { throw 'AADSTS50126: Invalid username or password' }
+                Mock -CommandName Test-MSCloudLoginMFARequiredError -MockWith { return $false }
+
+                $secPwd = ConvertTo-SecureString 'password' -AsPlainText -Force
+                $Script:MSCloudLoginConnectionProfile.Azure.AuthenticationType = 'Credentials'
+                $Script:MSCloudLoginConnectionProfile.Azure.Credentials = New-Object PSCredential ('user@contoso.com', $secPwd)
+
+                { Connect-MSCloudLoginAzure } | Should -Throw '*AADSTS50126*'
+                $Script:MSCloudLoginConnectionProfile.Azure.Connected | Should -BeFalse
+                Should -Invoke Connect-AzAccount -Times 1 -Exactly
+            }
+        }
+
+        It 'Should rethrow a managed identity sign-in error' {
+            InModuleScope 'MSCloudLoginAssistant' {
+                Mock -CommandName Connect-AzAccount -MockWith { Write-Error 'No managed identity endpoint found' }
+
+                $Script:MSCloudLoginConnectionProfile.Azure.AuthenticationType = 'Identity'
+
+                { Connect-MSCloudLoginAzure } | Should -Throw '*No managed identity endpoint found*'
+                $Script:MSCloudLoginConnectionProfile.Azure.Connected | Should -BeFalse
             }
         }
     }

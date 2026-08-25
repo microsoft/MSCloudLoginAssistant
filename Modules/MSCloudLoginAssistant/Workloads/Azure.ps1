@@ -5,7 +5,8 @@ function Connect-MSCloudLoginAzure
 
     $ProgressPreference = 'SilentlyContinue'
     $source = 'Connect-MSCloudLoginAzure'
-    if (Test-MSCloudLoginConnectionReusable -WorkloadProfile $Script:MSCloudLoginConnectionProfile.Azure `
+    $workloadProfile = $Script:MSCloudLoginConnectionProfile.Azure
+    if (Test-MSCloudLoginConnectionReusable -WorkloadProfile $workloadProfile `
             -ProbeScript { Get-AzContext } `
             -Source $source)
     {
@@ -13,111 +14,119 @@ function Connect-MSCloudLoginAzure
     }
 
     $additionalParameters = @{}
-    if ($Script:MSCloudLoginConnectionProfile.Azure.SubscriptionId)
+    if ($workloadProfile.SubscriptionId)
     {
-        $additionalParameters['Subscription'] = $Script:MSCloudLoginConnectionProfile.Azure.SubscriptionId
+        $additionalParameters['Subscription'] = $workloadProfile.SubscriptionId
     }
 
-    if ($Script:MSCloudLoginConnectionProfile.Azure.AuthenticationType -eq 'ServicePrincipalWithThumbprint')
+    try
     {
-        Add-MSCloudLoginAssistantEvent -Message 'Connecting to Azure using AAD App with Certificate Thumbprint' -Source $source
-        Connect-AzAccount -ServicePrincipal `
-            -ApplicationId $Script:MSCloudLoginConnectionProfile.Azure.ApplicationId `
-            -TenantId $Script:MSCloudLoginConnectionProfile.Azure.TenantId `
-            -CertificateThumbprint $Script:MSCloudLoginConnectionProfile.Azure.CertificateThumbprint `
-            -Environment $Script:MSCloudLoginConnectionProfile.Azure.EnvironmentName `
-            @additionalParameters | Out-Null
-        $Script:MSCloudLoginConnectionProfile.Azure.CompleteConnection()
-    }
-    elseif ($Script:MSCloudLoginConnectionProfile.Azure.AuthenticationType -eq 'ServicePrincipalWithSecret')
-    {
-        Add-MSCloudLoginAssistantEvent -Message 'Connecting to Azure using AAD App with Client Secret' -Source $source
-        $secStringPassword = $Script:MSCloudLoginConnectionProfile.Azure.ApplicationSecret | ConvertTo-SecureString -AsPlainText -Force
-        $credential = [System.Management.Automation.PSCredential]::new($Script:MSCloudLoginConnectionProfile.Azure.ApplicationId, $secStringPassword)
-        Connect-AzAccount -ServicePrincipal `
-            -Credential $credential `
-            -TenantId $Script:MSCloudLoginConnectionProfile.Azure.TenantId `
-            -Environment $Script:MSCloudLoginConnectionProfile.Azure.EnvironmentName `
-            @additionalParameters | Out-Null
-        $Script:MSCloudLoginConnectionProfile.Azure.CompleteConnection()
-    }
-    elseif ($Script:MSCloudLoginConnectionProfile.Azure.AuthenticationType -eq 'ServicePrincipalWithPath')
-    {
-        Add-MSCloudLoginAssistantEvent -Message 'Connecting to Azure using AAD App with Certificate Path' -Source $source
-        Connect-AzAccount -ServicePrincipal `
-            -ApplicationId $Script:MSCloudLoginConnectionProfile.Azure.ApplicationId `
-            -TenantId $Script:MSCloudLoginConnectionProfile.Azure.TenantId `
-            -CertificatePath $Script:MSCloudLoginConnectionProfile.Azure.CertificatePath `
-            -CertificatePassword $Script:MSCloudLoginConnectionProfile.Azure.CertificatePassword `
-            -Environment $Script:MSCloudLoginConnectionProfile.Azure.EnvironmentName `
-            @additionalParameters | Out-Null
-        $Script:MSCloudLoginConnectionProfile.Azure.CompleteConnection()
-    }
-    elseif ($Script:MSCloudLoginConnectionProfile.Azure.AuthenticationType -eq 'CredentialsWithApplicationId' -or
-        $Script:MSCloudLoginConnectionProfile.Azure.AuthenticationType -eq 'Credentials' -or
-        $Script:MSCloudLoginConnectionProfile.Azure.AuthenticationType -eq 'CredentialsWithTenantId')
-    {
-        Add-MSCloudLoginAssistantEvent -Message 'Connecting to Azure using Credentials' -Source $source
-        try
+        if ($workloadProfile.AuthenticationType -eq 'ServicePrincipalWithThumbprint')
         {
-            if ([System.String]::IsNullOrEmpty($Script:MSCloudLoginConnectionProfile.Azure.TenantId))
-            {
-                $Script:MSCloudLoginConnectionProfile.Azure.TenantId = Get-MSCloudLoginTenantDomainFromCredentials -Credentials $Script:MSCloudLoginConnectionProfile.Azure.Credentials
-            }
-            Connect-AzAccount -Credential $Script:MSCloudLoginConnectionProfile.Azure.Credentials `
-                -TenantId $Script:MSCloudLoginConnectionProfile.Azure.TenantId `
-                -Environment $Script:MSCloudLoginConnectionProfile.Azure.EnvironmentName `
+            Add-MSCloudLoginAssistantEvent -Message 'Connecting to Azure using AAD App with Certificate Thumbprint' -Source $source
+            Connect-AzAccount -ServicePrincipal `
+                -ApplicationId $workloadProfile.ApplicationId `
+                -TenantId $workloadProfile.TenantId `
+                -CertificateThumbprint $workloadProfile.CertificateThumbprint `
+                -Environment $workloadProfile.EnvironmentName `
                 @additionalParameters `
                 -ErrorAction Stop | Out-Null
-            $Script:MSCloudLoginConnectionProfile.Azure.CompleteConnection()
+            $workloadProfile.CompleteConnection()
         }
-        catch
+        elseif ($workloadProfile.AuthenticationType -eq 'ServicePrincipalWithSecret')
         {
-            if ((Test-MSCloudLoginMFARequiredError -ErrorRecord $_) -and -not (Assert-IsNonInteractiveShell))
+            Add-MSCloudLoginAssistantEvent -Message 'Connecting to Azure using AAD App with Client Secret' -Source $source
+            $secStringPassword = $workloadProfile.ApplicationSecret | ConvertTo-SecureString -AsPlainText -Force
+            $credential = [System.Management.Automation.PSCredential]::new($workloadProfile.ApplicationId, $secStringPassword)
+            Connect-AzAccount -ServicePrincipal `
+                -Credential $credential `
+                -TenantId $workloadProfile.TenantId `
+                -Environment $workloadProfile.EnvironmentName `
+                @additionalParameters `
+                -ErrorAction Stop | Out-Null
+            $workloadProfile.CompleteConnection()
+        }
+        elseif ($workloadProfile.AuthenticationType -eq 'ServicePrincipalWithPath')
+        {
+            Add-MSCloudLoginAssistantEvent -Message 'Connecting to Azure using AAD App with Certificate Path' -Source $source
+            Connect-AzAccount -ServicePrincipal `
+                -ApplicationId $workloadProfile.ApplicationId `
+                -TenantId $workloadProfile.TenantId `
+                -CertificatePath $workloadProfile.CertificatePath `
+                -CertificatePassword $workloadProfile.CertificatePassword `
+                -Environment $workloadProfile.EnvironmentName `
+                @additionalParameters `
+                -ErrorAction Stop | Out-Null
+            $workloadProfile.CompleteConnection()
+        }
+        elseif ($workloadProfile.AuthenticationType -eq 'CredentialsWithApplicationId' -or
+            $workloadProfile.AuthenticationType -eq 'Credentials' -or
+            $workloadProfile.AuthenticationType -eq 'CredentialsWithTenantId')
+        {
+            Add-MSCloudLoginAssistantEvent -Message 'Connecting to Azure using Credentials' -Source $source
+            if ([System.String]::IsNullOrEmpty($workloadProfile.TenantId))
             {
-                Add-MSCloudLoginAssistantEvent -Message 'MFA is required. Fallback to interactive login.' -Source $source -EntryType 'Warning'
-                Connect-AzAccount -TenantId $Script:MSCloudLoginConnectionProfile.Azure.TenantId `
-                    -Environment $Script:MSCloudLoginConnectionProfile.Azure.EnvironmentName `
-                    @additionalParameters | Out-Null
-                $Script:MSCloudLoginConnectionProfile.Azure.CompleteConnection($true)
+                $workloadProfile.TenantId = Get-MSCloudLoginTenantDomainFromCredentials -Credentials $workloadProfile.Credentials
             }
-            else
+
+            try
             {
-                $Script:MSCloudLoginConnectionProfile.Azure.Connected = $false
-                Add-MSCloudLoginAssistantEvent -Message "Failed to connect to Azure with Credentials: $($_.Exception.Message)" -Source $source -EntryType 'Error'
-                throw
+                Connect-AzAccount -Credential $workloadProfile.Credentials `
+                    -TenantId $workloadProfile.TenantId `
+                    -Environment $workloadProfile.EnvironmentName `
+                    @additionalParameters `
+                    -ErrorAction Stop | Out-Null
+                $workloadProfile.CompleteConnection()
+            }
+            catch
+            {
+                if (-not (Test-MSCloudLoginMFARequiredError -ErrorRecord $_) -or (Assert-IsNonInteractiveShell))
+                {
+                    throw
+                }
+
+                Add-MSCloudLoginAssistantEvent -Message 'MFA is required. Fallback to interactive login.' -Source $source -EntryType 'Warning'
+                Connect-AzAccount -TenantId $workloadProfile.TenantId `
+                    -Environment $workloadProfile.EnvironmentName `
+                    @additionalParameters `
+                    -ErrorAction Stop | Out-Null
+                $workloadProfile.CompleteConnection($true)
             }
         }
-    }
-    elseif ($Script:MSCloudLoginConnectionProfile.Azure.AuthenticationType -eq 'AccessTokens')
-    {
-        Add-MSCloudLoginAssistantEvent -Message 'Connecting to Azure using Access Token' -Source $source
-        Connect-AzAccount -AccessToken $Script:MSCloudLoginConnectionProfile.Azure.AccessTokens[0]`
-            -TenantId $Script:MSCloudLoginConnectionProfile.Azure.TenantId `
-            -Environment $Script:MSCloudLoginConnectionProfile.Azure.EnvironmentName `
-            -AccountId "MSCloudLoginAssistant" `
-            @additionalParameters | Out-Null
-        $Script:MSCloudLoginConnectionProfile.Azure.CompleteConnection()
-    }
-    elseif ($Script:MSCloudLoginConnectionProfile.Azure.AuthenticationType -eq 'Identity')
-    {
-        Add-MSCloudLoginAssistantEvent -Message 'Connecting to Azure using Managed Identity' -Source $source
-        Connect-AzAccount -Identity `
-            -Environment $Script:MSCloudLoginConnectionProfile.Azure.EnvironmentName `
-            @additionalParameters | Out-Null
-        $Script:MSCloudLoginConnectionProfile.Azure.CompleteConnection()
-    }
-    else
-    {
-        throw 'Specified authentication method is not supported.'
-    }
+        elseif ($workloadProfile.AuthenticationType -eq 'AccessTokens')
+        {
+            Add-MSCloudLoginAssistantEvent -Message 'Connecting to Azure using Access Token' -Source $source
+            Connect-AzAccount -AccessToken $workloadProfile.AccessTokens[0] `
+                -TenantId $workloadProfile.TenantId `
+                -Environment $workloadProfile.EnvironmentName `
+                -AccountId 'MSCloudLoginAssistant' `
+                @additionalParameters `
+                -ErrorAction Stop | Out-Null
+            $workloadProfile.CompleteConnection()
+        }
+        elseif ($workloadProfile.AuthenticationType -eq 'Identity')
+        {
+            Add-MSCloudLoginAssistantEvent -Message 'Connecting to Azure using Managed Identity' -Source $source
+            Connect-AzAccount -Identity `
+                -Environment $workloadProfile.EnvironmentName `
+                @additionalParameters `
+                -ErrorAction Stop | Out-Null
+            $workloadProfile.CompleteConnection()
+        }
+        else
+        {
+            throw 'Specified authentication method is not supported.'
+        }
 
-    # If the connection to Azure was successful update the management URL
-    if ($Script:MSCloudLoginConnectionProfile.Azure.Connected)
-    {
-        $managementUrl = (Get-AzContext).Environment.ResourceManagerUrl
+        $managementUrl = (Get-AzContext -ErrorAction Stop).Environment.ResourceManagerUrl
         Add-MSCloudLoginAssistantEvent -Message "Setting Azure Management URL to $managementUrl" -Source $source
-        $Script:MSCloudLoginConnectionProfile.Azure.ManagementUrl = $managementUrl
+        $workloadProfile.ManagementUrl = $managementUrl
+    }
+    catch
+    {
+        $workloadProfile.Connected = $false
+        Add-MSCloudLoginAssistantEvent -Message "Failed to connect to Azure: $($_.Exception.Message)" -Source $source -EntryType 'Error'
+        throw
     }
 
     Add-MSCloudLoginAssistantEvent -Message 'Successfully connected to Azure' -Source $source
