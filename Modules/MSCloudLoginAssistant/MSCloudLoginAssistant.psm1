@@ -12,6 +12,13 @@ foreach ($module in $privateModules)
     Write-Verbose "Importing workload $($module.FullName)"
     . $module.FullName
 }
+$Script:MSCloudLoginConnectionProbes = @{
+    Azure          = { Get-AzContext }
+    MicrosoftGraph = { Get-MgContext }
+    Teams          = { Get-CsTeamsCallingPolicy }
+}
+
+$Script:MSCloudLoginWorkloadsWithoutSessionState = @('MicrosoftGraph', 'Teams', 'PowerPlatform')
 
 <#
 .SYNOPSIS
@@ -289,6 +296,33 @@ function Connect-M365Tenant
         if ($null -eq $Script:MSCloudLoginConnectionProfile)
         {
             $Script:MSCloudLoginConnectionProfile = New-Object MSCloudLoginConnectionProfile
+        }
+
+        # Returns an unchanged connection without the event log writes, parameter marshalling,
+        # connection lock and workload Connect() below.
+        # Requires a workload without per-session state - PnP binds a site URL, Azure a subscription
+        # and ExchangeOnline a cmdlet set, so those keep the drift detection further down.
+        $sessionShapedParameterNames = @('Url', 'EnableSearchOnlySession', 'SubscriptionId', 'ExchangeOnlineCmdlets')
+        $sessionShapeRequested = @($PSBoundParameters.Keys | Where-Object -FilterScript { $_ -in $sessionShapedParameterNames }).Count -gt 0
+
+        if ($workloadInternalName -in $Script:MSCloudLoginWorkloadsWithoutSessionState -and
+            -not $sessionShapeRequested -and
+            $Script:MSCloudLoginConnectionProfile.$workloadInternalName.Connected -and
+            -not (Compare-InputParametersForChange -CurrentParamSet $PSBoundParameters))
+        {
+            $reusableParameters = @{
+                WorkloadProfile = $Script:MSCloudLoginConnectionProfile.$workloadInternalName
+                Source          = $source
+            }
+            if ($null -ne $Script:MSCloudLoginConnectionProbes[$workloadInternalName])
+            {
+                $reusableParameters.ProbeScript = $Script:MSCloudLoginConnectionProbes[$workloadInternalName]
+            }
+
+            if (Test-MSCloudLoginConnectionReusable @reusableParameters)
+            {
+                return
+            }
         }
 
         Add-MSCloudLoginAssistantEvent -Message "Checking connection to platform {$Workload}" -Source $source
