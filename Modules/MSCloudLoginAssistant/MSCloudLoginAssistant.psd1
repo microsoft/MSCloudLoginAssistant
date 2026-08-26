@@ -12,7 +12,7 @@
     RootModule             = 'MSCloudLoginAssistant.psm1'
 
     # Version number of this module.
-    ModuleVersion          = '1.2.6'
+    ModuleVersion          = '1.2.7'
 
     # Supported PSEditions
     # CompatiblePSEditions = @()
@@ -112,7 +112,7 @@
             # IconUri = ''
 
             # ReleaseNotes of this module
-            ReleaseNotes = '* Fixed an issue where a failed Azure sign-in was reported as connected instead of throwing.'
+            ReleaseNotes = '* Reuse an established workload connection without re-running the connection setup.'
 
             # Prerelease string of this module
             # Prerelease = '-pre'

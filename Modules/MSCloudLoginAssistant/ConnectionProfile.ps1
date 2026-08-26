@@ -155,6 +155,14 @@ class Workload : ICloneable
     Setup()
     {
         $source = "Workload"
+
+        $environmentIsResolved = -not [System.String]::IsNullOrEmpty($this.EnvironmentName)
+        $authenticationTypeIsCurrent = $this.AuthenticationType -eq $this.RequestedAuthenticationType
+        if ($this.Connected -and $environmentIsResolved -and $authenticationTypeIsCurrent)
+        {
+            return
+        }
+
         Add-MSCloudLoginAssistantEvent -Message "Starting the Setup() logic" -Source $source
         Add-MSCloudLoginAssistantEvent -Message "`$this.EnvironmentName = '$($this.EnvironmentName)'" -Source $source
         Add-MSCloudLoginAssistantEvent -Message "`$Script:MSCloudLoginTriedGetEnvironment = '$($Script:MSCloudLoginTriedGetEnvironment)'" -Source $source

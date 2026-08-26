@@ -7,7 +7,7 @@ function Connect-MSCloudLoginMicrosoftGraph
     $source = 'Connect-MSCloudLoginMicrosoftGraph'
 
     if (Test-MSCloudLoginConnectionReusable -WorkloadProfile $Script:MSCloudLoginConnectionProfile.MicrosoftGraph `
-            -ProbeScript { Get-MgContext } `
+            -ProbeScript $Script:MSCloudLoginConnectionProbes.MicrosoftGraph `
             -Source $source)
     {
         return

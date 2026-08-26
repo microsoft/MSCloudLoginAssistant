@@ -7,7 +7,7 @@ function Connect-MSCloudLoginAzure
     $source = 'Connect-MSCloudLoginAzure'
     $workloadProfile = $Script:MSCloudLoginConnectionProfile.Azure
     if (Test-MSCloudLoginConnectionReusable -WorkloadProfile $workloadProfile `
-            -ProbeScript { Get-AzContext } `
+            -ProbeScript $Script:MSCloudLoginConnectionProbes.Azure `
             -Source $source)
     {
         return

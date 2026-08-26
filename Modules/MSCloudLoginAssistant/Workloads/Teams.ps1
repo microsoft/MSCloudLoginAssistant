@@ -54,7 +54,7 @@ function Connect-MSCloudLoginTeams
     $source = 'Connect-MSCloudLoginTeams'
 
     if (Test-MSCloudLoginConnectionReusable -WorkloadProfile $Script:MSCloudLoginConnectionProfile.Teams `
-            -ProbeScript { Get-CsTeamsCallingPolicy } `
+            -ProbeScript $Script:MSCloudLoginConnectionProbes.Teams `
             -Source $source)
     {
         return
